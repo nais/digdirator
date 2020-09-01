@@ -1,0 +1,7 @@
+domain: nais.io
+repo: github.com/nais/digdirator
+resources:
+- group: nais.io
+  kind: IDPortenClient
+  version: v1
+version: "2"

@@ -1,0 +1,137 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: idportenclients.nais.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.secretName
+    name: Secret
+    type: string
+  - JSONPath: .status.clientId
+    name: ClientId
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  group: nais.io
+  names:
+    kind: IDPortenClient
+    listKind: IDPortenClientList
+    plural: idportenclients
+    shortNames:
+    - idportenclient
+    singular: idportenclient
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: IDPortenClient is the Schema for the IDPortenClients API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: IDPortenClientSpec defines the desired state of IDPortenClient
+          properties:
+            clientName:
+              description: ClientName is the name of the client registered at DigDir
+              type: string
+            clientURI:
+              description: ClientURI is the URL to the client to be used at DigDir
+                when displaying a 'back' button or on errors
+              type: string
+            frontchannelLogoutURI:
+              description: FrontchannelLogoutURI is the URL that ID-porten sends a
+                requests to whenever a logout is triggered by another application
+                using the same session
+              type: string
+            postLogoutRedirectURIs:
+              description: PostLogoutRedirectURI is a list of valid URIs that ID-porten
+                may redirect to after logout
+              items:
+                type: string
+              type: array
+            refreshTokenLifetime:
+              description: RefreshTokenLifetime is the lifetime in seconds for the
+                issued refresh token from ID-porten
+              type: integer
+            replyURLs:
+              description: ReplyURLs is a list of reply URLs to be registered at DigDir
+              items:
+                type: string
+              type: array
+            scopes:
+              description: Scopes is a list of valid scopes that the client may request
+              items:
+                type: string
+              type: array
+            secretName:
+              description: SecretName is the name of the resulting Secret resource
+                to be created
+              type: string
+            tokenEndpointAuthMethod:
+              description: TokenEndpointAuthMethod is the preferred authentication
+                method for the client.
+              enum:
+              - client_secret_post
+              - client_secret_basic
+              - private_key_jwt
+              - none
+              type: string
+          required:
+          - frontchannelLogoutURI
+          - postLogoutRedirectURIs
+          - refreshTokenLifetime
+          - replyURLs
+          - scopes
+          - secretName
+          - tokenEndpointAuthMethod
+          type: object
+        status:
+          description: IDPortenClientStatus defines the observed state of IDPortenClient
+          properties:
+            clientId:
+              description: ClientId is the ID-porten client ID
+              type: string
+            correlationId:
+              description: CorrelationId is the ID referencing the processing transaction
+                last performed on this resource
+              type: string
+            provisionHash:
+              description: ProvisionHash is the hash of the IDPortenClient object
+              type: string
+            timestamp:
+              description: Timestamp is the last time the Status subresource was updated
+              format: date-time
+              type: string
+          required:
+          - clientId
+          - correlationId
+          type: object
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

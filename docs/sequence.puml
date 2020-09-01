@@ -1,0 +1,41 @@
+@startuml component
+title Digdirator Sequence Flow
+skinparam maxMessageSize 300
+autonumber
+
+actor developer as "Developer"
+control digdirator as "Digdirator"
+
+box "Cluster resources"
+participant IDPortenClient
+participant Secret
+end box
+
+participant digdir as "DigDir"
+
+==On create / update==
+developer -> IDPortenClient: Apply config
+
+loop forever
+	digdirator -> IDPortenClient: watch for updates
+end
+
+digdirator -> digdir: check if application exists
+digdirator -> digdir: register / update application
+digdirator -> digdirator: generate new set of credentials
+digdirator -> digdir: register new credentials
+
+group application already exists in ID-Porten
+    digdirator -> Secret: fetch existing credentials
+    digdirator -> digdir: invalidate older, non-used credentials
+end
+
+digdirator -> IDPortenClient: update status subresource
+digdirator -> Secret: inject credentials and metadata
+
+==On deletion==
+    developer -> IDPortenClient: delete
+    digdirator -> Secret: delete
+    digdirator -> digdir: delete
+
+@enduml
