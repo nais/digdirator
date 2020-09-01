@@ -95,7 +95,6 @@ func (r *Reconciler) prepare(req ctrl.Request, correlationId string, logger log.
 }
 
 func (r *Reconciler) process(tx transaction) error {
-
 	managedSecrets, err := secrets.GetManaged(tx.ctx, tx.instance, r.Reader)
 	if err != nil {
 		return err
@@ -103,11 +102,11 @@ func (r *Reconciler) process(tx transaction) error {
 
 	// todo - register/update idporten client
 
-	if err := r.createOrUpdateSecrets(tx); err != nil {
+	if err := r.secrets().createOrUpdate(tx); err != nil {
 		return err
 	}
 
-	if err := r.deleteUnusedSecrets(tx, managedSecrets.Unused); err != nil {
+	if err := r.secrets().deleteUnused(tx, managedSecrets.Unused); err != nil {
 		return err
 	}
 
