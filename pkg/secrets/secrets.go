@@ -99,7 +99,7 @@ func objectMeta(instance *v1.IDPortenClient) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:      instance.Spec.SecretName,
 		Namespace: instance.Namespace,
-		Labels:    labels.Labels(instance),
+		Labels:    labels.DefaultLabels(instance),
 	}
 }
 

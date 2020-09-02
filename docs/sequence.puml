@@ -20,12 +20,12 @@ loop forever
 	digdirator -> IDPortenClient: watch for updates
 end
 
-digdirator -> digdir: check if application exists
-digdirator -> digdir: register / update application
+digdirator -> digdir: check if client exists
+digdirator -> digdir: register / update client
 digdirator -> digdirator: generate new set of credentials
 digdirator -> digdir: register new credentials
 
-group application already exists in ID-Porten
+group client already exists in ID-Porten
     digdirator -> Secret: fetch existing credentials
     digdirator -> digdir: invalidate older, non-used credentials
 end

@@ -2,19 +2,19 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/go-logr/zapr"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/pkg/config"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"time"
 
 	naisiov1 "github.com/nais/digdirator/api/v1"
 	// +kubebuilder:scaffold:imports
@@ -26,12 +26,6 @@ var (
 )
 
 func init() {
-	formatter := log.JSONFormatter{
-		TimestampFormat: time.RFC3339Nano,
-	}
-	log.SetFormatter(&formatter)
-	log.SetLevel(log.DebugLevel)
-
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = naisiov1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
@@ -49,16 +43,16 @@ func main() {
 }
 
 func run() error {
+	cfg, err := setupConfig()
+	if err != nil {
+		return err
+	}
+
 	zapLogger, err := setupZapLogger()
 	if err != nil {
 		return err
 	}
 	ctrl.SetLogger(zapr.NewLogger(zapLogger))
-
-	cfg, err := setupConfig()
-	if err != nil {
-		return err
-	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -89,6 +83,20 @@ func run() error {
 }
 
 func setupZapLogger() (*zap.Logger, error) {
+	if viper.GetBool(config.DevelopmentMode) {
+		logger, err := zap.NewDevelopment()
+		if err != nil {
+			return nil, err
+		}
+		return logger, nil
+	}
+
+	formatter := log.JSONFormatter{
+		TimestampFormat: time.RFC3339Nano,
+	}
+	log.SetFormatter(&formatter)
+	log.SetLevel(log.DebugLevel)
+
 	loggerConfig := zap.NewProductionConfig()
 	loggerConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 	loggerConfig.EncoderConfig.TimeKey = "timestamp"

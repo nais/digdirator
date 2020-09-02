@@ -10,7 +10,7 @@ const (
 	TypeLabelValue string = "digdirator.nais.io"
 )
 
-func Labels(instance *v1.IDPortenClient) map[string]string {
+func DefaultLabels(instance *v1.IDPortenClient) map[string]string {
 	return map[string]string{
 		AppLabelKey:  instance.GetName(),
 		TypeLabelKey: TypeLabelValue,

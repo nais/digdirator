@@ -12,6 +12,8 @@ An example resource is available in [config/samples/idportenclient.yaml](config/
 
 ## Lifecycle
 
+![overview][overview]
+
 [overview]: ./docs/sequence.png "Sequence diagram"
 
 ## Development

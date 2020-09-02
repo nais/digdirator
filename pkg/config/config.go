@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"gopkg.in/square/go-jose.v2"
 	"sort"
 	"strings"
 
@@ -13,8 +12,10 @@ import (
 )
 
 type Config struct {
-	MetricsAddr string `json:"metrics-address"`
-	ClusterName string `json:"cluster-name"`
+	MetricsAddr     string `json:"metrics-address"`
+	ClusterName     string `json:"cluster-name"`
+	DevelopmentMode bool   `json:"development-mode"`
+	DigDir          DigDir `json:"digdir"`
 }
 
 type DigDir struct {
@@ -23,14 +24,15 @@ type DigDir struct {
 }
 
 type Auth struct {
-	Jwk jose.JSONWebKey `json:"jwk"`
+	Jwk string `json:"jwk"`
 }
 
 const (
-	MetricsAddress = "metrics-address"
-	ClusterName    = "cluster-name"
-	DigDirAuthJwk  = "digdir.auth.jwk"
-	DigDirEndpoint = "digdir.endpoint"
+	MetricsAddress  = "metrics-address"
+	ClusterName     = "cluster-name"
+	DevelopmentMode = "development-mode"
+	DigDirAuthJwk   = "digdir.auth.jwk"
+	DigDirEndpoint  = "digdir.endpoint"
 )
 
 func init() {
@@ -47,9 +49,10 @@ func init() {
 	viper.AddConfigPath("/etc")
 
 	flag.String(MetricsAddress, ":8080", "The address the metric endpoint binds to.")
-	flag.String(ClusterName, "", "The cluster in which this application should run")
-	flag.String(DigDirAuthJwk, "", "JWK for authenticating to DigDir")
-	flag.String(DigDirEndpoint, "", "Endpoint to DigDir")
+	flag.String(ClusterName, "", "The cluster in which this application should run.")
+	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
+	flag.String(DigDirAuthJwk, "", "JWK for authenticating to DigDir.")
+	flag.String(DigDirEndpoint, "", "Endpoint to DigDir.")
 }
 
 // Print out all configuration options except secret stuff.
