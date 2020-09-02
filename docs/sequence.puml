@@ -9,9 +9,11 @@ control digdirator as "Digdirator"
 box "Cluster resources"
 participant IDPortenClient
 participant Secret
+participant Application
 end box
 
 participant digdir as "DigDir"
+actor enduser as "End User"
 
 ==On create / update==
 developer -> IDPortenClient: Apply config
@@ -22,16 +24,28 @@ end
 
 digdirator -> digdir: check if client exists
 digdirator -> digdir: register / update client
-digdirator -> digdirator: generate new set of credentials
-digdirator -> digdir: register new credentials
+digdirator -> digdirator: generate new set of JWK
+digdirator -> digdir: register new JWK
 
 group client already exists in ID-Porten
-    digdirator -> Secret: fetch existing credentials
-    digdirator -> digdir: invalidate older, non-used credentials
+    digdirator -> Secret: fetch existing JWK
+    digdirator -> digdir: invalidate older, non-used JWK
 end
 
 digdirator -> IDPortenClient: update status subresource
-digdirator -> Secret: inject credentials and metadata
+digdirator -> Secret: inject JWK and metadata
+
+== Usage ==
+
+Secret -> Application: mount
+enduser -> Application: log in
+Application -> digdir: start OIDC auth code flow
+Application -> enduser: redirect to DigDir
+enduser -> digdir: authenticates
+digdir -> Application: auth code
+Application -> digdir: signed JWT, auth code, state
+digdir -> Application: id_token, access_token, (refresh_token)
+Application -> enduser: signed in
 
 ==On deletion==
     developer -> IDPortenClient: delete
