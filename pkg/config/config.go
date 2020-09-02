@@ -24,11 +24,13 @@ type DigDir struct {
 }
 
 type Auth struct {
-	Jwk      string   `json:"jwk"`
-	Endpoint string   `json:"endpoint"`
-	Audience string   `json:"audience"`
-	Scopes   []string `json:"scopes"`
-	Issuer   string   `json:"issuer"`
+	Jwk                 string   `json:"jwk"`
+	Endpoint            string   `json:"endpoint"`
+	Audience            string   `json:"audience"`
+	Scopes              []string `json:"scopes"`
+	Issuer              string   `json:"issuer"`
+	Certificate         string   `json:"certificate"`
+	CertificatePassword string   `json:"certificatePassword"`
 }
 
 type IDPorten struct {
@@ -36,12 +38,14 @@ type IDPorten struct {
 }
 
 const (
-	MetricsAddress         = "metrics-address"
-	ClusterName            = "cluster-name"
-	DevelopmentMode        = "development-mode"
-	DigDirAuthJwk          = "digdir.auth.jwk"
-	DigDirAuthEndpoint     = "digdir.auth.endpoint"
-	DigDirIDPortenEndpoint = "digdir.idporten.endpoint"
+	MetricsAddress                = "metrics-address"
+	ClusterName                   = "cluster-name"
+	DevelopmentMode               = "development-mode"
+	DigDirAuthJwk                 = "digdir.auth.jwk"
+	DigDirAuthEndpoint            = "digdir.auth.endpoint"
+	DigDirAuthCertificate         = "digdir.auth.certificate"
+	DigDirAuthCertificatePassword = "digdir.auth.certificatePassword"
+	DigDirIDPortenEndpoint        = "digdir.idporten.endpoint"
 )
 
 func init() {
@@ -62,6 +66,8 @@ func init() {
 	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
 	flag.String(DigDirAuthJwk, "", "JWK for authenticating to DigDir.")
 	flag.String(DigDirAuthEndpoint, "", "Endpoint for authenticating to DigDir.")
+	flag.String(DigDirAuthCertificate, "", "Corporate certificate.")
+	flag.String(DigDirAuthCertificatePassword, "", "Password for decrypting corporate certificate.")
 	flag.String(DigDirIDPortenEndpoint, "", "Endpoint for interacting with IDPorten API.")
 }
 

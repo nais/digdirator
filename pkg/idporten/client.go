@@ -11,12 +11,16 @@ import (
 	"time"
 )
 
+const (
+	httpRequestTimeout = 3 * time.Minute
+)
+
 type Client struct {
 	Signer jose.Signer
 	Config config.Config
 }
 
-func (c Client) Register(ctx context.Context, payload RegisterClientRequest) error {
+func (c Client) Register(ctx context.Context, payload ClientRegistration) error {
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal payload: %w", err)
@@ -27,7 +31,7 @@ func (c Client) Register(ctx context.Context, payload RegisterClientRequest) err
 		return fmt.Errorf("failed to get token from digdir: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
 	defer cancel()
 
 	// todo - POST to /clients endpoint
@@ -36,7 +40,7 @@ func (c Client) Register(ctx context.Context, payload RegisterClientRequest) err
 	if err != nil {
 		return fmt.Errorf("failed to create post request: %w", err)
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -49,11 +53,39 @@ func (c Client) Register(ctx context.Context, payload RegisterClientRequest) err
 	return nil
 }
 
-func (c Client) List(ctx context.Context) error {
-	panic("implement me")
+func (c Client) ClientExists(clientID string, ctx context.Context) (*ClientRegistration, error) {
+	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
+	defer cancel()
+
+	token, err := c.getAuthToken(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get token from digdir: %w", err)
+	}
+	endpoint := c.Config.DigDir.IDPorten.Endpoint + "/clients"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating client list/GET request: %w", err)
+	}
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
+
+	resp, err := http.DefaultClient.Do(req)
+
+	var clients ClientRegistrationList
+	if err := json.NewDecoder(resp.Body).Decode(&clients); err != nil {
+		return nil, fmt.Errorf("decoding list of clientregistrations: %w", err)
+	}
+
+	for _, client := range clients.Clients {
+		if client.Description == clientID {
+			return &client, nil
+		}
+	}
+
+	return nil, nil
 }
 
-func (c Client) Update(ctx context.Context, payload RegisterClientRequest) error {
+func (c Client) Update(ctx context.Context, payload ClientRegistration) error {
 	panic("implement me")
 }
 

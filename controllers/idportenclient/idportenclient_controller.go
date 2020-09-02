@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/idporten"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,8 +26,9 @@ type Reconciler struct {
 	Reader client.Reader
 	Scheme *runtime.Scheme
 
-	Recorder record.EventRecorder
-	Config   *config.Config
+	Recorder       record.EventRecorder
+	Config         *config.Config
+	IDPortenClient idporten.Client
 }
 
 type transaction struct {
@@ -98,6 +100,18 @@ func (r *Reconciler) process(tx transaction) error {
 	managedSecrets, err := secrets.GetManaged(tx.ctx, tx.instance, r.Reader)
 	if err != nil {
 		return err
+	}
+
+	client, err := r.IDPortenClient.ClientExists(tx.instance.ClientID(), tx.ctx)
+	if err != nil {
+		return fmt.Errorf("checking if client exists: %w", err)
+	}
+	if client != nil {
+		// update
+		tx.log.Info(client)
+	} else {
+
+		// create
 	}
 
 	// todo - register/update idporten client

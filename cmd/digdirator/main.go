@@ -5,10 +5,13 @@ import (
 	"github.com/go-logr/zapr"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/idporten"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/square/go-jose.v2"
+	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -63,12 +66,28 @@ func run() error {
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
 
+	jwk, err := loadCredentials("/Users/hrv/ws/digdirator/cert.jwk")
+	if err != nil {
+		return fmt.Errorf("loading jwk credentials: %v", err)
+	}
+
+	signerOpts := jose.SignerOptions{}
+	signerOpts.WithType("JWT")
+	signerOpts.WithHeader("kid", jwk.KeyID)
+	signerOpts.WithHeader("x5c", jwk.Certificates)
+
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: jwk.Key}, &signerOpts)
+	if err != nil {
+		return fmt.Errorf("creating jwt signer: %v", err)
+	}
+
 	if err = (&idportenclient.Reconciler{
-		Client:   mgr.GetClient(),
-		Reader:   mgr.GetAPIReader(),
-		Scheme:   mgr.GetScheme(),
-		Config:   cfg,
-		Recorder: mgr.GetEventRecorderFor("digdirator"),
+		Client:         mgr.GetClient(),
+		Reader:         mgr.GetAPIReader(),
+		Scheme:         mgr.GetScheme(),
+		Config:         cfg,
+		Recorder:       mgr.GetEventRecorderFor("digdirator"),
+		IDPortenClient: idporten.NewClient(signer, *cfg),
 	}).SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
@@ -121,4 +140,19 @@ func setupConfig() (*config.Config, error) {
 		return nil, err
 	}
 	return cfg, nil
+}
+
+func loadCredentials(path string) (*jose.JSONWebKey, error) {
+	creds, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	jwk := &jose.JSONWebKey{}
+	err = jwk.UnmarshalJSON(creds)
+	if err != nil {
+		return nil, err
+	}
+
+	return jwk, nil
 }

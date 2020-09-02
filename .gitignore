@@ -24,4 +24,6 @@ bin
 *.swo
 *~
 
+*.jwk
+
 digdirator.yaml

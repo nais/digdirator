@@ -41,10 +41,11 @@ const (
 	TokenEndpointAuthMethodNone              TokenEndpointAuthMethod = "none"
 )
 
-type RegisterClientRequest struct {
+type ClientRegistration struct {
 	AccessTokenLifetime               int                     `json:"access_token_lifetime"`
 	ApplicationType                   ApplicationType         `json:"application_type"`
 	AuthorizationLifeTime             int                     `json:"authorization_lifetime"`
+	ClientID                          string                  `json:"client_id,omitempty"`
 	ClientName                        string                  `json:"client_name"`
 	ClientOrgno                       string                  `json:"client_orgno,omitempty"`
 	ClientURI                         string                  `json:"clientURI"`
@@ -59,6 +60,10 @@ type RegisterClientRequest struct {
 	RefreshTokenUsage                 RefreshTokenUsage       `json:"refresh_token_usage"`
 	Scopes                            []string                `json:"scopes"`
 	TokenEndpointAuthMethod           TokenEndpointAuthMethod `json:"token_endpoint_auth_method"`
+}
+
+type ClientRegistrationList struct {
+	Clients []ClientRegistration
 }
 
 type RegisterJwksResponse struct {

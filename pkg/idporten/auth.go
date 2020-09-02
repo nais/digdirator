@@ -2,6 +2,8 @@ package idporten
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/nais/digdirator/pkg/crypto"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -10,42 +12,50 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
-func (c Client) getAuthToken(ctx context.Context) (string, error) {
+type TokenResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
+func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 	claims := jwt.Claims{
-		Issuer:    "",
-		Subject:   "",
-		Audience:  nil,
-		Expiry:    nil,
-		NotBefore: nil,
-		IssuedAt:  nil,
+		Issuer:    "oidc_nav_portal_integrasjons_admin",
+		Audience:  []string{"https://oidc-ver2.difi.no/idporten-oidc-provider/"},
+		Expiry:    jwt.NewNumericDate(time.Now().Add(2 * time.Minute)),
+		NotBefore: jwt.NewNumericDate(time.Now()),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ID:        uuid.New().String(),
 	}
 
 	token, err := crypto.GenerateJwt(c.Signer, claims)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	endpoint := c.Config.DigDir.Auth.Endpoint + "/token"
 
 	req, err := authRequest(ctx, endpoint, token)
+	if err != nil {
+		return nil, fmt.Errorf("creating auth request: %w", err)
+	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	// todo - parse token from response, (cache?), return token
-	//  - is the client configured to return a by-reference or self-contained token?
-	//  - https://difi.github.io/felleslosninger/oidc_auth_server-to-server-oauth2.html#2-send-jwt-til-token-endepunktet
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
+	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(body))
+
+	var tokenResponse TokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		return nil, fmt.Errorf("decoding token response: %w", err)
 	}
-	return string(body), nil
+
+	return &tokenResponse, nil
 }
 
 func authRequest(ctx context.Context, endpoint, token string) (*http.Request, error) {

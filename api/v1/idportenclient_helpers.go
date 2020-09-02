@@ -35,6 +35,10 @@ func (in *IDPortenClient) UpdateHash() error {
 	return nil
 }
 
+func (in *IDPortenClient) ClientID() string {
+	return fmt.Sprintf("%s:%s:%s", in.ClusterName, in.Namespace, in.Name)
+}
+
 func (in *IDPortenClient) HashUnchanged() (bool, error) {
 	newHash, err := in.Hash()
 	if err != nil {
