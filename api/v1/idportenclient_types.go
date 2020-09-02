@@ -14,7 +14,6 @@ import (
 // +kubebuilder:printcolumn:name="Secret",type=string,JSONPath=`.spec.secretName`
 // +kubebuilder:printcolumn:name="ClientId",type=string,JSONPath=`.status.clientId`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type IDPortenClient struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
