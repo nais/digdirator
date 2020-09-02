@@ -101,6 +101,9 @@ func (r *Reconciler) process(tx transaction) error {
 	}
 
 	// todo - register/update idporten client
+	// todo - generate and register JWKS
+	// 	- JWKS should contain in-use JWK (in-use => mounted to an existing pod) and newly generated JWK
+	// 	- idporten only accepts max 5 JWKs in JWKS - should check if pod status is Running
 
 	if err := r.secrets().createOrUpdate(tx); err != nil {
 		return err

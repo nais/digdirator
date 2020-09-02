@@ -19,20 +19,29 @@ type Config struct {
 }
 
 type DigDir struct {
-	Auth     Auth   `json:"auth"`
-	Endpoint string `json:"endpoint"`
+	Auth     Auth     `json:"auth"`
+	IDPorten IDPorten `json:"idporten"`
 }
 
 type Auth struct {
-	Jwk string `json:"jwk"`
+	Jwk      string   `json:"jwk"`
+	Endpoint string   `json:"endpoint"`
+	Audience string   `json:"audience"`
+	Scopes   []string `json:"scopes"`
+	Issuer   string   `json:"issuer"`
+}
+
+type IDPorten struct {
+	Endpoint string `json:"endpoint"`
 }
 
 const (
-	MetricsAddress  = "metrics-address"
-	ClusterName     = "cluster-name"
-	DevelopmentMode = "development-mode"
-	DigDirAuthJwk   = "digdir.auth.jwk"
-	DigDirEndpoint  = "digdir.endpoint"
+	MetricsAddress         = "metrics-address"
+	ClusterName            = "cluster-name"
+	DevelopmentMode        = "development-mode"
+	DigDirAuthJwk          = "digdir.auth.jwk"
+	DigDirAuthEndpoint     = "digdir.auth.endpoint"
+	DigDirIDPortenEndpoint = "digdir.idporten.endpoint"
 )
 
 func init() {
@@ -52,7 +61,8 @@ func init() {
 	flag.String(ClusterName, "", "The cluster in which this application should run.")
 	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
 	flag.String(DigDirAuthJwk, "", "JWK for authenticating to DigDir.")
-	flag.String(DigDirEndpoint, "", "Endpoint to DigDir.")
+	flag.String(DigDirAuthEndpoint, "", "Endpoint for authenticating to DigDir.")
+	flag.String(DigDirIDPortenEndpoint, "", "Endpoint for interacting with IDPorten API.")
 }
 
 // Print out all configuration options except secret stuff.
