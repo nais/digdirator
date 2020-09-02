@@ -18,9 +18,6 @@ spec:
   - JSONPath: .metadata.creationTimestamp
     name: Age
     type: date
-  - JSONPath: .metadata.creationTimestamp
-    name: Age
-    type: date
   group: nais.io
   names:
     kind: IDPortenClient
