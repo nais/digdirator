@@ -5,13 +5,12 @@ import (
 	"github.com/go-logr/zapr"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/idporten"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/square/go-jose.v2"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -66,19 +65,14 @@ func run() error {
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
 
-	jwk, err := loadCredentials("/Users/hrv/ws/digdirator/cert.jwk")
+	jwk, err := crypto.LoadJwkFromPath(cfg.DigDir.Auth.JwkPath)
 	if err != nil {
 		return fmt.Errorf("loading jwk credentials: %v", err)
 	}
 
-	signerOpts := jose.SignerOptions{}
-	signerOpts.WithType("JWT")
-	signerOpts.WithHeader("kid", jwk.KeyID)
-	signerOpts.WithHeader("x5c", jwk.Certificates)
-
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: jwk.Key}, &signerOpts)
+	signer, err := crypto.SignerFromJwk(jwk)
 	if err != nil {
-		return fmt.Errorf("creating jwt signer: %v", err)
+		return fmt.Errorf("creating signer from jwk: %v", err)
 	}
 
 	if err = (&idportenclient.Reconciler{
@@ -133,26 +127,14 @@ func setupConfig() (*config.Config, error) {
 
 	if err = cfg.Validate([]string{
 		config.ClusterName,
-		config.DigDirAuthJwk,
-		config.DigDirAuthEndpoint,
-		config.DigDirIDPortenEndpoint,
+		config.DigDirAuthAudience,
+		config.DigDirAuthClientId,
+		config.DigDirAuthJwkPath,
+		config.DigDirAuthScopes,
+		config.DigDirAuthTokenEndpoint,
+		config.DigDirIDPortenApiEndpoint,
 	}); err != nil {
 		return nil, err
 	}
 	return cfg, nil
-}
-
-func loadCredentials(path string) (*jose.JSONWebKey, error) {
-	creds, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	jwk := &jose.JSONWebKey{}
-	err = jwk.UnmarshalJSON(creds)
-	if err != nil {
-		return nil, err
-	}
-
-	return jwk, nil
 }

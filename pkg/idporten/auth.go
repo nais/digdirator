@@ -15,26 +15,27 @@ import (
 	"time"
 )
 
+const (
+	grantType                 = "urn:ietf:params:oauth:grant-type:jwt-bearer"
+	applicationFormUrlEncoded = "application/x-www-form-urlencoded"
+)
+
 type TokenResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
-func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
-	claims := jwt.Claims{
-		Issuer:    "oidc_nav_portal_integrasjons_admin",
-		Audience:  []string{"https://oidc-ver2.difi.no/idporten-oidc-provider/"},
-		Expiry:    jwt.NewNumericDate(time.Now().Add(2 * time.Minute)),
-		NotBefore: jwt.NewNumericDate(time.Now()),
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ID:        uuid.New().String(),
-	}
+type customClaims struct {
+	jwt.Claims
+	Scope string `json:"scope"`
+}
 
-	token, err := crypto.GenerateJwt(c.Signer, claims)
+func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
+	token, err := crypto.GenerateJwt(c.Signer, c.claims())
 	if err != nil {
 		return nil, err
 	}
 
-	endpoint := c.Config.DigDir.Auth.Endpoint + "/token"
+	endpoint := c.Config.DigDir.Auth.TokenEndpoint
 
 	req, err := authRequest(ctx, endpoint, token)
 	if err != nil {
@@ -47,15 +48,34 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 	}
 	defer resp.Body.Close()
 
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(body))
-
-	var tokenResponse TokenResponse
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		return nil, fmt.Errorf("decoding token response: %w", err)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading server response: %w", err)
 	}
 
-	return &tokenResponse, nil
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("server responded with %s: %s", resp.Status, body)
+	}
+
+	tokenResponse := &TokenResponse{}
+	if err := json.Unmarshal(body, tokenResponse); err != nil {
+		return nil, fmt.Errorf("decoding token response: %w", err)
+	}
+	return tokenResponse, nil
+}
+
+func (c Client) claims() customClaims {
+	return customClaims{
+		Claims: jwt.Claims{
+			Issuer:    c.Config.DigDir.Auth.ClientId,
+			Audience:  []string{c.Config.DigDir.Auth.Audience},
+			Expiry:    jwt.NewNumericDate(time.Now().Add(2 * time.Minute)),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ID:        uuid.New().String(),
+		},
+		Scope: c.Config.DigDir.Auth.Scopes,
+	}
 }
 
 func authRequest(ctx context.Context, endpoint, token string) (*http.Request, error) {
@@ -63,13 +83,14 @@ func authRequest(ctx context.Context, endpoint, token string) (*http.Request, er
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", applicationFormUrlEncoded)
 	return req, nil
 }
 
 func authQueryParams(token string) io.Reader {
-	data := url.Values{}
-	data.Set("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer")
-	data.Set("assertion", token)
+	data := url.Values{
+		"grant_type": []string{grantType},
+		"assertion":  []string{token},
+	}
 	return strings.NewReader(data.Encode())
 }

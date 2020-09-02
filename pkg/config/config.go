@@ -24,28 +24,27 @@ type DigDir struct {
 }
 
 type Auth struct {
-	Jwk                 string   `json:"jwk"`
-	Endpoint            string   `json:"endpoint"`
-	Audience            string   `json:"audience"`
-	Scopes              []string `json:"scopes"`
-	Issuer              string   `json:"issuer"`
-	Certificate         string   `json:"certificate"`
-	CertificatePassword string   `json:"certificatePassword"`
+	ClientId      string `json:"client-id"`
+	JwkPath       string `json:"jwk-path"`
+	TokenEndpoint string `json:"token-endpoint"`
+	Audience      string `json:"audience"`
+	Scopes        string `json:"scopes"`
 }
 
 type IDPorten struct {
-	Endpoint string `json:"endpoint"`
+	ApiEndpoint string `json:"api-endpoint"`
 }
 
 const (
-	MetricsAddress                = "metrics-address"
-	ClusterName                   = "cluster-name"
-	DevelopmentMode               = "development-mode"
-	DigDirAuthJwk                 = "digdir.auth.jwk"
-	DigDirAuthEndpoint            = "digdir.auth.endpoint"
-	DigDirAuthCertificate         = "digdir.auth.certificate"
-	DigDirAuthCertificatePassword = "digdir.auth.certificatePassword"
-	DigDirIDPortenEndpoint        = "digdir.idporten.endpoint"
+	MetricsAddress            = "metrics-address"
+	ClusterName               = "cluster-name"
+	DevelopmentMode           = "development-mode"
+	DigDirAuthAudience        = "digdir.auth.audience"
+	DigDirAuthClientId        = "digdir.auth.client-id"
+	DigDirAuthJwkPath         = "digdir.auth.jwk-path"
+	DigDirAuthScopes          = "digdir.auth.scopes"
+	DigDirAuthTokenEndpoint   = "digdir.auth.token-endpoint"
+	DigDirIDPortenApiEndpoint = "digdir.idporten.api-endpoint"
 )
 
 func init() {
@@ -64,11 +63,12 @@ func init() {
 	flag.String(MetricsAddress, ":8080", "The address the metric endpoint binds to.")
 	flag.String(ClusterName, "", "The cluster in which this application should run.")
 	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
-	flag.String(DigDirAuthJwk, "", "JWK for authenticating to DigDir.")
-	flag.String(DigDirAuthEndpoint, "", "Endpoint for authenticating to DigDir.")
-	flag.String(DigDirAuthCertificate, "", "Corporate certificate.")
-	flag.String(DigDirAuthCertificatePassword, "", "Password for decrypting corporate certificate.")
-	flag.String(DigDirIDPortenEndpoint, "", "Endpoint for interacting with IDPorten API.")
+	flag.String(DigDirAuthAudience, "", "Audience for JWT assertion when authenticating to DigDir.")
+	flag.String(DigDirAuthClientId, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
+	flag.String(DigDirAuthJwkPath, "", "Path to JWK for authenticating to DigDir.")
+	flag.String(DigDirAuthScopes, "", "List of scopes for JWT assertion when authenticating to DigDir.")
+	flag.String(DigDirAuthTokenEndpoint, "", "Token endpoint for authenticating to DigDir.")
+	flag.String(DigDirIDPortenApiEndpoint, "", "Endpoint for interacting with IDPorten API.")
 }
 
 // Print out all configuration options except secret stuff.

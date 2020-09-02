@@ -110,7 +110,7 @@ func (r *Reconciler) process(tx transaction) error {
 		// update
 		tx.log.Info(client)
 	} else {
-
+		tx.log.Info("client does not exist in ID-porten, registering...")
 		// create
 	}
 

@@ -33,9 +33,15 @@ Set up the required environment variables as per the [config](./pkg/config/confi
 
 digdir:
   auth:
-    jwk: ""
-  endpoint: ""
+    audience: "audience for JWT assertion"
+    client-id: "client ID / issuer for JWT assertion"
+    jwk-path: "path/to/jwk"
+    scopes: "space separated list of scopes for JWT assertion"
+    token-endpoint: "token endpoint for idporten idp"
+  idporten:
+    endpoint: "endpoint for idporten oidc admin api"
 cluster-name: local
+development-mode: true
 ```
 
 Then, assuming you have a Kubernetes cluster running locally (e.g. using [minikube](https://github.com/kubernetes/minikube)):

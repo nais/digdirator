@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/nais/digdirator/pkg/config"
 	"gopkg.in/square/go-jose.v2"
+	"io/ioutil"
 	"net/http"
 	"time"
 )
@@ -35,7 +36,7 @@ func (c Client) Register(ctx context.Context, payload ClientRegistration) error 
 	defer cancel()
 
 	// todo - POST to /clients endpoint
-	endpoint := c.Config.DigDir.IDPorten.Endpoint + "/clients"
+	endpoint := c.Config.DigDir.IDPorten.ApiEndpoint + "/clients"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return fmt.Errorf("failed to create post request: %w", err)
@@ -61,7 +62,8 @@ func (c Client) ClientExists(clientID string, ctx context.Context) (*ClientRegis
 	if err != nil {
 		return nil, fmt.Errorf("failed to get token from digdir: %w", err)
 	}
-	endpoint := c.Config.DigDir.IDPorten.Endpoint + "/clients"
+
+	endpoint := c.Config.DigDir.IDPorten.ApiEndpoint + "/clients"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating client list/GET request: %w", err)
@@ -70,13 +72,25 @@ func (c Client) ClientExists(clientID string, ctx context.Context) (*ClientRegis
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
 
 	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check existence idporten client: %w", err)
+	}
 
-	var clients ClientRegistrationList
-	if err := json.NewDecoder(resp.Body).Decode(&clients); err != nil {
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading server response: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("server responded with %s: %s", resp.Status, body)
+	}
+
+	clients := make([]ClientRegistration, 0)
+	if err := json.Unmarshal(body, &clients); err != nil {
 		return nil, fmt.Errorf("decoding list of clientregistrations: %w", err)
 	}
 
-	for _, client := range clients.Clients {
+	for _, client := range clients {
 		if client.Description == clientID {
 			return &client, nil
 		}

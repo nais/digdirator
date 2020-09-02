@@ -14,7 +14,9 @@ type GrantType string
 
 const (
 	GrantTypeAuthorizationCode GrantType = "authorization_code"
+	GrantTypeImplicit          GrantType = "implicit"
 	GrantTypeRefreshToken      GrantType = "refresh_token"
+	GrantTypeJwtBearer         GrantType = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 )
 
 type IntegrationType string
@@ -49,21 +51,20 @@ type ClientRegistration struct {
 	ClientName                        string                  `json:"client_name"`
 	ClientOrgno                       string                  `json:"client_orgno,omitempty"`
 	ClientURI                         string                  `json:"clientURI"`
+	Created                           string                  `json:"created,omitempty"`
 	Description                       string                  `json:"description"`
 	FrontchannelLogoutSessionRequired bool                    `json:"frontchannel_logout_session_required"`
 	FrontchannelLogoutURI             string                  `json:"frontchannel_logout_uri"`
-	GrantTypes                        GrantType               `json:"grant_types"`
+	GrantTypes                        []GrantType             `json:"grant_types"`
 	IntegrationType                   IntegrationType         `json:"integration_type"`
+	LastUpdated                       string                  `json:"last_updated,omitempty"`
+	OnBehalfOf                        string                  `json:"on_behalf_of,omitempty"`
 	PostLogoutRedirectURIs            []string                `json:"post_logout_redirect_uris"`
 	RedirectURIs                      []string                `json:"redirect_uris"`
 	RefreshTokenLifetime              int                     `json:"refresh_token_lifetime"`
 	RefreshTokenUsage                 RefreshTokenUsage       `json:"refresh_token_usage"`
 	Scopes                            []string                `json:"scopes"`
 	TokenEndpointAuthMethod           TokenEndpointAuthMethod `json:"token_endpoint_auth_method"`
-}
-
-type ClientRegistrationList struct {
-	Clients []ClientRegistration
 }
 
 type RegisterJwksResponse struct {
