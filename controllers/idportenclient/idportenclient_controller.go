@@ -115,7 +115,7 @@ func (r *Reconciler) process(tx transaction) (*idporten.ClientRegistration, erro
 	if client != nil {
 		// update
 		tx.log.Info("client already exists in ID-porten, updating...")
-		_, err = r.IDPortenClient.Update(tx.ctx, registration, tx.instance.Status.ClientId)
+		response, err = r.IDPortenClient.Update(tx.ctx, registration, tx.instance.Status.ClientId)
 		if err != nil {
 			return nil, fmt.Errorf("updating client at ID-porten: %w", err)
 		}
