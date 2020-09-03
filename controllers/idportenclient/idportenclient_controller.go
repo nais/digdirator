@@ -119,8 +119,11 @@ func (r *Reconciler) process(tx transaction) (*idporten.ClientRegistration, erro
 		if err != nil {
 			return nil, fmt.Errorf("updating client at ID-porten: %w", err)
 		}
-
+		if len(tx.instance.Status.ClientId) == 0 {
+			tx.instance.Status.ClientId = client.ClientID
+		}
 	} else {
+		// create
 		tx.log.Info("client does not exist in ID-porten, registering...")
 		response, err = r.IDPortenClient.Register(tx.ctx, registration)
 		if err != nil {
@@ -163,7 +166,7 @@ func (r *Reconciler) complete(tx transaction, client *idporten.ClientRegistratio
 
 func (r *Reconciler) updateStatus(tx transaction, client *idporten.ClientRegistration) error {
 	tx.log.Debug("updating status for IDPortenClient")
-	if len(tx.instance.Status.ClientId) == 0 {
+	if len(client.ClientID) > 0 {
 		tx.instance.Status.ClientId = client.ClientID
 	}
 
