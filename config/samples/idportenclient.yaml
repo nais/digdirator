@@ -2,9 +2,9 @@
 apiVersion: nais.io/v1
 kind: IDPortenClient
 metadata:
-  name: test
+  name: my-app
 spec:
-  clientName: "test"
+  clientName: "my app test"
   clientURI: "https://min-app.nav.no"
   replyURLs:
     - "https://min-app.nav.no/oauth2/callback"

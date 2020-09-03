@@ -22,84 +22,27 @@ type Client struct {
 }
 
 func (c Client) Register(ctx context.Context, payload ClientRegistration) (*ClientRegistration, error) {
+	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.IDPorten.ApiEndpoint)
+	registration := &ClientRegistration{}
+
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	token, err := c.getAuthToken(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get token from digdir: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
-	defer cancel()
-
-	endpoint := c.Config.DigDir.IDPorten.ApiEndpoint + "/clients"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create post request: %w", err)
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to register idporten client: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading server response: %w", err)
-	}
-
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("server responded with %s: %s", resp.Status, body)
-	}
-
-	registration := &ClientRegistration{}
-	if err := json.Unmarshal(body, registration); err != nil {
-		return nil, fmt.Errorf("decoding response when creating client: %w", err)
+	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, &registration); err != nil {
+		return nil, fmt.Errorf("updating ID-porten client: %w", err)
 	}
 
 	return registration, nil
 }
 
 func (c Client) ClientExists(clientID string, ctx context.Context) (*ClientRegistration, error) {
-	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
-	defer cancel()
-
-	token, err := c.getAuthToken(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get token from digdir: %w", err)
-	}
-
-	endpoint := c.Config.DigDir.IDPorten.ApiEndpoint + "/clients"
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating client list/GET request: %w", err)
-	}
-
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check existence idporten client: %w", err)
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading server response: %w", err)
-	}
-
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("server responded with %s: %s", resp.Status, body)
-	}
-
+	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.IDPorten.ApiEndpoint)
 	clients := make([]ClientRegistration, 0)
-	if err := json.Unmarshal(body, &clients); err != nil {
-		return nil, fmt.Errorf("decoding list of clientregistrations: %w", err)
+
+	if err := c.request(ctx, http.MethodGet, endpoint, nil, &clients); err != nil {
+		return nil, fmt.Errorf("updating ID-porten client: %w", err)
 	}
 
 	for _, client := range clients {
@@ -107,55 +50,37 @@ func (c Client) ClientExists(clientID string, ctx context.Context) (*ClientRegis
 			return &client, nil
 		}
 	}
-
 	return nil, nil
 }
 
-func (c Client) Update(ctx context.Context, payload ClientRegistration) (*ClientRegistration, error) {
+func (c Client) Update(ctx context.Context, payload ClientRegistration, clientID string) (*ClientRegistration, error) {
+	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.IDPorten.ApiEndpoint, clientID)
+	registration := &ClientRegistration{}
+
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	token, err := c.getAuthToken(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get token from digdir: %w", err)
+	if err := c.request(ctx, http.MethodPut, endpoint, jsonPayload, nil); err != nil {
+		return nil, fmt.Errorf("updating ID-porten client: %w", err)
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
-	defer cancel()
-
-	endpoint := c.Config.DigDir.IDPorten.ApiEndpoint + "/clients"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, endpoint, bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create patch request: %w", err)
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to update idporten client: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading server response: %w", err)
-	}
-
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("server responded with %s: %s", resp.Status, body)
-	}
-	registration := &ClientRegistration{}
-	if err := json.Unmarshal(body, registration); err != nil {
-		return nil, fmt.Errorf("decoding response when creating client: %w", err)
-	}
-
 	return registration, nil
 }
 
 func (c Client) Delete(ctx context.Context, clientID string) error {
+	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.IDPorten.ApiEndpoint, clientID)
+	if err := c.request(ctx, http.MethodDelete, endpoint, nil, nil); err != nil {
+		return fmt.Errorf("deleting ID-porten client: %w", err)
+	}
+	return nil
+}
+
+func (c Client) RegisterKeys(ctx context.Context, payload jose.JSONWebKeySet) (RegisterJwksResponse, error) {
+	panic("implement me")
+}
+
+func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget interface{}) error {
 	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
 	defer cancel()
 
@@ -164,18 +89,18 @@ func (c Client) Delete(ctx context.Context, clientID string) error {
 		return fmt.Errorf("failed to get token from digdir: %w", err)
 	}
 
-	endpoint := c.Config.DigDir.IDPorten.ApiEndpoint + "/clients" + "/" + clientID
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewBuffer(payload))
 	if err != nil {
-		return fmt.Errorf("creating client DELETE request: %w", err)
+		return fmt.Errorf("creating client %s request: %w", method, err)
 	}
-
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
+	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to delete idporten client: %w", err)
+		return fmt.Errorf("failed to %s idporten client: %w", method, err)
 	}
+	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -186,11 +111,12 @@ func (c Client) Delete(ctx context.Context, clientID string) error {
 		return fmt.Errorf("server responded with %s: %s", resp.Status, body)
 	}
 
+	if unmarshalTarget != nil {
+		if err := json.Unmarshal(body, &unmarshalTarget); err != nil {
+			return fmt.Errorf("unmarshalling: %w", err)
+		}
+	}
 	return nil
-}
-
-func (c Client) RegisterKeys(ctx context.Context, payload jose.JSONWebKeySet) (RegisterJwksResponse, error) {
-	panic("implement me")
 }
 
 func NewClient(signer jose.Signer, config config.Config) Client {
