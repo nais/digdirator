@@ -30,7 +30,7 @@ const (
 type RefreshTokenUsage string
 
 const (
-	RefreshTokenUsageOneTime RefreshTokenUsage = "ONE_TIME"
+	RefreshTokenUsageOneTime RefreshTokenUsage = "ONETIME"
 	RefreshTokenUsageReuse   RefreshTokenUsage = "REUSE"
 )
 
@@ -51,14 +51,11 @@ type ClientRegistration struct {
 	ClientName                        string                  `json:"client_name"`
 	ClientOrgno                       string                  `json:"client_orgno,omitempty"`
 	ClientURI                         string                  `json:"clientURI"`
-	Created                           string                  `json:"created,omitempty"`
 	Description                       string                  `json:"description"`
 	FrontchannelLogoutSessionRequired bool                    `json:"frontchannel_logout_session_required"`
 	FrontchannelLogoutURI             string                  `json:"frontchannel_logout_uri"`
 	GrantTypes                        []GrantType             `json:"grant_types"`
 	IntegrationType                   IntegrationType         `json:"integration_type"`
-	LastUpdated                       string                  `json:"last_updated,omitempty"`
-	OnBehalfOf                        string                  `json:"on_behalf_of,omitempty"`
 	PostLogoutRedirectURIs            []string                `json:"post_logout_redirect_uris"`
 	RedirectURIs                      []string                `json:"redirect_uris"`
 	RefreshTokenLifetime              int                     `json:"refresh_token_lifetime"`

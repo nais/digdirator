@@ -35,7 +35,9 @@ func (f finalizer) process(tx transaction) (ctrl.Result, error) {
 	if tx.instance.HasFinalizer(FinalizerName) {
 		tx.log.Info("finalizer triggered, deleting resources...")
 
-		// todo - delete client from idporten
+		if err := f.IDPortenClient.Delete(tx.ctx, tx.instance.Status.ClientId); err != nil {
+			return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
+		}
 
 		tx.instance.RemoveFinalizer(FinalizerName)
 		if err := f.Update(tx.ctx, tx.instance); err != nil {

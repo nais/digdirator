@@ -35,11 +35,11 @@ digdir:
   auth:
     audience: "audience for JWT assertion"
     client-id: "client ID / issuer for JWT assertion"
-    jwk-path: "path/to/jwk"
+    jwk-path: "path/to/JWK/for/signing/JWT"
     scopes: "space separated list of scopes for JWT assertion"
     token-endpoint: "token endpoint for idporten idp"
   idporten:
-    endpoint: "endpoint for idporten oidc admin api"
+    api-endpoint: "endpoint for idporten oidc admin api"
 cluster-name: local
 development-mode: true
 ```

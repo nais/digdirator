@@ -70,11 +70,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.process(tx); err != nil {
+	clientRegistration, err := r.process(tx)
+	if err != nil {
 		return r.handleError(tx, err)
 	}
 
-	return r.complete(tx)
+	return r.complete(tx, clientRegistration)
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -96,38 +97,50 @@ func (r *Reconciler) prepare(req ctrl.Request, correlationId string, logger log.
 	return transaction{ctx, instance, logger}, nil
 }
 
-func (r *Reconciler) process(tx transaction) error {
+func (r *Reconciler) process(tx transaction) (*idporten.ClientRegistration, error) {
+	response := &idporten.ClientRegistration{}
+
 	managedSecrets, err := secrets.GetManaged(tx.ctx, tx.instance, r.Reader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	client, err := r.IDPortenClient.ClientExists(tx.instance.ClientID(), tx.ctx)
 	if err != nil {
-		return fmt.Errorf("checking if client exists: %w", err)
+		return nil, fmt.Errorf("checking if client exists: %w", err)
 	}
+
+	registration := tx.instance.ToClientRegistration()
+
 	if client != nil {
 		// update
 		tx.log.Info(client)
+		_, err := r.IDPortenClient.Update(tx.ctx, registration)
+		if err != nil {
+			return nil, fmt.Errorf("updating client at ID-porten: %w", err)
+		}
+
 	} else {
 		tx.log.Info("client does not exist in ID-porten, registering...")
-		// create
+		response, err = r.IDPortenClient.Register(tx.ctx, registration)
+		if err != nil {
+			return nil, fmt.Errorf("registering client to ID-porten: %w", err)
+		}
 	}
 
-	// todo - register/update idporten client
 	// todo - generate and register JWKS
 	// 	- JWKS should contain in-use JWK (in-use => mounted to an existing pod) and newly generated JWK
 	// 	- idporten only accepts max 5 JWKs in JWKS - should check if pod status is Running
 
 	if err := r.secrets().createOrUpdate(tx); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := r.secrets().deleteUnused(tx, managedSecrets.Unused); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return response, nil
 }
 
 func (r *Reconciler) handleError(tx transaction, err error) (ctrl.Result, error) {
@@ -137,8 +150,8 @@ func (r *Reconciler) handleError(tx transaction, err error) (ctrl.Result, error)
 	return ctrl.Result{RequeueAfter: requeueInterval}, nil
 }
 
-func (r *Reconciler) complete(tx transaction) (ctrl.Result, error) {
-	if err := r.updateStatus(tx); err != nil {
+func (r *Reconciler) complete(tx transaction, client *idporten.ClientRegistration) (ctrl.Result, error) {
+	if err := r.updateStatus(tx, client); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -148,9 +161,9 @@ func (r *Reconciler) complete(tx transaction) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) updateStatus(tx transaction) error {
+func (r *Reconciler) updateStatus(tx transaction, client *idporten.ClientRegistration) error {
 	tx.log.Debug("updating status for IDPortenClient")
-	tx.instance.Status.ClientId = "todo"
+	tx.instance.Status.ClientId = client.ClientID
 
 	if err := tx.instance.UpdateHash(); err != nil {
 		return err

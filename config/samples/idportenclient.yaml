@@ -2,7 +2,7 @@
 apiVersion: nais.io/v1
 kind: IDPortenClient
 metadata:
-  name: idportenclient-sample
+  name: test
 spec:
   clientName: "test"
   clientURI: "https://min-app.nav.no"
