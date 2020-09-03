@@ -3,6 +3,7 @@ package idportenclient
 import (
 	"fmt"
 	"github.com/nais/digdirator/pkg/secrets"
+	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -14,9 +15,9 @@ func (r *Reconciler) secrets() secretsReconciler {
 	return secretsReconciler{r}
 }
 
-func (s secretsReconciler) createOrUpdate(tx transaction) error {
+func (s secretsReconciler) createOrUpdate(tx transaction, jwk jose.JSONWebKey) error {
 	tx.log.Infof("processing secret with name '%s'...", tx.instance.Spec.SecretName)
-	res, err := secrets.CreateOrUpdate(tx.ctx, tx.instance, s.Client, s.Scheme)
+	res, err := secrets.CreateOrUpdate(tx.ctx, tx.instance, s.Client, s.Scheme, jwk)
 	if err != nil {
 		return fmt.Errorf("failed to create or update secret: %w", err)
 	}

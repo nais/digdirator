@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/idporten"
+	"gopkg.in/square/go-jose.v2"
 	"time"
 
 	"github.com/google/uuid"
@@ -115,12 +117,14 @@ func (r *Reconciler) process(tx transaction) (*idporten.ClientRegistration, erro
 	if client != nil {
 		// update
 		tx.log.Info("client already exists in ID-porten, updating...")
+
+		if len(tx.instance.Status.ClientId) == 0 {
+			tx.instance.Status.ClientId = client.ClientID
+		}
+
 		response, err = r.IDPortenClient.Update(tx.ctx, registration, tx.instance.Status.ClientId)
 		if err != nil {
 			return nil, fmt.Errorf("updating client at ID-porten: %w", err)
-		}
-		if len(tx.instance.Status.ClientId) == 0 {
-			tx.instance.Status.ClientId = client.ClientID
 		}
 	} else {
 		// create
@@ -135,7 +139,19 @@ func (r *Reconciler) process(tx transaction) (*idporten.ClientRegistration, erro
 	// 	- JWKS should contain in-use JWK (in-use => mounted to an existing pod) and newly generated JWK
 	// 	- idporten only accepts max 5 JWKs in JWKS - should check if pod status is Running
 
-	if err := r.secrets().createOrUpdate(tx); err != nil {
+	jwk, err := crypto.GenerateJwk()
+	if err != nil {
+		return nil, fmt.Errorf("generating jwk for client: %w", err)
+	}
+
+	jwks := crypto.MergeJwks(*jwk, jose.JSONWebKeySet{})
+	_, err = r.IDPortenClient.RegisterKeys(tx.ctx, tx.instance.Status.ClientId, jwks)
+	if err != nil {
+		return nil, fmt.Errorf("registering jwks for client at ID-porten: %w", err)
+	}
+
+	// todo - output new JWK to Secret
+	if err := r.secrets().createOrUpdate(tx, *jwk); err != nil {
 		return nil, err
 	}
 

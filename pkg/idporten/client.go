@@ -62,7 +62,7 @@ func (c Client) Update(ctx context.Context, payload ClientRegistration, clientID
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	if err := c.request(ctx, http.MethodPut, endpoint, jsonPayload, nil); err != nil {
+	if err := c.request(ctx, http.MethodPut, endpoint, jsonPayload, &registration); err != nil {
 		return nil, fmt.Errorf("updating ID-porten client: %w", err)
 	}
 	return registration, nil
@@ -76,8 +76,18 @@ func (c Client) Delete(ctx context.Context, clientID string) error {
 	return nil
 }
 
-func (c Client) RegisterKeys(ctx context.Context, payload jose.JSONWebKeySet) (RegisterJwksResponse, error) {
-	panic("implement me")
+func (c Client) RegisterKeys(ctx context.Context, clientID string, payload jose.JSONWebKeySet) (*RegisterJwksResponse, error) {
+	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.IDPorten.ApiEndpoint, clientID)
+	response := &RegisterJwksResponse{}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling JWKS payload: %w", err)
+	}
+	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, &response); err != nil {
+		return nil, fmt.Errorf("registering JWKS for client: %w", err)
+	}
+	return response, nil
 }
 
 func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget interface{}) error {

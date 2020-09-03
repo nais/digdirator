@@ -65,7 +65,7 @@ type ClientRegistration struct {
 }
 
 type RegisterJwksResponse struct {
-	Created     string             `json:"created"`
-	LastUpdated string             `json:"last_updated"`
-	Keys        jose.JSONWebKeySet `json:"keys"`
+	Created     string `json:"created"`
+	LastUpdated string `json:"last_updated"`
+	jose.JSONWebKeySet
 }

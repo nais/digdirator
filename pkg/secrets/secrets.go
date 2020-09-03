@@ -2,7 +2,9 @@ package secrets
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"gopkg.in/square/go-jose.v2"
 
 	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/labels"
@@ -16,10 +18,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const (
+	JwkKey = "IDPORTEN_CLIENT_JWK"
+)
+
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch
 
-func CreateOrUpdate(ctx context.Context, instance *v1.IDPortenClient, cli client.Client, scheme *runtime.Scheme) (controllerutil.OperationResult, error) {
-	spec, err := spec(instance)
+func CreateOrUpdate(ctx context.Context, instance *v1.IDPortenClient, cli client.Client, scheme *runtime.Scheme, jwk jose.JSONWebKey) (controllerutil.OperationResult, error) {
+	spec, err := spec(instance, jwk)
 	if err != nil {
 		return controllerutil.OperationResultNone, fmt.Errorf("unable to create secretSpec object: %w", err)
 	}
@@ -79,8 +85,8 @@ func getAll(ctx context.Context, instance *v1.IDPortenClient, reader client.Read
 	return list, nil
 }
 
-func spec(instance *v1.IDPortenClient) (*corev1.Secret, error) {
-	data, err := stringData()
+func spec(instance *v1.IDPortenClient, jwk jose.JSONWebKey) (*corev1.Secret, error) {
+	data, err := stringData(jwk)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +110,12 @@ func objectMeta(instance *v1.IDPortenClient) metav1.ObjectMeta {
 }
 
 // todo
-func stringData() (map[string]string, error) {
-	return map[string]string{}, nil
+func stringData(jwk jose.JSONWebKey) (map[string]string, error) {
+	jwkJson, err := json.Marshal(jwk)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling jwk: %w", err)
+	}
+	return map[string]string{
+		JwkKey: string(jwkJson),
+	}, nil
 }

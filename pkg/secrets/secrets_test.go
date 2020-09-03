@@ -1,6 +1,8 @@
 package secrets
 
 import (
+	"encoding/json"
+	"github.com/nais/digdirator/pkg/crypto"
 	"testing"
 
 	v1 "github.com/nais/digdirator/api/v1"
@@ -20,11 +22,13 @@ func TestCreateSecretSpec(t *testing.T) {
 			SecretName: "test-secret",
 		},
 	}
+	jwk, err := crypto.GenerateJwk()
+	assert.NoError(t, err)
 
-	spec, err := spec(client)
+	spec, err := spec(client, *jwk)
 	assert.NoError(t, err, "should not error")
 
-	stringData, err := stringData()
+	stringData, err := stringData(*jwk)
 	assert.NoError(t, err, "should not error")
 
 	t.Run("Name should equal provided name in Spec", func(t *testing.T) {
@@ -51,7 +55,11 @@ func TestCreateSecretSpec(t *testing.T) {
 	})
 
 	t.Run("StringData should contain expected fields and values", func(t *testing.T) {
-		// todo
+		t.Run("Secret Data should contain Private JWK", func(t *testing.T) {
+			expected, err := json.Marshal(jwk)
+			assert.NoError(t, err)
+			assert.Equal(t, string(expected), spec.StringData[JwkKey])
+		})
 	})
 }
 
