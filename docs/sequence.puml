@@ -27,12 +27,12 @@ digdirator -> digdir: register / update client
 digdirator -> digdirator: generate new set of JWK
 
 group client do not exists in ID-Porten
-digdirator -> digdir: register new JWKS
+digdirator -> digdir: register JWKS (new JWK)
 end
 
 group client already exists in ID-Porten
     digdirator -> Secret: fetch existing JWK
-    digdirator -> digdir: register new JWKS (new and existing JWK)
+    digdirator -> digdir: register JWKS (new and existing JWK)
 end
 
 digdirator -> IDPortenClient: update status subresource
