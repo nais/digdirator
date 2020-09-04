@@ -27,7 +27,7 @@ func (c Client) Register(ctx context.Context, payload ClientRegistration) (*Clie
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal payload: %w", err)
+		return nil, fmt.Errorf("marshalling register client payload: %w", err)
 	}
 
 	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, &registration); err != nil {
@@ -59,7 +59,7 @@ func (c Client) Update(ctx context.Context, payload ClientRegistration, clientID
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal payload: %w", err)
+		return nil, fmt.Errorf("marshalling update client payload: %w", err)
 	}
 
 	if err := c.request(ctx, http.MethodPut, endpoint, jsonPayload, &registration); err != nil {
@@ -96,7 +96,7 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 
 	token, err := c.getAuthToken(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get token from digdir: %w", err)
+		return fmt.Errorf("getting token from digdir: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewBuffer(payload))
@@ -108,7 +108,7 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to %s idporten client: %w", method, err)
+		return fmt.Errorf("performing %s request to %s: %w", method, endpoint, err)
 	}
 	defer resp.Body.Close()
 

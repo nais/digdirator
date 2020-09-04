@@ -32,7 +32,7 @@ type customClaims struct {
 func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 	token, err := crypto.GenerateJwt(c.Signer, c.claims())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("generating JWT for ID-porten auth: %w", err)
 	}
 
 	endpoint := c.Config.DigDir.Auth.TokenEndpoint
@@ -44,7 +44,7 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("performing http request to ID-porten: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -67,7 +67,7 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 func (c Client) claims() customClaims {
 	return customClaims{
 		Claims: jwt.Claims{
-			Issuer:    c.Config.DigDir.Auth.ClientId,
+			Issuer:    c.Config.DigDir.Auth.ClientID,
 			Audience:  []string{c.Config.DigDir.Auth.Audience},
 			Expiry:    jwt.NewNumericDate(time.Now().Add(2 * time.Minute)),
 			NotBefore: jwt.NewNumericDate(time.Now()),
@@ -81,7 +81,7 @@ func (c Client) claims() customClaims {
 func authRequest(ctx context.Context, endpoint, token string) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, authQueryParams(token))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating http request: %w", err)
 	}
 	req.Header.Set("Content-Type", applicationFormUrlEncoded)
 	return req, nil

@@ -12,8 +12,8 @@ spec:
   - JSONPath: .spec.secretName
     name: Secret
     type: string
-  - JSONPath: .status.clientId
-    name: ClientId
+  - JSONPath: .status.clientID
+    name: ClientID
     type: string
   - JSONPath: .metadata.creationTimestamp
     name: Age
@@ -105,11 +105,11 @@ spec:
         status:
           description: IDPortenClientStatus defines the observed state of IDPortenClient
           properties:
-            clientId:
-              description: ClientId is the ID-porten client ID
+            clientID:
+              description: ClientID is the ID-porten client ID
               type: string
-            correlationId:
-              description: CorrelationId is the ID referencing the processing transaction
+            correlationID:
+              description: CorrelationID is the ID referencing the processing transaction
                 last performed on this resource
               type: string
             provisionHash:
@@ -120,8 +120,8 @@ spec:
               format: date-time
               type: string
           required:
-          - clientId
-          - correlationId
+          - clientID
+          - correlationID
           type: object
       type: object
   version: v1

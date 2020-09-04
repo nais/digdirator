@@ -27,11 +27,11 @@ const (
 func CreateOrUpdate(ctx context.Context, instance *v1.IDPortenClient, cli client.Client, scheme *runtime.Scheme, jwk jose.JSONWebKey) (controllerutil.OperationResult, error) {
 	spec, err := spec(instance, jwk)
 	if err != nil {
-		return controllerutil.OperationResultNone, fmt.Errorf("unable to create secretSpec object: %w", err)
+		return controllerutil.OperationResultNone, fmt.Errorf("creating secretSpec object: %w", err)
 	}
 
 	if err := ctrl.SetControllerReference(instance, spec, scheme); err != nil {
-		return controllerutil.OperationResultNone, fmt.Errorf("failed to set controller reference: %w", err)
+		return controllerutil.OperationResultNone, fmt.Errorf("setting controller reference: %w", err)
 	}
 
 	err = cli.Create(ctx, spec)
@@ -43,7 +43,7 @@ func CreateOrUpdate(ctx context.Context, instance *v1.IDPortenClient, cli client
 	}
 
 	if err != nil {
-		return controllerutil.OperationResultNone, fmt.Errorf("unable to apply secretSpec: %w", err)
+		return controllerutil.OperationResultNone, fmt.Errorf("applying secretSpec: %w", err)
 	}
 	return res, nil
 }
@@ -68,7 +68,7 @@ func GetManaged(ctx context.Context, instance *v1.IDPortenClient, reader client.
 
 func Delete(ctx context.Context, secret corev1.Secret, cli client.Client) error {
 	if err := cli.Delete(ctx, &secret); err != nil {
-		return fmt.Errorf("failed to delete unused secret: %w", err)
+		return fmt.Errorf("deleting unused secret: %w", err)
 	}
 	return nil
 }

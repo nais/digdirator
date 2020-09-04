@@ -12,7 +12,7 @@ import (
 
 // IDPortenClient is the Schema for the IDPortenClients API
 // +kubebuilder:printcolumn:name="Secret",type=string,JSONPath=`.spec.secretName`
-// +kubebuilder:printcolumn:name="ClientId",type=string,JSONPath=`.status.clientId`
+// +kubebuilder:printcolumn:name="ClientID",type=string,JSONPath=`.status.clientID`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type IDPortenClient struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -56,14 +56,14 @@ type IDPortenClientSpec struct {
 
 // IDPortenClientStatus defines the observed state of IDPortenClient
 type IDPortenClientStatus struct {
-	// ClientId is the ID-porten client ID
-	ClientId string `json:"clientId"`
+	// ClientID is the ID-porten client ID
+	ClientID string `json:"clientID"`
 	// Timestamp is the last time the Status subresource was updated
 	Timestamp metav1.Time `json:"timestamp,omitempty"`
 	// ProvisionHash is the hash of the IDPortenClient object
 	ProvisionHash string `json:"provisionHash,omitempty"`
-	// CorrelationId is the ID referencing the processing transaction last performed on this resource
-	CorrelationId string `json:"correlationId"`
+	// CorrelationID is the ID referencing the processing transaction last performed on this resource
+	CorrelationID string `json:"correlationID"`
 }
 
 func init() {

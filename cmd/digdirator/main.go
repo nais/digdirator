@@ -128,7 +128,7 @@ func setupConfig() (*config.Config, error) {
 	if err = cfg.Validate([]string{
 		config.ClusterName,
 		config.DigDirAuthAudience,
-		config.DigDirAuthClientId,
+		config.DigDirAuthClientID,
 		config.DigDirAuthJwkPath,
 		config.DigDirAuthScopes,
 		config.DigDirAuthTokenEndpoint,

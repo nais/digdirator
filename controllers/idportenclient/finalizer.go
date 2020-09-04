@@ -24,7 +24,7 @@ func (f finalizer) register(tx transaction) (ctrl.Result, error) {
 		tx.log.Info("finalizer for object not found, registering...")
 		tx.instance.AddFinalizer(FinalizerName)
 		if err := f.Update(tx.ctx, tx.instance); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error when registering finalizer: %w", err)
+			return ctrl.Result{}, fmt.Errorf("registering finalizer: %w", err)
 		}
 		f.Recorder.Event(tx.instance, corev1.EventTypeNormal, "Added", "Object finalizer is added")
 	}
@@ -35,13 +35,13 @@ func (f finalizer) process(tx transaction) (ctrl.Result, error) {
 	if tx.instance.HasFinalizer(FinalizerName) {
 		tx.log.Info("finalizer triggered, deleting resources...")
 
-		if err := f.IDPortenClient.Delete(tx.ctx, tx.instance.Status.ClientId); err != nil {
+		if err := f.IDPortenClient.Delete(tx.ctx, tx.instance.Status.ClientID); err != nil {
 			return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
 		}
 
 		tx.instance.RemoveFinalizer(FinalizerName)
 		if err := f.Update(tx.ctx, tx.instance); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to remove finalizer from list: %w", err)
+			return ctrl.Result{}, fmt.Errorf("removing finalizer from list: %w", err)
 		}
 	}
 	return ctrl.Result{}, nil

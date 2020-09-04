@@ -24,7 +24,7 @@ type DigDir struct {
 }
 
 type Auth struct {
-	ClientId      string `json:"client-id"`
+	ClientID      string `json:"client-id"`
 	JwkPath       string `json:"jwk-path"`
 	TokenEndpoint string `json:"token-endpoint"`
 	Audience      string `json:"audience"`
@@ -40,7 +40,7 @@ const (
 	ClusterName               = "cluster-name"
 	DevelopmentMode           = "development-mode"
 	DigDirAuthAudience        = "digdir.auth.audience"
-	DigDirAuthClientId        = "digdir.auth.client-id"
+	DigDirAuthClientID        = "digdir.auth.client-id"
 	DigDirAuthJwkPath         = "digdir.auth.jwk-path"
 	DigDirAuthScopes          = "digdir.auth.scopes"
 	DigDirAuthTokenEndpoint   = "digdir.auth.token-endpoint"
@@ -64,7 +64,7 @@ func init() {
 	flag.String(ClusterName, "", "The cluster in which this application should run.")
 	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
 	flag.String(DigDirAuthAudience, "", "Audience for JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirAuthClientId, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
+	flag.String(DigDirAuthClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirAuthJwkPath, "", "Path to JWK for authenticating to DigDir.")
 	flag.String(DigDirAuthScopes, "", "List of scopes for JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirAuthTokenEndpoint, "", "Token endpoint for authenticating to DigDir.")

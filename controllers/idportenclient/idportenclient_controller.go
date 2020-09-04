@@ -44,14 +44,14 @@ type transaction struct {
 // +kubebuilder:rbac:groups=*,resources=events,verbs=get;list;watch;create;update
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	correlationId := uuid.New().String()
+	correlationID := uuid.New().String()
 
 	logger := *log.WithFields(log.Fields{
 		"IDPortenClient": req.NamespacedName,
-		"correlationId":  correlationId,
+		"correlationID":  correlationID,
 	})
 
-	tx, err := r.prepare(req, correlationId, logger)
+	tx, err := r.prepare(req, correlationID, logger)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -86,7 +86,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *Reconciler) prepare(req ctrl.Request, correlationId string, logger log.Entry) (transaction, error) {
+func (r *Reconciler) prepare(req ctrl.Request, correlationID string, logger log.Entry) (transaction, error) {
 	ctx := context.Background()
 
 	instance := &v1.IDPortenClient{}
@@ -94,7 +94,7 @@ func (r *Reconciler) prepare(req ctrl.Request, correlationId string, logger log.
 		return transaction{}, err
 	}
 	instance.SetClusterName(r.Config.ClusterName)
-	instance.Status.CorrelationId = correlationId
+	instance.Status.CorrelationID = correlationID
 	logger.Info("processing IDPortenClient...")
 	return transaction{ctx, instance, logger}, nil
 }
@@ -118,11 +118,11 @@ func (r *Reconciler) process(tx transaction) (*idporten.ClientRegistration, erro
 		// update
 		tx.log.Info("client already exists in ID-porten, updating...")
 
-		if len(tx.instance.Status.ClientId) == 0 {
-			tx.instance.Status.ClientId = client.ClientID
+		if len(tx.instance.Status.ClientID) == 0 {
+			tx.instance.Status.ClientID = client.ClientID
 		}
 
-		response, err = r.IDPortenClient.Update(tx.ctx, registration, tx.instance.Status.ClientId)
+		response, err = r.IDPortenClient.Update(tx.ctx, registration, tx.instance.Status.ClientID)
 		if err != nil {
 			return nil, fmt.Errorf("updating client at ID-porten: %w", err)
 		}
@@ -145,12 +145,11 @@ func (r *Reconciler) process(tx transaction) (*idporten.ClientRegistration, erro
 	}
 
 	jwks := crypto.MergeJwks(*jwk, jose.JSONWebKeySet{})
-	_, err = r.IDPortenClient.RegisterKeys(tx.ctx, tx.instance.Status.ClientId, jwks)
+	_, err = r.IDPortenClient.RegisterKeys(tx.ctx, tx.instance.Status.ClientID, jwks)
 	if err != nil {
 		return nil, fmt.Errorf("registering jwks for client at ID-porten: %w", err)
 	}
 
-	// todo - output new JWK to Secret
 	if err := r.secrets().createOrUpdate(tx, *jwk); err != nil {
 		return nil, err
 	}
@@ -163,7 +162,7 @@ func (r *Reconciler) process(tx transaction) (*idporten.ClientRegistration, erro
 }
 
 func (r *Reconciler) handleError(tx transaction, err error) (ctrl.Result, error) {
-	tx.log.Error(fmt.Errorf("failed to process ID-porten client: %w", err))
+	tx.log.Error(fmt.Errorf("processing ID-porten client: %w", err))
 	r.Recorder.Event(tx.instance, corev1.EventTypeWarning, "Failed", fmt.Sprintf("Failed to synchronize ID-porten client, retrying in %s", requeueInterval))
 
 	return ctrl.Result{RequeueAfter: requeueInterval}, nil
@@ -183,19 +182,19 @@ func (r *Reconciler) complete(tx transaction, client *idporten.ClientRegistratio
 func (r *Reconciler) updateStatus(tx transaction, client *idporten.ClientRegistration) error {
 	tx.log.Debug("updating status for IDPortenClient")
 	if len(client.ClientID) > 0 {
-		tx.instance.Status.ClientId = client.ClientID
+		tx.instance.Status.ClientID = client.ClientID
 	}
 
 	if err := tx.instance.UpdateHash(); err != nil {
 		return err
 	}
 	if err := r.Status().Update(tx.ctx, tx.instance); err != nil {
-		return fmt.Errorf("failed to update status subresource: %w", err)
+		return fmt.Errorf("updating status subresource: %w", err)
 	}
 
 	tx.log.WithFields(
 		log.Fields{
-			"ClientID": tx.instance.Status.ClientId,
+			"ClientID": tx.instance.Status.ClientID,
 		}).Info("status subresource successfully updated")
 	return nil
 }

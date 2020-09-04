@@ -19,7 +19,7 @@ func (s secretsReconciler) createOrUpdate(tx transaction, jwk jose.JSONWebKey) e
 	tx.log.Infof("processing secret with name '%s'...", tx.instance.Spec.SecretName)
 	res, err := secrets.CreateOrUpdate(tx.ctx, tx.instance, s.Client, s.Scheme, jwk)
 	if err != nil {
-		return fmt.Errorf("failed to create or update secret: %w", err)
+		return fmt.Errorf("creating or updating secret: %w", err)
 	}
 	tx.log.Infof("secret '%s' %s", tx.instance.Spec.SecretName, res)
 	return nil

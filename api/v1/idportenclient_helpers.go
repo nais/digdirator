@@ -29,7 +29,7 @@ func (in *IDPortenClient) UpdateHash() error {
 	in.Status.Timestamp = metav1.Now()
 	newHash, err := in.Hash()
 	if err != nil {
-		return fmt.Errorf("failed to calculate application hash: %w", err)
+		return fmt.Errorf("calculating application hash: %w", err)
 	}
 	in.Status.ProvisionHash = newHash
 	return nil
@@ -42,7 +42,7 @@ func (in *IDPortenClient) ClientID() string {
 func (in *IDPortenClient) HashUnchanged() (bool, error) {
 	newHash, err := in.Hash()
 	if err != nil {
-		return false, fmt.Errorf("failed to calculate application hash: %w", err)
+		return false, fmt.Errorf("checking if hash is unchanged: %w", err)
 	}
 	return in.Status.ProvisionHash == newHash, nil
 }
