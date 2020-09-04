@@ -35,11 +35,10 @@ type Reconciler struct {
 }
 
 type transaction struct {
-	ctx                context.Context
-	instance           *v1.IDPortenClient
-	log                log.Entry
-	clientRegistration *types.ClientRegistration
-	jwks               *jose.JSONWebKeySet
+	ctx            context.Context
+	instance       *v1.IDPortenClient
+	log            log.Entry
+	managedSecrets *secrets.Lists
 }
 
 // +kubebuilder:rbac:groups=nais.io,resources=IDPortenClients,verbs=get;list;watch;create;update;patch;delete
@@ -97,76 +96,104 @@ func (r *Reconciler) prepare(req ctrl.Request, correlationID string, logger log.
 	}
 	instance.SetClusterName(r.Config.ClusterName)
 	instance.Status.CorrelationID = correlationID
+
+	managedSecrets, err := secrets.GetManaged(ctx, instance, r.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("getting managed secrets: %w", err)
+	}
+
 	logger.Info("processing IDPortenClient...")
+
 	return &transaction{
 		ctx,
 		instance,
 		logger,
-		nil,
-		nil,
+		managedSecrets,
 	}, nil
 }
 
 func (r *Reconciler) process(tx *transaction) error {
-	managedSecrets, err := secrets.GetManaged(tx.ctx, tx.instance, r.Reader)
-	if err != nil {
-		return err
-	}
-
 	idportenClient, err := r.IDPortenClient.ClientExists(tx.instance.ClientID(), tx.ctx)
 	if err != nil {
 		return fmt.Errorf("checking if client exists: %w", err)
 	}
 
 	registrationPayload := tx.instance.ToClientRegistration()
-	clientRegistrationResponse := &types.ClientRegistration{}
 	if idportenClient != nil {
-		// update
-		tx.log.Info("client already exists in ID-porten, updating...")
-
-		if len(tx.instance.Status.ClientID) == 0 {
-			tx.instance.Status.ClientID = idportenClient.ClientID
-		}
-
-		clientRegistrationResponse, err = r.IDPortenClient.Update(tx.ctx, registrationPayload, tx.instance.Status.ClientID)
-		if err != nil {
-			return fmt.Errorf("updating client at ID-porten: %w", err)
-		}
+		idportenClient, err = r.updateClient(tx, registrationPayload, idportenClient.ClientID)
 	} else {
-		// create
-		tx.log.Info("client does not exist in ID-porten, registering...")
-		clientRegistrationResponse, err = r.IDPortenClient.Register(tx.ctx, registrationPayload)
-		if err != nil {
-			return fmt.Errorf("registering client to ID-porten: %w", err)
-		}
+		idportenClient, err = r.createClient(tx, registrationPayload)
 	}
-	tx.clientRegistration = clientRegistrationResponse
+	if err != nil {
+		return err
+	}
+
+	tx.log = *tx.log.WithField("ClientID", idportenClient.ClientID)
+	if len(tx.instance.Status.ClientID) == 0 {
+		tx.instance.Status.ClientID = idportenClient.ClientID
+	}
 
 	jwk, err := crypto.GenerateJwk()
 	if err != nil {
-		return fmt.Errorf("generating new jwk for client: %w", err)
+		return fmt.Errorf("generating new JWK for client: %w", err)
 	}
 
-	jwks, err := crypto.MergeJwks(*jwk, managedSecrets.Used)
-	if err != nil {
-		return fmt.Errorf("merging new JWK with JWKs in use: %w", err)
-	}
-	tx.jwks = jwks
-
-	// todo - figure out why id-porten returns all previously registered JWKs instead of overwriting
-	//  - contradicts documentation: https://difi.github.io/felleslosninger/oidc_api_admin.html#bruk-av-asymmetrisk-n%C3%B8kkel
-	_, err = r.IDPortenClient.RegisterKeys(tx.ctx, tx.instance.Status.ClientID, jwks)
-	if err != nil {
-		return fmt.Errorf("registering jwks for client at ID-porten: %w", err)
+	if err := r.registerJwk(tx, *jwk, idportenClient.ClientID); err != nil {
+		return err
 	}
 
 	if err := r.secrets().createOrUpdate(tx, *jwk); err != nil {
 		return err
 	}
 
-	if err := r.secrets().deleteUnused(tx, managedSecrets.Unused); err != nil {
+	if err := r.secrets().deleteUnused(tx, tx.managedSecrets.Unused); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (r *Reconciler) createClient(tx *transaction, payload types.ClientRegistration) (*types.ClientRegistration, error) {
+	tx.log.Debug("client does not exist in ID-porten, registering...")
+
+	idportenClient, err := r.IDPortenClient.Register(tx.ctx, payload)
+	if err != nil {
+		return nil, fmt.Errorf("registering client to ID-porten: %w", err)
+	}
+
+	tx.log.WithField("ClientID", idportenClient.ClientID).Info("client registered")
+	return idportenClient, nil
+}
+
+func (r *Reconciler) updateClient(tx *transaction, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {
+	tx.log.Debug("client already exists in ID-porten, updating...")
+
+	idportenClient, err := r.IDPortenClient.Update(tx.ctx, payload, clientID)
+	if err != nil {
+		return nil, fmt.Errorf("updating client at ID-porten: %w", err)
+	}
+
+	tx.log.WithField("ClientID", idportenClient.ClientID).Info("client updated")
+	return idportenClient, err
+}
+
+func (r *Reconciler) registerJwk(tx *transaction, jwk jose.JSONWebKey, clientID string) error {
+	jwks, err := crypto.MergeJwks(jwk, tx.managedSecrets.Used)
+	if err != nil {
+		return fmt.Errorf("merging new JWK with JWKs in use: %w", err)
+	}
+
+	tx.log.Debug("generated new JWKS for client, registering...")
+
+	jwksResponse, err := r.IDPortenClient.RegisterKeys(tx.ctx, clientID, jwks)
+
+	if err != nil {
+		return fmt.Errorf("registering JWKS for client at ID-porten: %w", err)
+	}
+
+	tx.instance.Status.KeyIDs = crypto.KeyIDsFromJwks(&jwksResponse.JSONWebKeySet)
+	tx.log = *tx.log.WithField("KeyIDs", tx.instance.Status.KeyIDs)
+	tx.log.Info("new JWKS for client registered")
 
 	return nil
 }
@@ -179,33 +206,19 @@ func (r *Reconciler) handleError(tx *transaction, err error) (ctrl.Result, error
 }
 
 func (r *Reconciler) complete(tx *transaction) (ctrl.Result, error) {
-	if err := r.updateStatus(tx); err != nil {
+	tx.log.Debug("updating status for IDPortenClient")
+
+	if err := tx.instance.UpdateHash(); err != nil {
 		return ctrl.Result{}, err
 	}
+	if err := r.Status().Update(tx.ctx, tx.instance); err != nil {
+		return ctrl.Result{}, fmt.Errorf("updating status subresource: %w", err)
+	}
+
+	tx.log.Info("status subresource successfully updated")
 
 	r.Recorder.Event(tx.instance, corev1.EventTypeNormal, "Synchronized", "ID-porten client is up-to-date")
 	tx.log.Info("successfully reconciled")
 
 	return ctrl.Result{}, nil
-}
-
-func (r *Reconciler) updateStatus(tx *transaction) error {
-	tx.log.Debug("updating status for IDPortenClient")
-	if len(tx.clientRegistration.ClientID) > 0 {
-		tx.instance.Status.ClientID = tx.clientRegistration.ClientID
-	}
-	tx.instance.Status.KeyIDs = crypto.KeyIDsFromJwks(tx.jwks)
-
-	if err := tx.instance.UpdateHash(); err != nil {
-		return err
-	}
-	if err := r.Status().Update(tx.ctx, tx.instance); err != nil {
-		return fmt.Errorf("updating status subresource: %w", err)
-	}
-
-	tx.log.WithFields(
-		log.Fields{
-			"ClientID": tx.instance.Status.ClientID,
-		}).Info("status subresource successfully updated")
-	return nil
 }

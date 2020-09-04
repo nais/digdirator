@@ -31,6 +31,8 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = naisiov1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
+
+	log.SetLevel(log.DebugLevel)
 }
 
 func main() {
@@ -67,12 +69,12 @@ func run() error {
 
 	jwk, err := crypto.LoadJwkFromPath(cfg.DigDir.Auth.JwkPath)
 	if err != nil {
-		return fmt.Errorf("loading jwk credentials: %v", err)
+		return fmt.Errorf("loading JWK credentials: %v", err)
 	}
 
 	signer, err := crypto.SignerFromJwk(jwk)
 	if err != nil {
-		return fmt.Errorf("creating signer from jwk: %v", err)
+		return fmt.Errorf("creating signer from JWK: %v", err)
 	}
 
 	if err = (&idportenclient.Reconciler{
@@ -108,7 +110,6 @@ func setupZapLogger() (*zap.Logger, error) {
 		TimestampFormat: time.RFC3339Nano,
 	}
 	log.SetFormatter(&formatter)
-	log.SetLevel(log.DebugLevel)
 
 	loggerConfig := zap.NewProductionConfig()
 	loggerConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)

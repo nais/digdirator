@@ -19,8 +19,7 @@ func MergeJwks(jwk jose.JSONWebKey, secretsInUse v1.SecretList) (*jose.JSONWebKe
 		keys = append(keys, key)
 	}
 
-	keys = unique(keys)
-	return &jose.JSONWebKeySet{Keys: keys}, nil
+	return &jose.JSONWebKeySet{Keys: unique(keys)}, nil
 }
 
 func KeyIDsFromJwks(jwks *jose.JSONWebKeySet) []string {
@@ -33,15 +32,15 @@ func KeyIDsFromJwks(jwks *jose.JSONWebKeySet) []string {
 
 func unique(keys []jose.JSONWebKey) []jose.JSONWebKey {
 	seen := map[string]jose.JSONWebKey{}
-	filteredKeys := make([]jose.JSONWebKey, 0)
+	filtered := make([]jose.JSONWebKey, 0)
 
 	for _, key := range keys {
 		if _, found := seen[key.KeyID]; !found {
 			seen[key.KeyID] = key
-			filteredKeys = append(filteredKeys, key)
+			filtered = append(filtered, key)
 		}
 	}
-	return filteredKeys
+	return filtered
 }
 
 func getJWKFromSecret(secret v1.Secret) (jose.JSONWebKey, error) {
@@ -49,7 +48,7 @@ func getJWKFromSecret(secret v1.Secret) (jose.JSONWebKey, error) {
 
 	var jwk jose.JSONWebKey
 	if err := jwk.UnmarshalJSON(jwkBytes); err != nil {
-		return jwk, fmt.Errorf("unmarshalling jwk from secret")
+		return jwk, fmt.Errorf("unmarshalling JWK from secret")
 	}
 
 	return jwk, nil

@@ -17,6 +17,8 @@ func GenerateJwk() (*jose.JSONWebKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("generating RSA key for JWK: %w", err)
 	}
+	// todo - add x5c with corporate cert to enable recovation?
+	//  see https://difi.github.io/felleslosninger/oidc_api_admin.html#bruk-av-asymmetrisk-n%C3%B8kkel
 	jwk := &jose.JSONWebKey{
 		Key:       privateKey,
 		KeyID:     uuid.New().String(),

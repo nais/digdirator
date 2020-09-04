@@ -112,7 +112,7 @@ func ObjectMeta(instance *v1.IDPortenClient) metav1.ObjectMeta {
 func StringData(jwk jose.JSONWebKey) (map[string]string, error) {
 	jwkJson, err := jwk.MarshalJSON()
 	if err != nil {
-		return nil, fmt.Errorf("marshalling jwk: %w", err)
+		return nil, fmt.Errorf("marshalling JWK: %w", err)
 	}
 	return map[string]string{
 		JwkKey: string(jwkJson),
