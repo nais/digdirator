@@ -108,8 +108,6 @@ func (r *Reconciler) prepare(req ctrl.Request, correlationID string, logger log.
 }
 
 func (r *Reconciler) process(tx *transaction) error {
-	response := &types.ClientRegistration{}
-
 	managedSecrets, err := secrets.GetManaged(tx.ctx, tx.instance, r.Reader)
 	if err != nil {
 		return err
@@ -120,8 +118,8 @@ func (r *Reconciler) process(tx *transaction) error {
 		return fmt.Errorf("checking if client exists: %w", err)
 	}
 
-	registration := tx.instance.ToClientRegistration()
-
+	registrationPayload := tx.instance.ToClientRegistration()
+	clientRegistrationResponse := &types.ClientRegistration{}
 	if idportenClient != nil {
 		// update
 		tx.log.Info("client already exists in ID-porten, updating...")
@@ -130,23 +128,23 @@ func (r *Reconciler) process(tx *transaction) error {
 			tx.instance.Status.ClientID = idportenClient.ClientID
 		}
 
-		response, err = r.IDPortenClient.Update(tx.ctx, registration, tx.instance.Status.ClientID)
+		clientRegistrationResponse, err = r.IDPortenClient.Update(tx.ctx, registrationPayload, tx.instance.Status.ClientID)
 		if err != nil {
 			return fmt.Errorf("updating client at ID-porten: %w", err)
 		}
 	} else {
 		// create
 		tx.log.Info("client does not exist in ID-porten, registering...")
-		response, err = r.IDPortenClient.Register(tx.ctx, registration)
+		clientRegistrationResponse, err = r.IDPortenClient.Register(tx.ctx, registrationPayload)
 		if err != nil {
 			return fmt.Errorf("registering client to ID-porten: %w", err)
 		}
 	}
-	tx.clientRegistration = response
+	tx.clientRegistration = clientRegistrationResponse
 
 	jwk, err := crypto.GenerateJwk()
 	if err != nil {
-		return fmt.Errorf("generating jwk for client: %w", err)
+		return fmt.Errorf("generating new jwk for client: %w", err)
 	}
 
 	jwks, err := crypto.MergeJwks(*jwk, managedSecrets.Used)
