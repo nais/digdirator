@@ -15,7 +15,7 @@ func (r *Reconciler) secrets() secretsReconciler {
 	return secretsReconciler{r}
 }
 
-func (s secretsReconciler) createOrUpdate(tx transaction, jwk jose.JSONWebKey) error {
+func (s secretsReconciler) createOrUpdate(tx *transaction, jwk jose.JSONWebKey) error {
 	tx.log.Infof("processing secret with name '%s'...", tx.instance.Spec.SecretName)
 	res, err := secrets.CreateOrUpdate(tx.ctx, tx.instance, s.Client, s.Scheme, jwk)
 	if err != nil {
@@ -25,7 +25,7 @@ func (s secretsReconciler) createOrUpdate(tx transaction, jwk jose.JSONWebKey) e
 	return nil
 }
 
-func (s secretsReconciler) deleteUnused(tx transaction, unused corev1.SecretList) error {
+func (s secretsReconciler) deleteUnused(tx *transaction, unused corev1.SecretList) error {
 	for _, oldSecret := range unused.Items {
 		if oldSecret.Name == tx.instance.Spec.SecretName {
 			continue

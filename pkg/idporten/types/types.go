@@ -64,7 +64,7 @@ type ClientRegistration struct {
 	TokenEndpointAuthMethod           TokenEndpointAuthMethod `json:"token_endpoint_auth_method"`
 }
 
-type RegisterJwksResponse struct {
+type JwksResponse struct {
 	Created     string `json:"created"`
 	LastUpdated string `json:"last_updated"`
 	jose.JSONWebKeySet

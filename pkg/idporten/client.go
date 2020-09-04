@@ -77,9 +77,9 @@ func (c Client) Delete(ctx context.Context, clientID string) error {
 	return nil
 }
 
-func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose.JSONWebKeySet) (*types.RegisterJwksResponse, error) {
+func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose.JSONWebKeySet) (*types.JwksResponse, error) {
 	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.IDPorten.ApiEndpoint, clientID)
-	response := &types.RegisterJwksResponse{}
+	response := &types.JwksResponse{}
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {

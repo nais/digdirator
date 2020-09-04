@@ -19,7 +19,7 @@ func (r *Reconciler) finalizer() finalizer {
 	return finalizer{r}
 }
 
-func (f finalizer) register(tx transaction) (ctrl.Result, error) {
+func (f finalizer) register(tx *transaction) (ctrl.Result, error) {
 	if !tx.instance.HasFinalizer(FinalizerName) {
 		tx.log.Info("finalizer for object not found, registering...")
 		tx.instance.AddFinalizer(FinalizerName)
@@ -31,7 +31,7 @@ func (f finalizer) register(tx transaction) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (f finalizer) process(tx transaction) (ctrl.Result, error) {
+func (f finalizer) process(tx *transaction) (ctrl.Result, error) {
 	if tx.instance.HasFinalizer(FinalizerName) {
 		tx.log.Info("finalizer triggered, deleting resources...")
 

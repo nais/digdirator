@@ -88,17 +88,17 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *Reconciler) prepare(req ctrl.Request, correlationID string, logger log.Entry) (transaction, error) {
+func (r *Reconciler) prepare(req ctrl.Request, correlationID string, logger log.Entry) (*transaction, error) {
 	ctx := context.Background()
 
 	instance := &v1.IDPortenClient{}
 	if err := r.Reader.Get(ctx, req.NamespacedName, instance); err != nil {
-		return transaction{}, err
+		return nil, err
 	}
 	instance.SetClusterName(r.Config.ClusterName)
 	instance.Status.CorrelationID = correlationID
 	logger.Info("processing IDPortenClient...")
-	return transaction{
+	return &transaction{
 		ctx,
 		instance,
 		logger,
@@ -107,7 +107,7 @@ func (r *Reconciler) prepare(req ctrl.Request, correlationID string, logger log.
 	}, nil
 }
 
-func (r *Reconciler) process(tx transaction) error {
+func (r *Reconciler) process(tx *transaction) error {
 	response := &types.ClientRegistration{}
 
 	managedSecrets, err := secrets.GetManaged(tx.ctx, tx.instance, r.Reader)
@@ -142,6 +142,7 @@ func (r *Reconciler) process(tx transaction) error {
 			return fmt.Errorf("registering client to ID-porten: %w", err)
 		}
 	}
+	tx.clientRegistration = response
 
 	jwk, err := crypto.GenerateJwk()
 	if err != nil {
@@ -152,7 +153,10 @@ func (r *Reconciler) process(tx transaction) error {
 	if err != nil {
 		return fmt.Errorf("merging new JWK with JWKs in use: %w", err)
 	}
+	tx.jwks = jwks
 
+	// todo - figure out why id-porten returns all previously registered JWKs instead of overwriting
+	//  - contradicts documentation: https://difi.github.io/felleslosninger/oidc_api_admin.html#bruk-av-asymmetrisk-n%C3%B8kkel
 	_, err = r.IDPortenClient.RegisterKeys(tx.ctx, tx.instance.Status.ClientID, jwks)
 	if err != nil {
 		return fmt.Errorf("registering jwks for client at ID-porten: %w", err)
@@ -166,19 +170,17 @@ func (r *Reconciler) process(tx transaction) error {
 		return err
 	}
 
-	tx.jwks = jwks
-	tx.clientRegistration = response
 	return nil
 }
 
-func (r *Reconciler) handleError(tx transaction, err error) (ctrl.Result, error) {
+func (r *Reconciler) handleError(tx *transaction, err error) (ctrl.Result, error) {
 	tx.log.Error(fmt.Errorf("processing ID-porten client: %w", err))
 	r.Recorder.Event(tx.instance, corev1.EventTypeWarning, "Failed", fmt.Sprintf("Failed to synchronize ID-porten client, retrying in %s", requeueInterval))
 
 	return ctrl.Result{RequeueAfter: requeueInterval}, nil
 }
 
-func (r *Reconciler) complete(tx transaction) (ctrl.Result, error) {
+func (r *Reconciler) complete(tx *transaction) (ctrl.Result, error) {
 	if err := r.updateStatus(tx); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -189,7 +191,7 @@ func (r *Reconciler) complete(tx transaction) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) updateStatus(tx transaction) error {
+func (r *Reconciler) updateStatus(tx *transaction) error {
 	tx.log.Debug("updating status for IDPortenClient")
 	if len(tx.clientRegistration.ClientID) > 0 {
 		tx.instance.Status.ClientID = tx.clientRegistration.ClientID
