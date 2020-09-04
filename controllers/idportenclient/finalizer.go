@@ -43,6 +43,8 @@ func (f finalizer) process(tx *transaction) (ctrl.Result, error) {
 		if err := f.Update(tx.ctx, tx.instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("removing finalizer from list: %w", err)
 		}
+
+		tx.log.Info("resources deleted")
 	}
 	return ctrl.Result{}, nil
 }

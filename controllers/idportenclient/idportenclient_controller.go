@@ -37,7 +37,7 @@ type Reconciler struct {
 type transaction struct {
 	ctx            context.Context
 	instance       *v1.IDPortenClient
-	log            log.Entry
+	log            *log.Entry
 	managedSecrets *secrets.Lists
 }
 
@@ -46,17 +46,14 @@ type transaction struct {
 // +kubebuilder:rbac:groups=*,resources=events,verbs=get;list;watch;create;update
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	correlationID := uuid.New().String()
-
-	logger := *log.WithFields(log.Fields{
-		"IDPortenClient": req.NamespacedName,
-		"correlationID":  correlationID,
-	})
-
-	tx, err := r.prepare(req, correlationID, logger)
+	tx, err := r.prepare(req)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	defer func() {
+		tx.log.Infof("finished processing request")
+	}()
 
 	if tx.instance.IsBeingDeleted() {
 		return r.finalizer().process(tx)
@@ -70,7 +67,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		logger.Info("object state already reconciled, nothing to do")
+		tx.log.Info("object state already reconciled, nothing to do")
 		return ctrl.Result{}, nil
 	}
 
@@ -87,7 +84,14 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *Reconciler) prepare(req ctrl.Request, correlationID string, logger log.Entry) (*transaction, error) {
+func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
+	correlationID := uuid.New().String()
+
+	logger := *log.WithFields(log.Fields{
+		"IDPortenClient": req.NamespacedName,
+		"correlationID":  correlationID,
+	})
+
 	ctx := context.Background()
 
 	instance := &v1.IDPortenClient{}
@@ -107,7 +111,7 @@ func (r *Reconciler) prepare(req ctrl.Request, correlationID string, logger log.
 	return &transaction{
 		ctx,
 		instance,
-		logger,
+		&logger,
 		managedSecrets,
 	}, nil
 }
@@ -128,7 +132,7 @@ func (r *Reconciler) process(tx *transaction) error {
 		return err
 	}
 
-	tx.log = *tx.log.WithField("ClientID", idportenClient.ClientID)
+	tx.log = tx.log.WithField("ClientID", idportenClient.ClientID)
 	if len(tx.instance.Status.ClientID) == 0 {
 		tx.instance.Status.ClientID = idportenClient.ClientID
 	}
@@ -192,7 +196,7 @@ func (r *Reconciler) registerJwk(tx *transaction, jwk jose.JSONWebKey, clientID 
 	}
 
 	tx.instance.Status.KeyIDs = crypto.KeyIDsFromJwks(&jwksResponse.JSONWebKeySet)
-	tx.log = *tx.log.WithField("KeyIDs", tx.instance.Status.KeyIDs)
+	tx.log = tx.log.WithField("KeyIDs", tx.instance.Status.KeyIDs)
 	tx.log.Info("new JWKS for client registered")
 
 	return nil
@@ -218,6 +222,7 @@ func (r *Reconciler) complete(tx *transaction) (ctrl.Result, error) {
 	tx.log.Info("status subresource successfully updated")
 
 	r.Recorder.Event(tx.instance, corev1.EventTypeNormal, "Synchronized", "ID-porten client is up-to-date")
+
 	tx.log.Info("successfully reconciled")
 
 	return ctrl.Result{}, nil
