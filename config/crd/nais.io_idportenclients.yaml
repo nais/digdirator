@@ -112,6 +112,12 @@ spec:
               description: CorrelationID is the ID referencing the processing transaction
                 last performed on this resource
               type: string
+            keyIDs:
+              description: KeyIDs is the list of key IDs for valid JWKs registered
+                for the client at ID-porten
+              items:
+                type: string
+              type: array
             provisionHash:
               description: ProvisionHash is the hash of the IDPortenClient object
               type: string
@@ -122,6 +128,7 @@ spec:
           required:
           - clientID
           - correlationID
+          - keyIDs
           type: object
       type: object
   version: v1

@@ -2,7 +2,6 @@ package secrets
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"gopkg.in/square/go-jose.v2"
 
@@ -25,7 +24,7 @@ const (
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch
 
 func CreateOrUpdate(ctx context.Context, instance *v1.IDPortenClient, cli client.Client, scheme *runtime.Scheme, jwk jose.JSONWebKey) (controllerutil.OperationResult, error) {
-	spec, err := spec(instance, jwk)
+	spec, err := Spec(instance, jwk)
 	if err != nil {
 		return controllerutil.OperationResultNone, fmt.Errorf("creating secretSpec object: %w", err)
 	}
@@ -85,8 +84,8 @@ func getAll(ctx context.Context, instance *v1.IDPortenClient, reader client.Read
 	return list, nil
 }
 
-func spec(instance *v1.IDPortenClient, jwk jose.JSONWebKey) (*corev1.Secret, error) {
-	data, err := stringData(jwk)
+func Spec(instance *v1.IDPortenClient, jwk jose.JSONWebKey) (*corev1.Secret, error) {
+	data, err := StringData(jwk)
 	if err != nil {
 		return nil, err
 	}
@@ -95,13 +94,13 @@ func spec(instance *v1.IDPortenClient, jwk jose.JSONWebKey) (*corev1.Secret, err
 			Kind:       "Secret",
 			APIVersion: "v1",
 		},
-		ObjectMeta: objectMeta(instance),
+		ObjectMeta: ObjectMeta(instance),
 		StringData: data,
 		Type:       corev1.SecretTypeOpaque,
 	}, nil
 }
 
-func objectMeta(instance *v1.IDPortenClient) metav1.ObjectMeta {
+func ObjectMeta(instance *v1.IDPortenClient) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:      instance.Spec.SecretName,
 		Namespace: instance.Namespace,
@@ -109,9 +108,9 @@ func objectMeta(instance *v1.IDPortenClient) metav1.ObjectMeta {
 	}
 }
 
-// todo
-func stringData(jwk jose.JSONWebKey) (map[string]string, error) {
-	jwkJson, err := json.Marshal(jwk)
+// todo - more things in secret?
+func StringData(jwk jose.JSONWebKey) (map[string]string, error) {
+	jwkJson, err := jwk.MarshalJSON()
 	if err != nil {
 		return nil, fmt.Errorf("marshalling jwk: %w", err)
 	}

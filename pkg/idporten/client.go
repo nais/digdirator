@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/idporten/types"
 	"gopkg.in/square/go-jose.v2"
 	"io/ioutil"
 	"net/http"
@@ -21,9 +22,9 @@ type Client struct {
 	Config config.Config
 }
 
-func (c Client) Register(ctx context.Context, payload ClientRegistration) (*ClientRegistration, error) {
+func (c Client) Register(ctx context.Context, payload types.ClientRegistration) (*types.ClientRegistration, error) {
 	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.IDPorten.ApiEndpoint)
-	registration := &ClientRegistration{}
+	registration := &types.ClientRegistration{}
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
@@ -37,9 +38,9 @@ func (c Client) Register(ctx context.Context, payload ClientRegistration) (*Clie
 	return registration, nil
 }
 
-func (c Client) ClientExists(clientID string, ctx context.Context) (*ClientRegistration, error) {
+func (c Client) ClientExists(clientID string, ctx context.Context) (*types.ClientRegistration, error) {
 	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.IDPorten.ApiEndpoint)
-	clients := make([]ClientRegistration, 0)
+	clients := make([]types.ClientRegistration, 0)
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &clients); err != nil {
 		return nil, fmt.Errorf("updating ID-porten client: %w", err)
@@ -53,9 +54,9 @@ func (c Client) ClientExists(clientID string, ctx context.Context) (*ClientRegis
 	return nil, nil
 }
 
-func (c Client) Update(ctx context.Context, payload ClientRegistration, clientID string) (*ClientRegistration, error) {
+func (c Client) Update(ctx context.Context, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {
 	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.IDPorten.ApiEndpoint, clientID)
-	registration := &ClientRegistration{}
+	registration := &types.ClientRegistration{}
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
@@ -76,9 +77,9 @@ func (c Client) Delete(ctx context.Context, clientID string) error {
 	return nil
 }
 
-func (c Client) RegisterKeys(ctx context.Context, clientID string, payload jose.JSONWebKeySet) (*RegisterJwksResponse, error) {
+func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose.JSONWebKeySet) (*types.RegisterJwksResponse, error) {
 	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.IDPorten.ApiEndpoint, clientID)
-	response := &RegisterJwksResponse{}
+	response := &types.RegisterJwksResponse{}
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {

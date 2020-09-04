@@ -1,4 +1,4 @@
-package idporten
+package types
 
 import "gopkg.in/square/go-jose.v2"
 

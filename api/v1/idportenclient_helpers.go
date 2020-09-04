@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	hash "github.com/mitchellh/hashstructure"
-	"github.com/nais/digdirator/pkg/idporten"
+	"github.com/nais/digdirator/pkg/idporten/types"
 	"github.com/nais/digdirator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -60,25 +60,25 @@ func (in IDPortenClient) GetUniqueName() string {
 	return fmt.Sprintf("%s:%s:%s", in.ClusterName, in.Namespace, in.Name)
 }
 
-func (in IDPortenClient) ToClientRegistration() idporten.ClientRegistration {
-	return idporten.ClientRegistration{
+func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
+	return types.ClientRegistration{
 		AccessTokenLifetime:               3600,
-		ApplicationType:                   idporten.ApplicationTypeWeb,
+		ApplicationType:                   types.ApplicationTypeWeb,
 		AuthorizationLifeTime:             0,
 		ClientName:                        in.Spec.ClientName,
 		ClientURI:                         in.Spec.ClientURI,
 		Description:                       in.GetUniqueName(),
 		FrontchannelLogoutSessionRequired: false,
 		FrontchannelLogoutURI:             in.Spec.FrontchannelLogoutURI,
-		GrantTypes: []idporten.GrantType{
-			idporten.GrantTypeAuthorizationCode,
+		GrantTypes: []types.GrantType{
+			types.GrantTypeAuthorizationCode,
 		},
-		IntegrationType:         idporten.IntegrationTypeIDPorten,
+		IntegrationType:         types.IntegrationTypeIDPorten,
 		PostLogoutRedirectURIs:  in.Spec.PostLogoutRedirectURIs,
 		RedirectURIs:            in.Spec.ReplyURLs,
 		RefreshTokenLifetime:    12 * 3600,
-		RefreshTokenUsage:       idporten.RefreshTokenUsageOneTime,
+		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
 		Scopes:                  in.Spec.Scopes,
-		TokenEndpointAuthMethod: idporten.TokenEndpointAuthMethodPrivateKeyJwt,
+		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
 }

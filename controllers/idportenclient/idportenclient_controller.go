@@ -6,6 +6,7 @@ import (
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/idporten"
+	"github.com/nais/digdirator/pkg/idporten/types"
 	"gopkg.in/square/go-jose.v2"
 	"time"
 
@@ -34,9 +35,11 @@ type Reconciler struct {
 }
 
 type transaction struct {
-	ctx      context.Context
-	instance *v1.IDPortenClient
-	log      log.Entry
+	ctx                context.Context
+	instance           *v1.IDPortenClient
+	log                log.Entry
+	clientRegistration *types.ClientRegistration
+	jwks               *jose.JSONWebKeySet
 }
 
 // +kubebuilder:rbac:groups=nais.io,resources=IDPortenClients,verbs=get;list;watch;create;update;patch;delete
@@ -72,12 +75,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	clientRegistration, err := r.process(tx)
-	if err != nil {
+	if err := r.process(tx); err != nil {
 		return r.handleError(tx, err)
 	}
 
-	return r.complete(tx, clientRegistration)
+	return r.complete(tx)
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -96,69 +98,77 @@ func (r *Reconciler) prepare(req ctrl.Request, correlationID string, logger log.
 	instance.SetClusterName(r.Config.ClusterName)
 	instance.Status.CorrelationID = correlationID
 	logger.Info("processing IDPortenClient...")
-	return transaction{ctx, instance, logger}, nil
+	return transaction{
+		ctx,
+		instance,
+		logger,
+		nil,
+		nil,
+	}, nil
 }
 
-func (r *Reconciler) process(tx transaction) (*idporten.ClientRegistration, error) {
-	response := &idporten.ClientRegistration{}
+func (r *Reconciler) process(tx transaction) error {
+	response := &types.ClientRegistration{}
 
 	managedSecrets, err := secrets.GetManaged(tx.ctx, tx.instance, r.Reader)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	client, err := r.IDPortenClient.ClientExists(tx.instance.ClientID(), tx.ctx)
+	idportenClient, err := r.IDPortenClient.ClientExists(tx.instance.ClientID(), tx.ctx)
 	if err != nil {
-		return nil, fmt.Errorf("checking if client exists: %w", err)
+		return fmt.Errorf("checking if client exists: %w", err)
 	}
 
 	registration := tx.instance.ToClientRegistration()
 
-	if client != nil {
+	if idportenClient != nil {
 		// update
 		tx.log.Info("client already exists in ID-porten, updating...")
 
 		if len(tx.instance.Status.ClientID) == 0 {
-			tx.instance.Status.ClientID = client.ClientID
+			tx.instance.Status.ClientID = idportenClient.ClientID
 		}
 
 		response, err = r.IDPortenClient.Update(tx.ctx, registration, tx.instance.Status.ClientID)
 		if err != nil {
-			return nil, fmt.Errorf("updating client at ID-porten: %w", err)
+			return fmt.Errorf("updating client at ID-porten: %w", err)
 		}
 	} else {
 		// create
 		tx.log.Info("client does not exist in ID-porten, registering...")
 		response, err = r.IDPortenClient.Register(tx.ctx, registration)
 		if err != nil {
-			return nil, fmt.Errorf("registering client to ID-porten: %w", err)
+			return fmt.Errorf("registering client to ID-porten: %w", err)
 		}
 	}
 
-	// todo - generate and register JWKS
-	// 	- JWKS should contain in-use JWK (in-use => mounted to an existing pod) and newly generated JWK
-	// 	- idporten only accepts max 5 JWKs in JWKS - should check if pod status is Running
-
 	jwk, err := crypto.GenerateJwk()
 	if err != nil {
-		return nil, fmt.Errorf("generating jwk for client: %w", err)
+		return fmt.Errorf("generating jwk for client: %w", err)
 	}
 
-	jwks := crypto.MergeJwks(*jwk, jose.JSONWebKeySet{})
+	jwks, err := crypto.MergeJwks(*jwk, managedSecrets.Used)
+	if err != nil {
+		return fmt.Errorf("merging new JWK with JWKs in use: %w", err)
+	}
+
 	_, err = r.IDPortenClient.RegisterKeys(tx.ctx, tx.instance.Status.ClientID, jwks)
 	if err != nil {
-		return nil, fmt.Errorf("registering jwks for client at ID-porten: %w", err)
+		return fmt.Errorf("registering jwks for client at ID-porten: %w", err)
 	}
 
 	if err := r.secrets().createOrUpdate(tx, *jwk); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := r.secrets().deleteUnused(tx, managedSecrets.Unused); err != nil {
-		return nil, err
+		return err
 	}
 
-	return response, nil
+	tx.jwks = jwks
+	tx.clientRegistration = response
+	return nil
 }
 
 func (r *Reconciler) handleError(tx transaction, err error) (ctrl.Result, error) {
@@ -168,8 +178,8 @@ func (r *Reconciler) handleError(tx transaction, err error) (ctrl.Result, error)
 	return ctrl.Result{RequeueAfter: requeueInterval}, nil
 }
 
-func (r *Reconciler) complete(tx transaction, client *idporten.ClientRegistration) (ctrl.Result, error) {
-	if err := r.updateStatus(tx, client); err != nil {
+func (r *Reconciler) complete(tx transaction) (ctrl.Result, error) {
+	if err := r.updateStatus(tx); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -179,11 +189,12 @@ func (r *Reconciler) complete(tx transaction, client *idporten.ClientRegistratio
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) updateStatus(tx transaction, client *idporten.ClientRegistration) error {
+func (r *Reconciler) updateStatus(tx transaction) error {
 	tx.log.Debug("updating status for IDPortenClient")
-	if len(client.ClientID) > 0 {
-		tx.instance.Status.ClientID = client.ClientID
+	if len(tx.clientRegistration.ClientID) > 0 {
+		tx.instance.Status.ClientID = tx.clientRegistration.ClientID
 	}
+	tx.instance.Status.KeyIDs = crypto.KeyIDsFromJwks(tx.jwks)
 
 	if err := tx.instance.UpdateHash(); err != nil {
 		return err

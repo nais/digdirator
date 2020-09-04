@@ -1,8 +1,9 @@
-package secrets
+package secrets_test
 
 import (
 	"encoding/json"
 	"github.com/nais/digdirator/pkg/crypto"
+	"github.com/nais/digdirator/pkg/secrets"
 	"testing"
 
 	v1 "github.com/nais/digdirator/api/v1"
@@ -25,10 +26,10 @@ func TestCreateSecretSpec(t *testing.T) {
 	jwk, err := crypto.GenerateJwk()
 	assert.NoError(t, err)
 
-	spec, err := spec(client, *jwk)
+	spec, err := secrets.Spec(client, *jwk)
 	assert.NoError(t, err, "should not error")
 
-	stringData, err := stringData(*jwk)
+	stringData, err := secrets.StringData(*jwk)
 	assert.NoError(t, err, "should not error")
 
 	t.Run("Name should equal provided name in Spec", func(t *testing.T) {
@@ -44,7 +45,7 @@ func TestCreateSecretSpec(t *testing.T) {
 				Kind:       "Secret",
 				APIVersion: "v1",
 			},
-			ObjectMeta: objectMeta(client),
+			ObjectMeta: secrets.ObjectMeta(client),
 			StringData: stringData,
 			Type:       corev1.SecretTypeOpaque,
 		}
@@ -58,7 +59,7 @@ func TestCreateSecretSpec(t *testing.T) {
 		t.Run("Secret Data should contain Private JWK", func(t *testing.T) {
 			expected, err := json.Marshal(jwk)
 			assert.NoError(t, err)
-			assert.Equal(t, string(expected), spec.StringData[JwkKey])
+			assert.Equal(t, string(expected), spec.StringData[secrets.JwkKey])
 		})
 	})
 }
@@ -75,7 +76,7 @@ func TestObjectMeta(t *testing.T) {
 		},
 	}
 
-	om := objectMeta(app)
+	om := secrets.ObjectMeta(app)
 
 	t.Run("Name should be set", func(t *testing.T) {
 		actual := om.GetName()
