@@ -24,11 +24,11 @@ type DigDir struct {
 }
 
 type Auth struct {
-	ClientID      string `json:"client-id"`
-	JwkPath       string `json:"jwk-path"`
-	TokenEndpoint string `json:"token-endpoint"`
-	Audience      string `json:"audience"`
-	Scopes        string `json:"scopes"`
+	ClientID string `json:"client-id"`
+	JwkPath  string `json:"jwk-path"`
+	BaseURL  string `json:"base-url"`
+	Audience string `json:"audience"`
+	Scopes   string `json:"scopes"`
 }
 
 type IDPorten struct {
@@ -43,7 +43,7 @@ const (
 	DigDirAuthClientID        = "digdir.auth.client-id"
 	DigDirAuthJwkPath         = "digdir.auth.jwk-path"
 	DigDirAuthScopes          = "digdir.auth.scopes"
-	DigDirAuthTokenEndpoint   = "digdir.auth.token-endpoint"
+	DigDirAuthBaseURL         = "digdir.auth.base-url"
 	DigDirIDPortenApiEndpoint = "digdir.idporten.api-endpoint"
 )
 
@@ -67,7 +67,7 @@ func init() {
 	flag.String(DigDirAuthClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirAuthJwkPath, "", "Path to JWK for authenticating to DigDir.")
 	flag.String(DigDirAuthScopes, "", "List of scopes for JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirAuthTokenEndpoint, "", "Token endpoint for authenticating to DigDir.")
+	flag.String(DigDirAuthBaseURL, "", "Base URL endpoint for authenticating to DigDir.")
 	flag.String(DigDirIDPortenApiEndpoint, "", "Endpoint for interacting with IDPorten API.")
 }
 

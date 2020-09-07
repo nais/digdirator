@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	"time"
 
@@ -19,11 +20,13 @@ type ClusterFixtures struct {
 	Config
 	idPortenClient *v1.IDPortenClient
 	namespace      *corev1.Namespace
+	pod            *corev1.Pod
 }
 
 type Config struct {
 	IDPortenClientName string
 	NamespaceName      string
+	SecretName         string
 }
 
 type resource struct {
@@ -62,7 +65,7 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 		ClientName:              c.IDPortenClientName,
 		ClientURI:               "clienturi",
 		ReplyURLs:               []string{"x"},
-		SecretName:              "secretname",
+		SecretName:              c.SecretName,
 		FrontchannelLogoutURI:   "frontChannelLogoutURI",
 		PostLogoutRedirectURIs:  []string{"postLogoutRedirectURI"},
 		RefreshTokenLifetime:    0,
@@ -80,6 +83,45 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 	return c
 }
 
+func (c ClusterFixtures) WithPod() ClusterFixtures {
+	key := types.NamespacedName{
+		Namespace: c.NamespaceName,
+		Name:      c.IDPortenClientName,
+	}
+	c.pod = &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+			Labels: map[string]string{
+				labels.AppLabelKey: key.Name,
+			},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "main",
+					Image: "foo",
+				},
+			},
+			Volumes: []corev1.Volume{
+				{
+					Name: "foo",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: c.SecretName,
+						},
+					},
+				},
+			},
+		},
+	}
+	return c
+}
+
 func (c ClusterFixtures) Setup() error {
 	ctx := context.Background()
 	if c.namespace != nil {
@@ -89,6 +131,11 @@ func (c ClusterFixtures) Setup() error {
 	}
 	if c.idPortenClient != nil {
 		if err := c.Create(ctx, c.idPortenClient); err != nil {
+			return err
+		}
+	}
+	if c.pod != nil {
+		if err := c.Create(ctx, c.pod); err != nil {
 			return err
 		}
 	}

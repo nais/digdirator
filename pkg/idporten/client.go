@@ -19,8 +19,9 @@ const (
 )
 
 type Client struct {
-	Signer jose.Signer
-	Config config.Config
+	HttpClient *http.Client
+	Signer     jose.Signer
+	Config     *config.Config
 }
 
 func (c Client) Register(ctx context.Context, payload types.ClientRegistration) (*types.ClientRegistration, error) {
@@ -32,7 +33,7 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 		return nil, fmt.Errorf("marshalling register client payload: %w", err)
 	}
 
-	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, &registration); err != nil {
+	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, registration); err != nil {
 		return nil, fmt.Errorf("updating ID-porten client: %w", err)
 	}
 
@@ -64,7 +65,7 @@ func (c Client) Update(ctx context.Context, payload types.ClientRegistration, cl
 		return nil, fmt.Errorf("marshalling update client payload: %w", err)
 	}
 
-	if err := c.request(ctx, http.MethodPut, endpoint, jsonPayload, &registration); err != nil {
+	if err := c.request(ctx, http.MethodPut, endpoint, jsonPayload, registration); err != nil {
 		return nil, fmt.Errorf("updating ID-porten client: %w", err)
 	}
 	return registration, nil
@@ -86,7 +87,7 @@ func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose
 	if err != nil {
 		return nil, fmt.Errorf("marshalling JWKS payload: %w", err)
 	}
-	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, &response); err != nil {
+	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, response); err != nil {
 		return nil, fmt.Errorf("registering JWKS for client: %w", err)
 	}
 	return response, nil
@@ -108,7 +109,7 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
 	req.Header.Add("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.HttpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("performing %s request to %s: %w", method, endpoint, err)
 	}
@@ -131,8 +132,9 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 	return nil
 }
 
-func NewClient(signer jose.Signer, config config.Config) Client {
+func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config) Client {
 	return Client{
+		httpClient,
 		signer,
 		config,
 	}

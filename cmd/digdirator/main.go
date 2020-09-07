@@ -6,7 +6,6 @@ import (
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
-	"github.com/nais/digdirator/pkg/idporten"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -14,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"net/http"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"time"
@@ -78,12 +78,13 @@ func run() error {
 	}
 
 	if err = (&idportenclient.Reconciler{
-		Client:         mgr.GetClient(),
-		Reader:         mgr.GetAPIReader(),
-		Scheme:         mgr.GetScheme(),
-		Config:         cfg,
-		Recorder:       mgr.GetEventRecorderFor("digdirator"),
-		IDPortenClient: idporten.NewClient(signer, *cfg),
+		Client:     mgr.GetClient(),
+		Reader:     mgr.GetAPIReader(),
+		Scheme:     mgr.GetScheme(),
+		Recorder:   mgr.GetEventRecorderFor("digdirator"),
+		Config:     cfg,
+		Signer:     signer,
+		HttpClient: http.DefaultClient,
 	}).SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
@@ -132,7 +133,7 @@ func setupConfig() (*config.Config, error) {
 		config.DigDirAuthClientID,
 		config.DigDirAuthJwkPath,
 		config.DigDirAuthScopes,
-		config.DigDirAuthTokenEndpoint,
+		config.DigDirAuthBaseURL,
 		config.DigDirIDPortenApiEndpoint,
 	}); err != nil {
 		return nil, err

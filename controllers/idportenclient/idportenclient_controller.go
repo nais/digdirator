@@ -8,6 +8,7 @@ import (
 	"github.com/nais/digdirator/pkg/idporten"
 	"github.com/nais/digdirator/pkg/idporten/types"
 	"gopkg.in/square/go-jose.v2"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,9 +30,10 @@ type Reconciler struct {
 	Reader client.Reader
 	Scheme *runtime.Scheme
 
-	Recorder       record.EventRecorder
-	Config         *config.Config
-	IDPortenClient idporten.Client
+	Recorder   record.EventRecorder
+	Config     *config.Config
+	Signer     jose.Signer
+	HttpClient *http.Client
 }
 
 type transaction struct {
@@ -39,6 +41,7 @@ type transaction struct {
 	instance       *v1.IDPortenClient
 	log            *log.Entry
 	managedSecrets *secrets.Lists
+	idportenClient *idporten.Client
 }
 
 // +kubebuilder:rbac:groups=nais.io,resources=IDPortenClients,verbs=get;list;watch;create;update;patch;delete
@@ -106,6 +109,8 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 		return nil, fmt.Errorf("getting managed secrets: %w", err)
 	}
 
+	idportenClient := idporten.NewClient(r.HttpClient, r.Signer, r.Config)
+
 	logger.Info("processing IDPortenClient...")
 
 	return &transaction{
@@ -113,11 +118,12 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 		instance,
 		&logger,
 		managedSecrets,
+		&idportenClient,
 	}, nil
 }
 
 func (r *Reconciler) process(tx *transaction) error {
-	idportenClient, err := r.IDPortenClient.ClientExists(tx.instance, tx.ctx)
+	idportenClient, err := tx.idportenClient.ClientExists(tx.instance, tx.ctx)
 	if err != nil {
 		return fmt.Errorf("checking if client exists: %w", err)
 	}
@@ -160,7 +166,7 @@ func (r *Reconciler) process(tx *transaction) error {
 func (r *Reconciler) createClient(tx *transaction, payload types.ClientRegistration) (*types.ClientRegistration, error) {
 	tx.log.Debug("client does not exist in ID-porten, registering...")
 
-	idportenClient, err := r.IDPortenClient.Register(tx.ctx, payload)
+	idportenClient, err := tx.idportenClient.Register(tx.ctx, payload)
 	if err != nil {
 		return nil, fmt.Errorf("registering client to ID-porten: %w", err)
 	}
@@ -172,7 +178,7 @@ func (r *Reconciler) createClient(tx *transaction, payload types.ClientRegistrat
 func (r *Reconciler) updateClient(tx *transaction, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {
 	tx.log.Debug("client already exists in ID-porten, updating...")
 
-	idportenClient, err := r.IDPortenClient.Update(tx.ctx, payload, clientID)
+	idportenClient, err := tx.idportenClient.Update(tx.ctx, payload, clientID)
 	if err != nil {
 		return nil, fmt.Errorf("updating client at ID-porten: %w", err)
 	}
@@ -189,7 +195,7 @@ func (r *Reconciler) registerJwk(tx *transaction, jwk jose.JSONWebKey, clientID 
 
 	tx.log.Debug("generated new JWKS for client, registering...")
 
-	jwksResponse, err := r.IDPortenClient.RegisterKeys(tx.ctx, clientID, jwks)
+	jwksResponse, err := tx.idportenClient.RegisterKeys(tx.ctx, clientID, jwks)
 
 	if err != nil {
 		return fmt.Errorf("registering JWKS for client at ID-porten: %w", err)
