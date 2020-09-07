@@ -117,7 +117,7 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 }
 
 func (r *Reconciler) process(tx *transaction) error {
-	idportenClient, err := r.IDPortenClient.ClientExists(tx.instance.ClientID(), tx.ctx)
+	idportenClient, err := r.IDPortenClient.ClientExists(tx.instance, tx.ctx)
 	if err != nil {
 		return fmt.Errorf("checking if client exists: %w", err)
 	}

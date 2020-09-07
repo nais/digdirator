@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/idporten/types"
 	"gopkg.in/square/go-jose.v2"
@@ -38,7 +39,7 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 	return registration, nil
 }
 
-func (c Client) ClientExists(clientID string, ctx context.Context) (*types.ClientRegistration, error) {
+func (c Client) ClientExists(desired *v1.IDPortenClient, ctx context.Context) (*types.ClientRegistration, error) {
 	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.IDPorten.ApiEndpoint)
 	clients := make([]types.ClientRegistration, 0)
 
@@ -46,9 +47,9 @@ func (c Client) ClientExists(clientID string, ctx context.Context) (*types.Clien
 		return nil, fmt.Errorf("updating ID-porten client: %w", err)
 	}
 
-	for _, client := range clients {
-		if client.Description == clientID {
-			return &client, nil
+	for _, actual := range clients {
+		if clientMatches(actual, desired) {
+			return &actual, nil
 		}
 	}
 	return nil, nil
@@ -135,4 +136,12 @@ func NewClient(signer jose.Signer, config config.Config) Client {
 		signer,
 		config,
 	}
+}
+
+func clientMatches(actual types.ClientRegistration, desired *v1.IDPortenClient) bool {
+	idExists := len(desired.Status.ClientID) > 0
+	idMatches := actual.ClientID == desired.Status.ClientID
+	descriptionMatches := actual.Description == desired.ClientDescription()
+
+	return (idExists && idMatches) || descriptionMatches
 }

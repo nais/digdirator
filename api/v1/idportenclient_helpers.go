@@ -35,7 +35,7 @@ func (in *IDPortenClient) UpdateHash() error {
 	return nil
 }
 
-func (in *IDPortenClient) ClientID() string {
+func (in *IDPortenClient) ClientDescription() string {
 	return fmt.Sprintf("%s:%s:%s", in.ClusterName, in.Namespace, in.Name)
 }
 
