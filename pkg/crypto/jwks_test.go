@@ -4,13 +4,14 @@ import (
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/secrets"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/square/go-jose.v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )
 
 func TestMergeJwks(t *testing.T) {
-	jwk := `
+	jwkString := `
 {
     "p": "8x4ONWS7qhO5QsW0zaepUfUkhiqHZ9itSuFtmRPFdV2XLVifS_Y3SXKeIFvahJhR5TGy60XlvPlw35WCpU8DSOeYuDN2mqEKbOKPrmJ9SdVWSA4wDC7FdPCr1bmolJ5kHxmhmernfgfNSRP_vZhMHDzqafNXFzEsxYOAoj0CvgU",
     "kty": "RSA",
@@ -31,10 +32,10 @@ func TestMergeJwks(t *testing.T) {
 		ListMeta: metav1.ListMeta{},
 		Items: []v1.Secret{
 			{
-				Data: map[string][]byte{secrets.JwkKey: []byte(jwk)},
+				Data: map[string][]byte{secrets.JwkKey: []byte(jwkString)},
 			},
 			{
-				Data: map[string][]byte{secrets.JwkKey: []byte(jwk)},
+				Data: map[string][]byte{secrets.JwkKey: []byte(jwkString)},
 			},
 		},
 	}
@@ -45,4 +46,10 @@ func TestMergeJwks(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Len(t, jwks.Keys, 2, "should merge new JWK with JWKs in use without duplicates")
+
+	assert.Equal(t, newJwk.Public(), jwks.Keys[0], "new public JWK should be the first entry in the returned JWKS")
+
+	var jwk jose.JSONWebKey
+	err = jwk.UnmarshalJSON([]byte(jwkString))
+	assert.Equal(t, jwk.Public(), jwks.Keys[1], "existing JWK in JWKS should be public")
 }

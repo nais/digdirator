@@ -16,7 +16,7 @@ func MergeJwks(jwk jose.JSONWebKey, secretsInUse v1.SecretList) (*jose.JSONWebKe
 		if err != nil {
 			return nil, fmt.Errorf("getting key IDs from secret: %w", err)
 		}
-		keys = append(keys, key)
+		keys = append(keys, key.Public())
 	}
 
 	return &jose.JSONWebKeySet{Keys: unique(keys)}, nil
