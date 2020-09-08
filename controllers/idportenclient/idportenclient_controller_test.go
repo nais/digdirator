@@ -36,6 +36,7 @@ const (
 )
 
 var cli client.Client
+var clientExists bool
 
 func TestMain(m *testing.M) {
 	testEnv, err := setup()
@@ -53,14 +54,36 @@ func idportenHandler() http.HandlerFunc {
 		case r.URL.Path == "/idporten-oidc-provider/token":
 			response := `{ "access_token": "token" }`
 			_, _ = w.Write([]byte(response))
+		// GET (list) clients
 		case r.URL.Path == "/clients" && r.Method == http.MethodGet:
-			response, _ := ioutil.ReadFile("testdata/list-response.json")
+			var path string
+			if clientExists {
+				path = "testdata/list-response-exists.json"
+			} else {
+				path = "testdata/list-response.json"
+			}
+			response, _ := ioutil.ReadFile(path)
 			_, _ = w.Write(response)
+		// POST (create) client
 		case r.URL.Path == "/clients" && r.Method == http.MethodPost:
 			response, _ := ioutil.ReadFile("testdata/create-response.json")
 			_, _ = w.Write(response)
+		// PUT (update) existing client
+		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodPut:
+			response, _ := ioutil.ReadFile("testdata/update-response.json")
+			_, _ = w.Write(response)
+		// DELETE existing client
+		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodDelete:
+			w.WriteHeader(http.StatusOK)
+		// POST JWKS (overwriting)
 		case r.URL.Path == fmt.Sprintf("/clients/%s/jwks", clientId) && r.Method == http.MethodPost:
-			response, _ := ioutil.ReadFile("testdata/register-jwks-response.json")
+			var path string
+			if clientExists {
+				path = "testdata/register-jwks-response-exists.json"
+			} else {
+				path = "testdata/register-jwks-response.json"
+			}
+			response, _ := ioutil.ReadFile(path)
 			_, _ = w.Write(response)
 		}
 	}
@@ -147,10 +170,11 @@ func TestIDPortenController(t *testing.T) {
 		IDPortenClientName: "test-client",
 		NamespaceName:      "test-namespace",
 		SecretName:         "test-secret",
+		UnusedSecretName:   "test-unused-secret",
 	}
 
 	// set up preconditions for cluster
-	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithPod()
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithPod().WithUnusedSecret()
 
 	// create IDPortenClient
 	if err := clusterFixtures.Setup(); err != nil {
@@ -182,23 +206,58 @@ func TestIDPortenController(t *testing.T) {
 
 	assertSecretExists(t, cfg.SecretName, cfg.NamespaceName, instance)
 
+	assert.Eventually(t, resourceDoesNotExist(client.ObjectKey{
+		Namespace: cfg.NamespaceName,
+		Name:      cfg.UnusedSecretName,
+	}, &corev1.Secret{}), timeout, interval, "unused Secret should not exist")
+	clientExists = true
+
 	// update IDPortenClient
+	previousSecretName := cfg.SecretName
+	previousHash := instance.Status.ProvisionHash
 
 	// set new secretname in spec -> trigger update
+	instance.Spec.SecretName = "new-secret-name"
+	err := cli.Update(context.Background(), instance)
+	assert.NoError(t, err)
 
-	// eventually, new hash should be set in status
-	// should contain two keyIDs in status
+	// new hash should be set in status
+	assert.Eventually(t, func() bool {
+		err := cli.Get(context.Background(), key, instance)
+		assert.NoError(t, err)
+		return previousHash != instance.Status.ProvisionHash
+	}, timeout, interval, "new hash should be set")
+
+	assert.Equal(t, clientId, instance.Status.ClientID, "client ID should still match")
+	assert.Len(t, instance.Status.KeyIDs, 2, "should contain two key IDs")
+	assert.Contains(t, instance.Status.KeyIDs, "some-keyid", "previous key should still be valid")
+	assert.Contains(t, instance.Status.KeyIDs, "some-new-keyid", "new key should be valid")
+
 	// new secret should exist
+	assertSecretExists(t, instance.Spec.SecretName, cfg.NamespaceName, instance)
+
 	// old secret should still exist
+	assertSecretExists(t, previousSecretName, cfg.NamespaceName, instance)
 
 	// delete IDPortenClient
+	err = cli.Delete(context.Background(), instance)
 
+	assert.NoError(t, err, "deleting IDPortenClient")
+
+	assert.Eventually(t, resourceDoesNotExist(key, instance), timeout, interval, "IDPortenClient should not exist")
 }
 
 func resourceExists(key client.ObjectKey, instance runtime.Object) func() bool {
 	return func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		return !errors.IsNotFound(err)
+	}
+}
+
+func resourceDoesNotExist(key client.ObjectKey, instance runtime.Object) func() bool {
+	return func() bool {
+		err := cli.Get(context.Background(), key, instance)
+		return errors.IsNotFound(err)
 	}
 }
 

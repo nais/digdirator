@@ -21,12 +21,14 @@ type ClusterFixtures struct {
 	idPortenClient *v1.IDPortenClient
 	namespace      *corev1.Namespace
 	pod            *corev1.Pod
+	unusedSecret   *corev1.Secret
 }
 
 type Config struct {
 	IDPortenClientName string
 	NamespaceName      string
 	SecretName         string
+	UnusedSecretName   string
 }
 
 type resource struct {
@@ -122,6 +124,24 @@ func (c ClusterFixtures) WithPod() ClusterFixtures {
 	return c
 }
 
+func (c ClusterFixtures) WithUnusedSecret() ClusterFixtures {
+	c.unusedSecret = &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      c.UnusedSecretName,
+			Namespace: c.NamespaceName,
+			Labels: map[string]string{
+				labels.AppLabelKey:  c.IDPortenClientName,
+				labels.TypeLabelKey: labels.TypeLabelValue,
+			},
+		},
+	}
+	return c
+}
+
 func (c ClusterFixtures) Setup() error {
 	ctx := context.Background()
 	if c.namespace != nil {
@@ -136,6 +156,11 @@ func (c ClusterFixtures) Setup() error {
 	}
 	if c.pod != nil {
 		if err := c.Create(ctx, c.pod); err != nil {
+			return err
+		}
+	}
+	if c.unusedSecret != nil {
+		if err := c.Create(ctx, c.unusedSecret); err != nil {
 			return err
 		}
 	}
