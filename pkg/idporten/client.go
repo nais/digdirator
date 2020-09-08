@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	httpRequestTimeout = 3 * time.Minute // todo - change
+	httpRequestTimeout = 30 * time.Second
 )
 
 type Client struct {

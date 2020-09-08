@@ -2,8 +2,10 @@ package secrets_test
 
 import (
 	"encoding/json"
+	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/secrets"
+	"github.com/spf13/viper"
 	"testing"
 
 	v1 "github.com/nais/digdirator/api/v1"
@@ -22,6 +24,9 @@ func TestCreateSecretSpec(t *testing.T) {
 		Spec: v1.IDPortenClientSpec{
 			SecretName: "test-secret",
 		},
+		Status: v1.IDPortenClientStatus{
+			ClientID: "test-client-id",
+		},
 	}
 	jwk, err := crypto.GenerateJwk()
 	assert.NoError(t, err)
@@ -29,7 +34,8 @@ func TestCreateSecretSpec(t *testing.T) {
 	spec, err := secrets.Spec(client, *jwk)
 	assert.NoError(t, err, "should not error")
 
-	stringData, err := secrets.StringData(*jwk)
+	clientID := client.Status.ClientID
+	stringData, err := secrets.StringData(*jwk, clientID)
 	assert.NoError(t, err, "should not error")
 
 	t.Run("Name should equal provided name in Spec", func(t *testing.T) {
@@ -60,6 +66,13 @@ func TestCreateSecretSpec(t *testing.T) {
 			expected, err := json.Marshal(jwk)
 			assert.NoError(t, err)
 			assert.Equal(t, string(expected), spec.StringData[secrets.JwkKey])
+		})
+		t.Run("Secret Data should contain well-known URL", func(t *testing.T) {
+			expected := viper.GetString(config.DigDirAuthBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
+			assert.Equal(t, expected, spec.StringData[secrets.WellKnownURL])
+		})
+		t.Run("Secret Data should contain client ID", func(t *testing.T) {
+			assert.Equal(t, clientID, spec.StringData[secrets.ClientID])
 		})
 	})
 }

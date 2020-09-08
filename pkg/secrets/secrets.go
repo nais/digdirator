@@ -3,6 +3,8 @@ package secrets
 import (
 	"context"
 	"fmt"
+	"github.com/nais/digdirator/pkg/config"
+	"github.com/spf13/viper"
 	"gopkg.in/square/go-jose.v2"
 
 	v1 "github.com/nais/digdirator/api/v1"
@@ -18,7 +20,9 @@ import (
 )
 
 const (
-	JwkKey = "IDPORTEN_CLIENT_JWK"
+	JwkKey       = "IDPORTEN_CLIENT_JWK"
+	ClientID     = "IDPORTEN_CLIENT_ID"
+	WellKnownURL = "IDPORTEN_WELL_KNOWN_URL"
 )
 
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch
@@ -85,7 +89,8 @@ func getAll(ctx context.Context, instance *v1.IDPortenClient, reader client.Read
 }
 
 func Spec(instance *v1.IDPortenClient, jwk jose.JSONWebKey) (*corev1.Secret, error) {
-	data, err := StringData(jwk)
+	clientID := instance.Status.ClientID
+	data, err := StringData(jwk, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -108,13 +113,15 @@ func ObjectMeta(instance *v1.IDPortenClient) metav1.ObjectMeta {
 	}
 }
 
-// todo - more things in secret?
-func StringData(jwk jose.JSONWebKey) (map[string]string, error) {
+func StringData(jwk jose.JSONWebKey, clientID string) (map[string]string, error) {
+	wellKnownURL := viper.GetString(config.DigDirAuthBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
 	jwkJson, err := jwk.MarshalJSON()
 	if err != nil {
 		return nil, fmt.Errorf("marshalling JWK: %w", err)
 	}
 	return map[string]string{
-		JwkKey: string(jwkJson),
+		JwkKey:       string(jwkJson),
+		WellKnownURL: wellKnownURL,
+		ClientID:     clientID,
 	}, nil
 }
