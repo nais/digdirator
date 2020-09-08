@@ -116,7 +116,7 @@ func setup() (*envtest.Environment, error) {
 	httpClient := testServer.Client()
 	digdiratorConfig.ClusterName = "test-cluster"
 	digdiratorConfig.DigDir.Auth.BaseURL = testServer.URL
-	digdiratorConfig.DigDir.IDPorten.ApiEndpoint = testServer.URL
+	digdiratorConfig.DigDir.IDPorten.BaseURL = testServer.URL
 
 	err = (&Reconciler{
 		Client:     cli,
@@ -183,6 +183,13 @@ func TestIDPortenController(t *testing.T) {
 	assertSecretExists(t, cfg.SecretName, cfg.NamespaceName, instance)
 
 	// update IDPortenClient
+
+	// set new secretname in spec -> trigger update
+
+	// eventually, new hash should be set in status
+	// should contain two keyIDs in status
+	// new secret should exist
+	// old secret should still exist
 
 	// delete IDPortenClient
 

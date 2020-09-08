@@ -39,7 +39,7 @@ func main() {
 	err := run()
 
 	if err != nil {
-		setupLog.Error(err, "Run loop errored")
+		log.Error(err, "Run loop errored")
 		os.Exit(1)
 	}
 
@@ -134,7 +134,7 @@ func setupConfig() (*config.Config, error) {
 		config.DigDirAuthJwkPath,
 		config.DigDirAuthScopes,
 		config.DigDirAuthBaseURL,
-		config.DigDirIDPortenApiEndpoint,
+		config.DigDirIDPortenBaseURL,
 	}); err != nil {
 		return nil, err
 	}
