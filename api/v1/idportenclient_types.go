@@ -37,21 +37,16 @@ type IDPortenClientSpec struct {
 	ClientName string `json:"clientName,omitempty"`
 	// ClientURI is the URL to the client to be used at DigDir when displaying a 'back' button or on errors
 	ClientURI string `json:"clientURI,omitempty"`
-	// ReplyURLs is a list of reply URLs to be registered at DigDir
-	ReplyURLs []string `json:"replyURLs"`
+	// RedirectURIs is a list of redirect URIs to be registered at DigDir
+	RedirectURIs []string `json:"redirectURIs"`
 	// SecretName is the name of the resulting Secret resource to be created
 	SecretName string `json:"secretName"`
 	// FrontchannelLogoutURI is the URL that ID-porten sends a requests to whenever a logout is triggered by another application using the same session
-	FrontchannelLogoutURI string `json:"frontchannelLogoutURI"`
+	FrontchannelLogoutURI string `json:"frontchannelLogoutURI,omitempty"`
 	// PostLogoutRedirectURI is a list of valid URIs that ID-porten may redirect to after logout
 	PostLogoutRedirectURIs []string `json:"postLogoutRedirectURIs"`
 	// RefreshTokenLifetime is the lifetime in seconds for the issued refresh token from ID-porten
 	RefreshTokenLifetime int `json:"refreshTokenLifetime"`
-	// Scopes is a list of valid scopes that the client may request
-	Scopes []string `json:"scopes"`
-	// TokenEndpointAuthMethod is the preferred authentication method for the client.
-	// +kubebuilder:validation:Enum=client_secret_post;client_secret_basic;private_key_jwt;none
-	TokenEndpointAuthMethod string `json:"tokenEndpointAuthMethod"`
 }
 
 // IDPortenClientStatus defines the observed state of IDPortenClient

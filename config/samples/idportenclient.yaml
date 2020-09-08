@@ -4,15 +4,12 @@ kind: IDPortenClient
 metadata:
   name: my-app
 spec:
-  clientName: "my app test"
+  clientName: "my app test 2"
   clientURI: "https://min-app.nav.no"
-  replyURLs:
+  redirectURIs:
     - "https://min-app.nav.no/oauth2/callback"
   secretName: my-secret
   frontchannelLogoutURI: "https://min-app.nav.no/oauth2/logout"
   postLogoutRedirectURIs:
     - "https://nav.no"
   refreshTokenLifetime: 3601
-  scopes:
-    - openid
-  tokenEndpointAuthMethod: private_key_jwt

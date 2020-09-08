@@ -73,12 +73,14 @@ func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
 		GrantTypes: []types.GrantType{
 			types.GrantTypeAuthorizationCode,
 		},
-		IntegrationType:         types.IntegrationTypeIDPorten,
-		PostLogoutRedirectURIs:  in.Spec.PostLogoutRedirectURIs,
-		RedirectURIs:            in.Spec.ReplyURLs,
-		RefreshTokenLifetime:    12 * 3600,
-		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
-		Scopes:                  in.Spec.Scopes,
+		IntegrationType:        types.IntegrationTypeIDPorten,
+		PostLogoutRedirectURIs: in.Spec.PostLogoutRedirectURIs,
+		RedirectURIs:           in.Spec.RedirectURIs,
+		RefreshTokenLifetime:   in.Spec.RefreshTokenLifetime,
+		RefreshTokenUsage:      types.RefreshTokenUsageOneTime,
+		Scopes: []string{
+			"openid", "profile",
+		},
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
 }

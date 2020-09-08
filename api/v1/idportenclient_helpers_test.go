@@ -9,7 +9,7 @@ import (
 
 var finalizerName = "test-finalizer"
 
-const expectedHash = "7bc67e5d6ef53486"
+const expectedHash = "c73f057a328ac3f7"
 
 func TestIDPortenClient_GetUniqueName(t *testing.T) {
 	expected := "test-cluster:test-namespace:test-app"
@@ -90,7 +90,7 @@ func TestIDPortenClient_UpdateHash(t *testing.T) {
 
 	err := app.UpdateHash()
 	assert.NoError(t, err)
-	assert.Equal(t, "9f51036aac7f8611", app.Status.ProvisionHash)
+	assert.Equal(t, "119d7ffd90f10ac", app.Status.ProvisionHash)
 }
 
 func minimalClient() *IDPortenClient {
@@ -101,15 +101,13 @@ func minimalClient() *IDPortenClient {
 			ClusterName: "test-cluster",
 		},
 		Spec: IDPortenClientSpec{
-			ClientName:              "test",
-			ClientURI:               "test",
-			ReplyURLs:               nil,
-			SecretName:              "test",
-			FrontchannelLogoutURI:   "test",
-			PostLogoutRedirectURIs:  nil,
-			RefreshTokenLifetime:    3600,
-			Scopes:                  nil,
-			TokenEndpointAuthMethod: "test",
+			ClientName:             "test",
+			ClientURI:              "test",
+			RedirectURIs:           nil,
+			SecretName:             "test",
+			FrontchannelLogoutURI:  "test",
+			PostLogoutRedirectURIs: nil,
+			RefreshTokenLifetime:   3600,
 		},
 		Status: IDPortenClientStatus{
 			ProvisionHash: expectedHash,

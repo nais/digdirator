@@ -66,41 +66,25 @@ spec:
               items:
                 type: string
               type: array
+            redirectURIs:
+              description: RedirectURIs is a list of redirect URIs to be registered
+                at DigDir
+              items:
+                type: string
+              type: array
             refreshTokenLifetime:
               description: RefreshTokenLifetime is the lifetime in seconds for the
                 issued refresh token from ID-porten
               type: integer
-            replyURLs:
-              description: ReplyURLs is a list of reply URLs to be registered at DigDir
-              items:
-                type: string
-              type: array
-            scopes:
-              description: Scopes is a list of valid scopes that the client may request
-              items:
-                type: string
-              type: array
             secretName:
               description: SecretName is the name of the resulting Secret resource
                 to be created
               type: string
-            tokenEndpointAuthMethod:
-              description: TokenEndpointAuthMethod is the preferred authentication
-                method for the client.
-              enum:
-              - client_secret_post
-              - client_secret_basic
-              - private_key_jwt
-              - none
-              type: string
           required:
-          - frontchannelLogoutURI
           - postLogoutRedirectURIs
+          - redirectURIs
           - refreshTokenLifetime
-          - replyURLs
-          - scopes
           - secretName
-          - tokenEndpointAuthMethod
           type: object
         status:
           description: IDPortenClientStatus defines the observed state of IDPortenClient

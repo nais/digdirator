@@ -64,15 +64,13 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 	}
 
 	spec := v1.IDPortenClientSpec{
-		ClientName:              c.IDPortenClientName,
-		ClientURI:               "clienturi",
-		ReplyURLs:               []string{"x"},
-		SecretName:              c.SecretName,
-		FrontchannelLogoutURI:   "frontChannelLogoutURI",
-		PostLogoutRedirectURIs:  []string{"postLogoutRedirectURI"},
-		RefreshTokenLifetime:    0,
-		Scopes:                  []string{"scope"},
-		TokenEndpointAuthMethod: "private_key_jwt",
+		ClientName:             c.IDPortenClientName,
+		ClientURI:              "clienturi",
+		RedirectURIs:           []string{"x"},
+		SecretName:             c.SecretName,
+		FrontchannelLogoutURI:  "frontChannelLogoutURI",
+		PostLogoutRedirectURIs: []string{"postLogoutRedirectURI"},
+		RefreshTokenLifetime:   0,
 	}
 	c.idPortenClient = &v1.IDPortenClient{
 		ObjectMeta: metav1.ObjectMeta{
