@@ -34,9 +34,9 @@ type IDPortenClientList struct {
 // IDPortenClientSpec defines the desired state of IDPortenClient
 type IDPortenClientSpec struct {
 	// ClientName is the name of the client registered at DigDir
-	ClientName string `json:"clientName,omitempty"`
+	ClientName string `json:"clientName"`
 	// ClientURI is the URL to the client to be used at DigDir when displaying a 'back' button or on errors
-	ClientURI string `json:"clientURI,omitempty"`
+	ClientURI string `json:"clientURI"`
 	// RedirectURIs is a list of redirect URIs to be registered at DigDir
 	RedirectURIs []string `json:"redirectURIs"`
 	// SecretName is the name of the resulting Secret resource to be created
