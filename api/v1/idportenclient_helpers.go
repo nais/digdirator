@@ -72,6 +72,7 @@ func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
 		FrontchannelLogoutURI:             in.Spec.FrontchannelLogoutURI,
 		GrantTypes: []types.GrantType{
 			types.GrantTypeAuthorizationCode,
+			types.GrantTypeRefreshToken,
 		},
 		IntegrationType:        types.IntegrationTypeIDPorten,
 		PostLogoutRedirectURIs: in.Spec.PostLogoutRedirectURIs,
