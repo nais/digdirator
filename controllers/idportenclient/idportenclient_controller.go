@@ -8,6 +8,7 @@ import (
 	"github.com/nais/digdirator/pkg/idporten"
 	"github.com/nais/digdirator/pkg/idporten/types"
 	"gopkg.in/square/go-jose.v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"time"
 
@@ -188,7 +189,15 @@ func (r *Reconciler) updateClient(tx *transaction, payload types.ClientRegistrat
 }
 
 func (r *Reconciler) registerJwk(tx *transaction, jwk jose.JSONWebKey, clientID string) error {
-	jwks, err := crypto.MergeJwks(jwk, tx.managedSecrets.Used)
+	usedSecrets := corev1.SecretList{
+		TypeMeta: metav1.TypeMeta{},
+		ListMeta: metav1.ListMeta{},
+		Items:    []corev1.Secret{},
+	}
+
+	// TODO: re-enable whenever digdir allows overwriting entire JWKS
+	// jwks, err := crypto.MergeJwks(jwk, tx.managedSecrets.Used)
+	jwks, err := crypto.MergeJwks(jwk, usedSecrets)
 	if err != nil {
 		return fmt.Errorf("merging new JWK with JWKs in use: %w", err)
 	}
