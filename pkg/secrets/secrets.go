@@ -6,6 +6,7 @@ import (
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/spf13/viper"
 	"gopkg.in/square/go-jose.v2"
+	"strings"
 
 	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/labels"
@@ -23,6 +24,7 @@ const (
 	JwkKey       = "IDPORTEN_CLIENT_JWK"
 	ClientID     = "IDPORTEN_CLIENT_ID"
 	WellKnownURL = "IDPORTEN_WELL_KNOWN_URL"
+	RedirectURIs = "IDPORTEN_REDIRECT_URIS"
 )
 
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch
@@ -89,8 +91,7 @@ func getAll(ctx context.Context, instance *v1.IDPortenClient, reader client.Read
 }
 
 func Spec(instance *v1.IDPortenClient, jwk jose.JSONWebKey) (*corev1.Secret, error) {
-	clientID := instance.Status.ClientID
-	data, err := StringData(jwk, clientID)
+	data, err := StringData(jwk, instance)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +114,7 @@ func ObjectMeta(instance *v1.IDPortenClient) metav1.ObjectMeta {
 	}
 }
 
-func StringData(jwk jose.JSONWebKey, clientID string) (map[string]string, error) {
+func StringData(jwk jose.JSONWebKey, instance *v1.IDPortenClient) (map[string]string, error) {
 	wellKnownURL := viper.GetString(config.DigDirAuthBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
 	jwkJson, err := jwk.MarshalJSON()
 	if err != nil {
@@ -122,6 +123,7 @@ func StringData(jwk jose.JSONWebKey, clientID string) (map[string]string, error)
 	return map[string]string{
 		JwkKey:       string(jwkJson),
 		WellKnownURL: wellKnownURL,
-		ClientID:     clientID,
+		ClientID:     instance.Status.ClientID,
+		RedirectURIs: strings.Join(instance.Spec.RedirectURIs, ","),
 	}, nil
 }

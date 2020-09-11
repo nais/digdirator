@@ -6,6 +6,7 @@ import (
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/secrets"
 	"github.com/spf13/viper"
+	"strings"
 	"testing"
 
 	v1 "github.com/nais/digdirator/api/v1"
@@ -23,6 +24,10 @@ func TestCreateSecretSpec(t *testing.T) {
 		},
 		Spec: v1.IDPortenClientSpec{
 			SecretName: "test-secret",
+			RedirectURIs: []string{
+				"https://my-app.nav.no",
+				"https://my-app.adeo.no",
+			},
 		},
 		Status: v1.IDPortenClientStatus{
 			ClientID: "test-client-id",
@@ -34,8 +39,7 @@ func TestCreateSecretSpec(t *testing.T) {
 	spec, err := secrets.Spec(client, *jwk)
 	assert.NoError(t, err, "should not error")
 
-	clientID := client.Status.ClientID
-	stringData, err := secrets.StringData(*jwk, clientID)
+	stringData, err := secrets.StringData(*jwk, client)
 	assert.NoError(t, err, "should not error")
 
 	t.Run("Name should equal provided name in Spec", func(t *testing.T) {
@@ -72,7 +76,10 @@ func TestCreateSecretSpec(t *testing.T) {
 			assert.Equal(t, expected, spec.StringData[secrets.WellKnownURL])
 		})
 		t.Run("Secret Data should contain client ID", func(t *testing.T) {
-			assert.Equal(t, clientID, spec.StringData[secrets.ClientID])
+			assert.Equal(t, client.Status.ClientID, spec.StringData[secrets.ClientID])
+		})
+		t.Run("Secret Data should contain comma separated string of redirect URIs", func(t *testing.T) {
+			assert.Equal(t, strings.Join(client.Spec.RedirectURIs, ","), spec.StringData[secrets.RedirectURIs])
 		})
 	})
 }
