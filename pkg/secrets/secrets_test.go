@@ -6,7 +6,6 @@ import (
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/secrets"
 	"github.com/spf13/viper"
-	"strings"
 	"testing"
 
 	v1 "github.com/nais/digdirator/api/v1"
@@ -23,11 +22,8 @@ func TestCreateSecretSpec(t *testing.T) {
 			Namespace: "test",
 		},
 		Spec: v1.IDPortenClientSpec{
-			SecretName: "test-secret",
-			RedirectURIs: []string{
-				"https://my-app.nav.no",
-				"https://my-app.adeo.no",
-			},
+			SecretName:  "test-secret",
+			RedirectURI: "https://my-app.nav.no",
 		},
 		Status: v1.IDPortenClientStatus{
 			ClientID: "test-client-id",
@@ -78,8 +74,8 @@ func TestCreateSecretSpec(t *testing.T) {
 		t.Run("Secret Data should contain client ID", func(t *testing.T) {
 			assert.Equal(t, client.Status.ClientID, spec.StringData[secrets.ClientID])
 		})
-		t.Run("Secret Data should contain comma separated string of redirect URIs", func(t *testing.T) {
-			assert.Equal(t, strings.Join(client.Spec.RedirectURIs, ","), spec.StringData[secrets.RedirectURIs])
+		t.Run("Secret Data should contain redirect URI", func(t *testing.T) {
+			assert.Equal(t, client.Spec.RedirectURI, spec.StringData[secrets.RedirectURI])
 		})
 	})
 }

@@ -76,9 +76,11 @@ func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
 		},
 		IntegrationType:        types.IntegrationTypeIDPorten,
 		PostLogoutRedirectURIs: in.Spec.PostLogoutRedirectURIs,
-		RedirectURIs:           in.Spec.RedirectURIs,
-		RefreshTokenLifetime:   in.Spec.RefreshTokenLifetime,
-		RefreshTokenUsage:      types.RefreshTokenUsageOneTime,
+		RedirectURIs: []string{
+			in.Spec.RedirectURI,
+		},
+		RefreshTokenLifetime: in.Spec.RefreshTokenLifetime,
+		RefreshTokenUsage:    types.RefreshTokenUsageOneTime,
 		Scopes: []string{
 			"openid", "profile",
 		},

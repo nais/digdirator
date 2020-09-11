@@ -6,8 +6,7 @@ metadata:
 spec:
   clientName: "my app test 2"
   clientURI: "https://min-app.nav.no"
-  redirectURIs:
-    - "https://min-app.nav.no/oauth2/callback"
+  redirectURI: https://min-app.nav.no/oauth2/callback
   secretName: my-secret
   frontchannelLogoutURI: "https://min-app.nav.no/oauth2/logout"
   postLogoutRedirectURIs:
