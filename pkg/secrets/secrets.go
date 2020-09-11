@@ -3,14 +3,12 @@ package secrets
 import (
 	"context"
 	"fmt"
-	"github.com/nais/digdirator/pkg/config"
-	"github.com/spf13/viper"
-	"gopkg.in/square/go-jose.v2"
-	"strings"
-
 	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/labels"
 	"github.com/nais/digdirator/pkg/pods"
+	"github.com/spf13/viper"
+	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +22,7 @@ const (
 	JwkKey       = "IDPORTEN_CLIENT_JWK"
 	ClientID     = "IDPORTEN_CLIENT_ID"
 	WellKnownURL = "IDPORTEN_WELL_KNOWN_URL"
-	RedirectURIs = "IDPORTEN_REDIRECT_URIS"
+	RedirectURI  = "IDPORTEN_REDIRECT_URI"
 )
 
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch
@@ -124,6 +122,6 @@ func StringData(jwk jose.JSONWebKey, instance *v1.IDPortenClient) (map[string]st
 		JwkKey:       string(jwkJson),
 		WellKnownURL: wellKnownURL,
 		ClientID:     instance.Status.ClientID,
-		RedirectURIs: strings.Join(instance.Spec.RedirectURIs, ","),
+		RedirectURI:  instance.Spec.RedirectURI,
 	}, nil
 }

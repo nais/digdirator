@@ -66,7 +66,7 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 	spec := v1.IDPortenClientSpec{
 		ClientName:             c.IDPortenClientName,
 		ClientURI:              "clienturi",
-		RedirectURIs:           []string{"x"},
+		RedirectURI:            "x",
 		SecretName:             c.SecretName,
 		FrontchannelLogoutURI:  "frontChannelLogoutURI",
 		PostLogoutRedirectURIs: []string{"postLogoutRedirectURI"},
