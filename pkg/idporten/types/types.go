@@ -2,6 +2,10 @@ package types
 
 import "gopkg.in/square/go-jose.v2"
 
+const (
+	DefaultClientName string = "ARBEIDS- OG VELFERDSETATEN"
+)
+
 type ApplicationType string
 
 const (
