@@ -48,9 +48,6 @@ spec:
         spec:
           description: IDPortenClientSpec defines the desired state of IDPortenClient
           properties:
-            clientName:
-              description: ClientName is the name of the client registered at DigDir
-              type: string
             clientURI:
               description: ClientURI is the URL to the client to be used at DigDir
                 when displaying a 'back' button or on errors
@@ -78,7 +75,6 @@ spec:
                 to be created
               type: string
           required:
-          - clientName
           - clientURI
           - postLogoutRedirectURIs
           - redirectURI

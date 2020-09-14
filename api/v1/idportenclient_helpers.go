@@ -65,7 +65,7 @@ func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
 		AccessTokenLifetime:               3600,
 		ApplicationType:                   types.ApplicationTypeWeb,
 		AuthorizationLifeTime:             0,
-		ClientName:                        in.Spec.ClientName,
+		ClientName:                        types.DefaultClientName,
 		ClientURI:                         in.Spec.ClientURI,
 		Description:                       in.GetUniqueName(),
 		FrontchannelLogoutSessionRequired: false,

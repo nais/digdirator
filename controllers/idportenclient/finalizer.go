@@ -35,8 +35,10 @@ func (f finalizer) process(tx *transaction) (ctrl.Result, error) {
 	if tx.instance.HasFinalizer(FinalizerName) {
 		tx.log.Info("finalizer triggered, deleting resources...")
 
-		if err := tx.idportenClient.Delete(tx.ctx, tx.instance.Status.ClientID); err != nil {
-			return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
+		if len(tx.instance.Status.ClientID) > 0 {
+			if err := tx.idportenClient.Delete(tx.ctx, tx.instance.Status.ClientID); err != nil {
+				return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
+			}
 		}
 
 		tx.instance.RemoveFinalizer(FinalizerName)

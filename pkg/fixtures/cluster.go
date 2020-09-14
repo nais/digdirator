@@ -64,7 +64,6 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 	}
 
 	spec := v1.IDPortenClientSpec{
-		ClientName:             c.IDPortenClientName,
 		ClientURI:              "clienturi",
 		RedirectURI:            "x",
 		SecretName:             c.SecretName,

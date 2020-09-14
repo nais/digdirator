@@ -4,7 +4,6 @@ kind: IDPortenClient
 metadata:
   name: my-app
 spec:
-  clientName: "my app test 2"
   clientURI: "https://min-app.nav.no"
   redirectURI: https://min-app.nav.no/oauth2/callback
   secretName: my-secret
