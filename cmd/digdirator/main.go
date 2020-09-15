@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-logr/zapr"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
+	"github.com/nais/digdirator/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -16,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	"time"
 
 	naisiov1 "github.com/nais/digdirator/api/v1"
@@ -28,6 +31,8 @@ var (
 )
 
 func init() {
+	ctrlMetrics.Registry.MustRegister(metrics.AllMetrics...)
+
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = naisiov1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
@@ -89,6 +94,10 @@ func run() error {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
 	// +kubebuilder:scaffold:builder
+
+	setupLog.Info("starting metrics refresh goroutine")
+	clusterMetrics := metrics.New(mgr.GetAPIReader())
+	go clusterMetrics.Refresh(context.Background())
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

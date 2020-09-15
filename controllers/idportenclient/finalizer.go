@@ -2,6 +2,7 @@ package idportenclient
 
 import (
 	"fmt"
+	"github.com/nais/digdirator/pkg/metrics"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	corev1 "k8s.io/api/core/v1"
@@ -47,6 +48,7 @@ func (f finalizer) process(tx *transaction) (ctrl.Result, error) {
 		}
 
 		tx.log.Info("resources deleted")
+		metrics.IncWithNamespaceLabel(metrics.IDPortenClientsDeletedCount, tx.instance.Namespace)
 	}
 	return ctrl.Result{}, nil
 }

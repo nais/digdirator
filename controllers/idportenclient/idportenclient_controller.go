@@ -7,6 +7,7 @@ import (
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/idporten"
 	"github.com/nais/digdirator/pkg/idporten/types"
+	"github.com/nais/digdirator/pkg/metrics"
 	"gopkg.in/square/go-jose.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
@@ -132,8 +133,10 @@ func (r *Reconciler) process(tx *transaction) error {
 	registrationPayload := tx.instance.ToClientRegistration()
 	if idportenClient != nil {
 		idportenClient, err = r.updateClient(tx, registrationPayload, idportenClient.ClientID)
+		metrics.IncWithNamespaceLabel(metrics.IDPortenClientsUpdatedCount, tx.instance.Namespace)
 	} else {
 		idportenClient, err = r.createClient(tx, registrationPayload)
+		metrics.IncWithNamespaceLabel(metrics.IDPortenClientsCreatedCount, tx.instance.Namespace)
 	}
 	if err != nil {
 		return err
@@ -152,6 +155,7 @@ func (r *Reconciler) process(tx *transaction) error {
 	if err := r.registerJwk(tx, *jwk, idportenClient.ClientID); err != nil {
 		return err
 	}
+	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsRotatedCount, tx.instance.Namespace)
 
 	if err := r.secrets().createOrUpdate(tx, *jwk); err != nil {
 		return err
@@ -220,7 +224,7 @@ func (r *Reconciler) registerJwk(tx *transaction, jwk jose.JSONWebKey, clientID 
 func (r *Reconciler) handleError(tx *transaction, err error) (ctrl.Result, error) {
 	tx.log.Error(fmt.Errorf("processing ID-porten client: %w", err))
 	r.Recorder.Event(tx.instance, corev1.EventTypeWarning, "Failed", fmt.Sprintf("Failed to synchronize ID-porten client, retrying in %s", requeueInterval))
-
+	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsFailedProcessingCount, tx.instance.Namespace)
 	return ctrl.Result{RequeueAfter: requeueInterval}, nil
 }
 
@@ -239,6 +243,8 @@ func (r *Reconciler) complete(tx *transaction) (ctrl.Result, error) {
 	r.Recorder.Event(tx.instance, corev1.EventTypeNormal, "Synchronized", "ID-porten client is up-to-date")
 
 	tx.log.Info("successfully reconciled")
+
+	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsProcessedCount, tx.instance.Namespace)
 
 	return ctrl.Result{}, nil
 }
