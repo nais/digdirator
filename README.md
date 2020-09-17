@@ -42,6 +42,7 @@ digdir:
     base-url: "base URL endpoint for idporten oidc admin api"
 cluster-name: local
 development-mode: true
+kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
 ```
 
 Then, assuming you have a Kubernetes cluster running locally (e.g. using [minikube](https://github.com/kubernetes/minikube)):

@@ -26,6 +26,8 @@ func GenerateJwk() (*jose.JSONWebKey, error) {
 	return jwk, nil
 }
 
+// TODO: NOTE!! should only be the public key
+// TODO: load X509 Cert chain instead as we do not need the JWK
 func LoadJwkFromPath(path string) (*jose.JSONWebKey, error) {
 	creds, err := ioutil.ReadFile(path)
 	if err != nil {

@@ -1,151 +1,164 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"github.com/go-logr/zapr"
-	"github.com/nais/digdirator/controllers/idportenclient"
-	"github.com/nais/digdirator/pkg/config"
-	"github.com/nais/digdirator/pkg/crypto"
-	"github.com/nais/digdirator/pkg/metrics"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"net/http"
-	"os"
-	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
-	"time"
+    kms "cloud.google.com/go/kms/apiv1"
+    "context"
+    "fmt"
+    "github.com/go-logr/zapr"
+    "github.com/nais/digdirator/controllers/idportenclient"
+    "github.com/nais/digdirator/pkg/config"
+    "github.com/nais/digdirator/pkg/crypto"
+    "github.com/nais/digdirator/pkg/metrics"
+    log "github.com/sirupsen/logrus"
+    "github.com/spf13/viper"
+    "go.uber.org/zap"
+    "go.uber.org/zap/zapcore"
+    "gopkg.in/square/go-jose.v2"
+    "k8s.io/apimachinery/pkg/runtime"
+    clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+    _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+    "net/http"
+    "os"
+    ctrl "sigs.k8s.io/controller-runtime"
+    ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
+    "time"
 
-	naisiov1 "github.com/nais/digdirator/api/v1"
-	// +kubebuilder:scaffold:imports
+    naisiov1 "github.com/nais/digdirator/api/v1"
+    // +kubebuilder:scaffold:imports
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+    scheme   = runtime.NewScheme()
+    setupLog = ctrl.Log.WithName("setup")
 )
 
 func init() {
-	ctrlMetrics.Registry.MustRegister(metrics.AllMetrics...)
+    ctrlMetrics.Registry.MustRegister(metrics.AllMetrics...)
 
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = naisiov1.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
+    _ = clientgoscheme.AddToScheme(scheme)
+    _ = naisiov1.AddToScheme(scheme)
+    // +kubebuilder:scaffold:scheme
 
-	log.SetLevel(log.DebugLevel)
+    log.SetLevel(log.DebugLevel)
 }
 
 func main() {
-	err := run()
+    err := run()
 
-	if err != nil {
-		log.Error(err, "Run loop errored")
-		os.Exit(1)
-	}
+    if err != nil {
+        log.Error(err, "Run loop errored")
+        os.Exit(1)
+    }
 
-	setupLog.Info("Manager shutting down")
+    setupLog.Info("Manager shutting down")
 }
 
 func run() error {
-	cfg, err := setupConfig()
-	if err != nil {
-		return err
-	}
+    cfg, err := setupConfig()
+    if err != nil {
+        return err
+    }
 
-	zapLogger, err := setupZapLogger()
-	if err != nil {
-		return err
-	}
-	ctrl.SetLogger(zapr.NewLogger(zapLogger))
+    zapLogger, err := setupZapLogger()
+    if err != nil {
+        return err
+    }
+    ctrl.SetLogger(zapr.NewLogger(zapLogger))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: cfg.MetricsAddr,
-		LeaderElection:     false,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to start manager: %w", err)
-	}
+    mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+        Scheme:             scheme,
+        MetricsBindAddress: cfg.MetricsAddr,
+        LeaderElection:     false,
+    })
+    if err != nil {
+        return fmt.Errorf("unable to start manager: %w", err)
+    }
 
-	jwk, err := crypto.LoadJwkFromPath(cfg.DigDir.Auth.JwkPath)
-	if err != nil {
-		return fmt.Errorf("loading JWK credentials: %v", err)
-	}
+    signer, err := setupSigner(cfg)
 
-	signer, err := crypto.SignerFromJwk(jwk)
-	if err != nil {
-		return fmt.Errorf("creating signer from JWK: %v", err)
-	}
+    if err = (&idportenclient.Reconciler{
+        Client:     mgr.GetClient(),
+        Reader:     mgr.GetAPIReader(),
+        Scheme:     mgr.GetScheme(),
+        Recorder:   mgr.GetEventRecorderFor("digdirator"),
+        Config:     cfg,
+        Signer:     signer,
+        HttpClient: http.DefaultClient,
+    }).SetupWithManager(mgr); err != nil {
+        return fmt.Errorf("unable to create controller: %w", err)
+    }
+    // +kubebuilder:scaffold:builder
 
-	if err = (&idportenclient.Reconciler{
-		Client:     mgr.GetClient(),
-		Reader:     mgr.GetAPIReader(),
-		Scheme:     mgr.GetScheme(),
-		Recorder:   mgr.GetEventRecorderFor("digdirator"),
-		Config:     cfg,
-		Signer:     signer,
-		HttpClient: http.DefaultClient,
-	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("unable to create controller: %w", err)
-	}
-	// +kubebuilder:scaffold:builder
+    setupLog.Info("starting metrics refresh goroutine")
+    clusterMetrics := metrics.New(mgr.GetAPIReader())
+    go clusterMetrics.Refresh(context.Background())
 
-	setupLog.Info("starting metrics refresh goroutine")
-	clusterMetrics := metrics.New(mgr.GetAPIReader())
-	go clusterMetrics.Refresh(context.Background())
+    setupLog.Info("starting manager")
+    if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+        return fmt.Errorf("problem running manager: %w", err)
+    }
 
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		return fmt.Errorf("problem running manager: %w", err)
-	}
+    return nil
+}
 
-	return nil
+func setupSigner(cfg *config.Config) (jose.Signer, error) {
+    jwk, err := crypto.LoadJwkFromPath(cfg.DigDir.Auth.JwkPath)
+    if err != nil {
+        return nil, fmt.Errorf("loading JWK credentials: %v", err)
+    }
+    kmsPath := crypto.KmsKeyPath(cfg.KmsKeyPath)
+    kmsCtx := context.Background()
+    kmsClient, err := kms.NewKeyManagementClient(kmsCtx)
+    if err != nil {
+        return nil, fmt.Errorf("error creating key management client: %v", err)
+    }
+    return crypto.NewKmsSigner(&crypto.KmsOptions{
+        Client:     kmsClient,
+        Ctx:        kmsCtx,
+        KmsKeyPath: kmsPath,
+    }, jwk)
 }
 
 func setupZapLogger() (*zap.Logger, error) {
-	if viper.GetBool(config.DevelopmentMode) {
-		logger, err := zap.NewDevelopment()
-		if err != nil {
-			return nil, err
-		}
-		return logger, nil
-	}
+    if viper.GetBool(config.DevelopmentMode) {
+        logger, err := zap.NewDevelopment()
+        if err != nil {
+            return nil, err
+        }
+        return logger, nil
+    }
 
-	formatter := log.JSONFormatter{
-		TimestampFormat: time.RFC3339Nano,
-	}
-	log.SetFormatter(&formatter)
+    formatter := log.JSONFormatter{
+        TimestampFormat: time.RFC3339Nano,
+    }
+    log.SetFormatter(&formatter)
 
-	loggerConfig := zap.NewProductionConfig()
-	loggerConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-	loggerConfig.EncoderConfig.TimeKey = "timestamp"
-	loggerConfig.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
-	return loggerConfig.Build()
+    loggerConfig := zap.NewProductionConfig()
+    loggerConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+    loggerConfig.EncoderConfig.TimeKey = "timestamp"
+    loggerConfig.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
+    return loggerConfig.Build()
 }
 
 func setupConfig() (*config.Config, error) {
-	cfg, err := config.New()
-	if err != nil {
-		return nil, err
-	}
+    cfg, err := config.New()
+    if err != nil {
+        return nil, err
+    }
 
-	cfg.Print([]string{})
+    cfg.Print([]string{})
 
-	if err = cfg.Validate([]string{
-		config.ClusterName,
-		config.DigDirAuthAudience,
-		config.DigDirAuthClientID,
-		config.DigDirAuthJwkPath,
-		config.DigDirAuthScopes,
-		config.DigDirAuthBaseURL,
-		config.DigDirIDPortenBaseURL,
-	}); err != nil {
-		return nil, err
-	}
-	return cfg, nil
+    if err = cfg.Validate([]string{
+        config.ClusterName,
+        config.DigDirAuthAudience,
+        config.DigDirAuthClientID,
+        config.DigDirAuthJwkPath,
+        config.DigDirAuthScopes,
+        config.DigDirAuthBaseURL,
+        config.DigDirIDPortenBaseURL,
+        config.KmsKeyPath,
+    }); err != nil {
+        return nil, err
+    }
+    return cfg, nil
 }

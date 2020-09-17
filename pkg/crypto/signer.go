@@ -19,11 +19,11 @@ type ConfigurableSigner struct {
 	ByteSigner    ByteSigner
 }
 
-func (ctx *ConfigurableSigner) Options() jose.SignerOptions {
+func (ctx ConfigurableSigner) Options() jose.SignerOptions {
 	return *ctx.SignerOptions
 }
 
-func (ctx *ConfigurableSigner) Sign(payload []byte) (*jose.JSONWebSignature, error) {
+func (ctx ConfigurableSigner) Sign(payload []byte) (*jose.JSONWebSignature, error) {
 	obj := &jose.JSONWebSignature{}
 	obj.Signatures = make([]jose.Signature, 1)
 
