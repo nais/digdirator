@@ -1,20 +1,20 @@
 package crypto
 
 import (
-    kms "cloud.google.com/go/kms/apiv1"
-    "context"
-    "crypto/sha256"
-    "fmt"
-    kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
-    "gopkg.in/square/go-jose.v2"
+	kms "cloud.google.com/go/kms/apiv1"
+	"context"
+	"crypto/sha256"
+	"fmt"
+	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
+	"gopkg.in/square/go-jose.v2"
 )
 
 type KmsKeyPath string
 
 type KmsOptions struct {
-    Client        *kms.KeyManagementClient
-    Ctx           context.Context
-    KmsKeyPath    KmsKeyPath
+	Client     *kms.KeyManagementClient
+	Ctx        context.Context
+	KmsKeyPath KmsKeyPath
 }
 
 type KmsByteSigner struct {
@@ -24,34 +24,33 @@ type KmsByteSigner struct {
 	SignerOptions *jose.SignerOptions
 }
 
-func NewKmsSigner(kms *KmsOptions, publicJwk *jose.JSONWebKey) (jose.Signer, error) {
-    x5c := extractX5c(publicJwk)
-    signerOpts := jose.SignerOptions{}
-    signerOpts.WithType("JWT")
-    if x5c != nil {
-        signerOpts.WithHeader("x5c", x5c)
-    }
-    return ConfigurableSigner{
-        SignerOptions: &signerOpts,
-        ByteSigner: KmsByteSigner{
-            Client:        kms.Client,
-            Ctx:           kms.Ctx,
-            KmsKeyPath:    kms.KmsKeyPath,
-            SignerOptions: &signerOpts,
-        },
-    }, nil
+func NewKmsSigner(kms *KmsOptions, x5c []string) (jose.Signer, error) {
+	signerOpts := jose.SignerOptions{}
+	signerOpts.WithType("JWT")
+	if x5c != nil {
+		signerOpts.WithHeader("x5c", x5c)
+	}
+	return ConfigurableSigner{
+		SignerOptions: &signerOpts,
+		ByteSigner: KmsByteSigner{
+			Client:        kms.Client,
+			Ctx:           kms.Ctx,
+			KmsKeyPath:    kms.KmsKeyPath,
+			SignerOptions: &signerOpts,
+		},
+	}, nil
 }
 
 func (k KmsByteSigner) SignBytes(payload []byte) ([]byte, error) {
-    req, err := createSignRequest(k.KmsKeyPath, payload)
-    if err != nil {
-        return nil, err
-    }
-    response, err := k.Client.AsymmetricSign(k.Ctx, req)
-    if err != nil {
-        return nil, fmt.Errorf("failed to sign digest: %w", err)
-    }
-    return response.Signature, nil
+	req, err := createSignRequest(k.KmsKeyPath, payload)
+	if err != nil {
+		return nil, err
+	}
+	response, err := k.Client.AsymmetricSign(k.Ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign digest: %w", err)
+	}
+	return response.Signature, nil
 }
 
 func createSignRequest(keyPath KmsKeyPath, content []byte) (*kmspb.AsymmetricSignRequest, error) {
