@@ -3,7 +3,7 @@ module github.com/nais/digdirator
 go 1.14
 
 require (
-	cloud.google.com/go v0.38.0
+	cloud.google.com/go v0.65.0
 	github.com/go-logr/zapr v0.1.0
 	github.com/google/uuid v1.1.1
 	github.com/mitchellh/hashstructure v1.0.0
@@ -19,7 +19,7 @@ require (
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
 	golang.org/x/sys v0.0.0-20200831180312-196b9ba8737a // indirect
-	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
+	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987
 	gopkg.in/square/go-jose.v2 v2.5.0
 	k8s.io/api v0.18.2
 	k8s.io/apimachinery v0.18.2
