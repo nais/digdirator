@@ -24,11 +24,12 @@ type DigDir struct {
 }
 
 type Auth struct {
-	ClientID string `json:"client-id"`
-	JwkPath  string `json:"jwk-path"`
-	BaseURL  string `json:"base-url"`
-	Audience string `json:"audience"`
-	Scopes   string `json:"scopes"`
+	ClientID      string `json:"client-id"`
+	CertChainPath string `json:"cert-chain-path"`
+	BaseURL       string `json:"base-url"`
+	Audience      string `json:"audience"`
+	Scopes        string `json:"scopes"`
+	KmsKeyPath    string `json:"kms-key-path"`
 }
 
 type IDPorten struct {
@@ -36,15 +37,16 @@ type IDPorten struct {
 }
 
 const (
-	MetricsAddress        = "metrics-address"
-	ClusterName           = "cluster-name"
-	DevelopmentMode       = "development-mode"
-	DigDirAuthAudience    = "digdir.auth.audience"
-	DigDirAuthClientID    = "digdir.auth.client-id"
-	DigDirAuthJwkPath     = "digdir.auth.jwk-path"
-	DigDirAuthScopes      = "digdir.auth.scopes"
-	DigDirAuthBaseURL     = "digdir.auth.base-url"
-	DigDirIDPortenBaseURL = "digdir.idporten.base-url"
+	MetricsAddress          = "metrics-address"
+	ClusterName             = "cluster-name"
+	DevelopmentMode         = "development-mode"
+	DigDirAuthAudience      = "digdir.auth.audience"
+	DigDirAuthClientID      = "digdir.auth.client-id"
+	DigDirAuthCertChainPath = "digdir.auth.cert-chain-path"
+	DigDirAuthScopes        = "digdir.auth.scopes"
+	DigDirAuthBaseURL       = "digdir.auth.base-url"
+	DigDirAuthKmsKeyPath    = "digdir.auth.kms-key-path"
+	DigDirIDPortenBaseURL   = "digdir.idporten.base-url"
 )
 
 func init() {
@@ -65,10 +67,11 @@ func init() {
 	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
 	flag.String(DigDirAuthAudience, "", "Audience for JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirAuthClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirAuthJwkPath, "", "Path to JWK for authenticating to DigDir.")
+	flag.String(DigDirAuthCertChainPath, "", "Path to PEM file containing certificate chain for authenticating to DigDir.")
 	flag.String(DigDirAuthScopes, "", "List of scopes for JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirAuthBaseURL, "", "Base URL endpoint for authenticating to DigDir.")
 	flag.String(DigDirIDPortenBaseURL, "", "Base URL endpoint for interacting with IDPorten API.")
+	flag.String(DigDirAuthKmsKeyPath, "", "Full path to key including version in Google Cloud KMS.")
 }
 
 // Print out all configuration options except secret stuff.

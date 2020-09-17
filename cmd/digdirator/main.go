@@ -1,6 +1,7 @@
 package main
 
 import (
+	kms "cloud.google.com/go/kms/apiv1"
 	"context"
 	"fmt"
 	"github.com/go-logr/zapr"
@@ -12,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/square/go-jose.v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -72,14 +74,9 @@ func run() error {
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
 
-	jwk, err := crypto.LoadJwkFromPath(cfg.DigDir.Auth.JwkPath)
+	signer, err := setupSigner(cfg)
 	if err != nil {
-		return fmt.Errorf("loading JWK credentials: %v", err)
-	}
-
-	signer, err := crypto.SignerFromJwk(jwk)
-	if err != nil {
-		return fmt.Errorf("creating signer from JWK: %v", err)
+		return fmt.Errorf("unable to setup signer: %w", err)
 	}
 
 	if err = (&idportenclient.Reconciler{
@@ -105,6 +102,24 @@ func run() error {
 	}
 
 	return nil
+}
+
+func setupSigner(cfg *config.Config) (jose.Signer, error) {
+	x5c, err := crypto.LoadPemCertChainToX5C(cfg.DigDir.Auth.CertChainPath)
+	if err != nil {
+		return nil, fmt.Errorf("loading PEM cert chain to X5C: %v", err)
+	}
+	kmsPath := crypto.KmsKeyPath(cfg.DigDir.Auth.KmsKeyPath)
+	kmsCtx := context.Background()
+	kmsClient, err := kms.NewKeyManagementClient(kmsCtx)
+	if err != nil {
+		return nil, fmt.Errorf("error creating key management client: %v", err)
+	}
+	return crypto.NewKmsSigner(&crypto.KmsOptions{
+		Client:     kmsClient,
+		Ctx:        kmsCtx,
+		KmsKeyPath: kmsPath,
+	}, x5c)
 }
 
 func setupZapLogger() (*zap.Logger, error) {
@@ -140,10 +155,11 @@ func setupConfig() (*config.Config, error) {
 		config.ClusterName,
 		config.DigDirAuthAudience,
 		config.DigDirAuthClientID,
-		config.DigDirAuthJwkPath,
+		config.DigDirAuthCertChainPath,
 		config.DigDirAuthScopes,
 		config.DigDirAuthBaseURL,
 		config.DigDirIDPortenBaseURL,
+		config.DigDirAuthKmsKeyPath,
 	}); err != nil {
 		return nil, err
 	}

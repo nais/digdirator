@@ -35,9 +35,10 @@ digdir:
   auth:
     audience: "audience for JWT assertion"
     client-id: "client ID / issuer for JWT assertion"
-    jwk-path: "path/to/JWK/for/signing/JWT"
+    cert-chain-path: "Path to PEM file containing certificate chain for authenticating to DigDir."
     scopes: "space separated list of scopes for JWT assertion"
     base-url: "base URL endpoint for idporten idp"
+    kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
   idporten:
     base-url: "base URL endpoint for idporten oidc admin api"
 cluster-name: local

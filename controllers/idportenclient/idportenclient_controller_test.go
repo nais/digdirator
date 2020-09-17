@@ -2,14 +2,15 @@ package idportenclient
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/config"
-	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/fixtures"
 	"github.com/nais/digdirator/pkg/labels"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/square/go-jose.v2"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -125,12 +126,13 @@ func setup() (*envtest.Environment, error) {
 		return nil, fmt.Errorf("loading config: %v", err)
 	}
 
-	jwk, err := crypto.LoadJwkFromPath("testdata/testjwk")
+	// TODO: consider replacing this with the KmsSigner or RsaSigner, however the KmsSigner requires a lot of mocking
+	jwk, err := loadJwkFromPath("testdata/testjwk")
 	if err != nil {
 		return nil, fmt.Errorf("loading jwk credentials: %v", err)
 	}
 
-	signer, err := crypto.SignerFromJwk(jwk)
+	signer, err := signerFromJwk(jwk)
 	if err != nil {
 		return nil, fmt.Errorf("creating signer from jwk: %v", err)
 	}
@@ -300,4 +302,39 @@ func containsOwnerRef(refs []metav1.OwnerReference, owner v1.IDPortenClient) boo
 		}
 	}
 	return false
+}
+
+func loadJwkFromPath(path string) (*jose.JSONWebKey, error) {
+	creds, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("loading JWK from path %s: %w", path, err)
+	}
+
+	jwk := &jose.JSONWebKey{}
+	err = jwk.UnmarshalJSON(creds)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling JWK: %w", err)
+	}
+
+	return jwk, nil
+}
+
+func signerFromJwk(jwk *jose.JSONWebKey) (jose.Signer, error) {
+	signerOpts := jose.SignerOptions{}
+	signerOpts.WithType("JWT")
+	signerOpts.WithHeader("x5c", extractX5c(jwk))
+
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: jwk.Key}, &signerOpts)
+	if err != nil {
+		return nil, fmt.Errorf("creating jwt signer: %v", err)
+	}
+	return signer, nil
+}
+
+func extractX5c(jwk *jose.JSONWebKey) []string {
+	x5c := make([]string, 0)
+	for _, cert := range jwk.Certificates {
+		x5c = append(x5c, base64.StdEncoding.EncodeToString(cert.Raw))
+	}
+	return x5c
 }
