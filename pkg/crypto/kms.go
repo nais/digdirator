@@ -7,6 +7,7 @@ import (
 	"fmt"
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 	"gopkg.in/square/go-jose.v2"
+	"time"
 )
 
 type KmsKeyPath string
@@ -46,7 +47,11 @@ func (k KmsByteSigner) SignBytes(payload []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := k.Client.AsymmetricSign(k.Ctx, req)
+
+	ctx, cancel := context.WithTimeout(k.Ctx, 1*time.Minute)
+	defer cancel()
+
+	response, err := k.Client.AsymmetricSign(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign digest: %w", err)
 	}
