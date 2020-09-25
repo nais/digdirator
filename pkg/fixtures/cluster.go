@@ -65,7 +65,7 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 
 	spec := v1.IDPortenClientSpec{
 		ClientURI:              "clienturi",
-		RedirectURI:            "x",
+		RedirectURI:            "https://my-app.nais.io",
 		SecretName:             c.SecretName,
 		FrontchannelLogoutURI:  "frontChannelLogoutURI",
 		PostLogoutRedirectURIs: []string{"postLogoutRedirectURI"},

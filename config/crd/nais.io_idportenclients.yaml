@@ -65,6 +65,7 @@ spec:
               type: array
             redirectURI:
               description: RedirectURI is the redirect URI to be registered at DigDir
+              pattern: ^https:\/\/
               type: string
             refreshTokenLifetime:
               description: RefreshTokenLifetime is the lifetime in seconds for the

@@ -36,6 +36,7 @@ type IDPortenClientSpec struct {
 	// ClientURI is the URL to the client to be used at DigDir when displaying a 'back' button or on errors
 	ClientURI string `json:"clientURI"`
 	// RedirectURI is the redirect URI to be registered at DigDir
+	// +kubebuilder:validation:Pattern=`^https:\/\/`
 	RedirectURI string `json:"redirectURI"`
 	// SecretName is the name of the resulting Secret resource to be created
 	SecretName string `json:"secretName"`
