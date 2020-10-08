@@ -25,19 +25,14 @@ type KmsByteSigner struct {
 	SignerOptions *jose.SignerOptions
 }
 
-func NewKmsSigner(kms *KmsOptions, x5c []string) (jose.Signer, error) {
-	signerOpts := jose.SignerOptions{}
-	signerOpts.WithType("JWT")
-	if x5c != nil {
-		signerOpts.WithHeader("x5c", x5c)
-	}
+func NewKmsSigner(kms *KmsOptions, opts *jose.SignerOptions) (jose.Signer, error) {
 	return ConfigurableSigner{
-		SignerOptions: &signerOpts,
+		SignerOptions: opts,
 		ByteSigner: KmsByteSigner{
 			Client:        kms.Client,
 			Ctx:           kms.Ctx,
 			KmsKeyPath:    kms.KmsKeyPath,
-			SignerOptions: &signerOpts,
+			SignerOptions: opts,
 		},
 	}, nil
 }

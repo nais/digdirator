@@ -105,10 +105,11 @@ func run() error {
 }
 
 func setupSigner(cfg *config.Config) (jose.Signer, error) {
-	x5c, err := crypto.LoadPemCertChainToX5C(cfg.DigDir.Auth.CertChainPath)
+	signerOpts, err := crypto.SetupSignerOptions(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("loading PEM cert chain to X5C: %v", err)
+		return nil, fmt.Errorf("setting up signer options: %v", err)
 	}
+
 	kmsPath := crypto.KmsKeyPath(cfg.DigDir.Auth.KmsKeyPath)
 	kmsCtx := context.Background()
 	kmsClient, err := kms.NewKeyManagementClient(kmsCtx)
@@ -119,7 +120,7 @@ func setupSigner(cfg *config.Config) (jose.Signer, error) {
 		Client:     kmsClient,
 		Ctx:        kmsCtx,
 		KmsKeyPath: kmsPath,
-	}, x5c)
+	}, signerOpts)
 }
 
 func setupZapLogger() (*zap.Logger, error) {
