@@ -33,4 +33,3 @@ func ConvertX509CertificatesToX5c(certs []*x509.Certificate) []string {
 	}
 	return x5c
 }
-
