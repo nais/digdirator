@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.5
+    controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
   name: idportenclients.nais.io
 spec:
@@ -65,7 +65,7 @@ spec:
               type: array
             redirectURI:
               description: RedirectURI is the redirect URI to be registered at DigDir
-              pattern: ^https:\/\/
+              pattern: ^https?:\/\/
               type: string
             refreshTokenLifetime:
               description: RefreshTokenLifetime is the lifetime in seconds for the

@@ -1,0 +1,13 @@
+---
+apiVersion: nais.io/v1
+kind: IDPortenClient
+metadata:
+  name: my-app-localhost
+  namespace: default
+spec:
+  clientURI: "http://localhost:8080"
+  redirectURI: http://localhost:8080/my-app/oidc/callback
+  secretName: my-app-idporten-localhost
+  postLogoutRedirectURIs:
+    - "http://localhost:8080"
+  refreshTokenLifetime: 3601
