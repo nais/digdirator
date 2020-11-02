@@ -9,23 +9,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (in *IDPortenClient) IsBeingDeleted() bool {
+const Maskinporten = "maskinporten"
+
+func (in *MaskinportenClient) IsBeingDeleted() bool {
 	return !in.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
-func (in *IDPortenClient) HasFinalizer(finalizerName string) bool {
+func (in *MaskinportenClient) HasFinalizer(finalizerName string) bool {
 	return util.ContainsString(in.ObjectMeta.Finalizers, finalizerName)
 }
 
-func (in *IDPortenClient) AddFinalizer(finalizerName string) {
+func (in *MaskinportenClient) AddFinalizer(finalizerName string) {
 	in.ObjectMeta.Finalizers = append(in.ObjectMeta.Finalizers, finalizerName)
 }
 
-func (in *IDPortenClient) RemoveFinalizer(finalizerName string) {
+func (in *MaskinportenClient) RemoveFinalizer(finalizerName string) {
 	in.ObjectMeta.Finalizers = util.RemoveString(in.ObjectMeta.Finalizers, finalizerName)
 }
 
-func (in *IDPortenClient) UpdateHash() error {
+func (in *MaskinportenClient) UpdateHash() error {
 	in.Status.Timestamp = metav1.Now()
 	newHash, err := in.Hash()
 	if err != nil {
@@ -35,11 +37,11 @@ func (in *IDPortenClient) UpdateHash() error {
 	return nil
 }
 
-func (in *IDPortenClient) ClientDescription() string {
+func (in *MaskinportenClient) ClientDescription() string {
 	return fmt.Sprintf("%s:%s:%s", in.ClusterName, in.Namespace, in.Name)
 }
 
-func (in *IDPortenClient) HashUnchanged() (bool, error) {
+func (in *MaskinportenClient) HashUnchanged() (bool, error) {
 	newHash, err := in.Hash()
 	if err != nil {
 		return false, fmt.Errorf("checking if hash is unchanged: %w", err)
@@ -47,7 +49,7 @@ func (in *IDPortenClient) HashUnchanged() (bool, error) {
 	return in.Status.ProvisionHash == newHash, nil
 }
 
-func (in IDPortenClient) Hash() (string, error) {
+func (in MaskinportenClient) Hash() (string, error) {
 	marshalled, err := json.Marshal(in.Spec)
 	if err != nil {
 		return "", err
@@ -56,34 +58,29 @@ func (in IDPortenClient) Hash() (string, error) {
 	return fmt.Sprintf("%x", h), err
 }
 
-func (in IDPortenClient) GetUniqueName() string {
-	return fmt.Sprintf("%s:%s:%s", in.ClusterName, in.Namespace, in.Name)
+func (in MaskinportenClient) GetUniqueName() string {
+	return fmt.Sprintf("%s:%s:%s:%s", Maskinporten, in.ClusterName, in.Namespace, in.Name)
 }
 
-func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
+func (in MaskinportenClient) ToClientRegistration() types.ClientRegistration {
 	return types.ClientRegistration{
 		AccessTokenLifetime:               3600,
 		ApplicationType:                   types.ApplicationTypeWeb,
 		AuthorizationLifeTime:             0,
 		ClientName:                        types.DefaultClientName,
-		ClientURI:                         in.Spec.ClientURI,
+		ClientURI:                         "",
 		Description:                       in.GetUniqueName(),
 		FrontchannelLogoutSessionRequired: false,
-		FrontchannelLogoutURI:             in.Spec.FrontchannelLogoutURI,
+		FrontchannelLogoutURI:             "",
 		GrantTypes: []types.GrantType{
-			types.GrantTypeAuthorizationCode,
-			types.GrantTypeRefreshToken,
+			types.GrantTypeJwtBearer,
 		},
-		IntegrationType:        types.IntegrationTypeIDPorten,
-		PostLogoutRedirectURIs: in.Spec.PostLogoutRedirectURIs,
-		RedirectURIs: []string{
-			in.Spec.RedirectURI,
-		},
-		RefreshTokenLifetime: in.Spec.RefreshTokenLifetime,
-		RefreshTokenUsage:    types.RefreshTokenUsageOneTime,
-		Scopes: []string{
-			"openid", "profile",
-		},
+		IntegrationType:         types.IntegrationTypeMaskinporten,
+		PostLogoutRedirectURIs:  nil,
+		RedirectURIs:            nil,
+		RefreshTokenLifetime:    0,
+		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
+		Scopes:                  in.Spec.Scopes,
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
 }

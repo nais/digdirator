@@ -1,4 +1,4 @@
-package idporten
+package digdir
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package idporten
+package digdir
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"fmt"
 	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/config"
-	"github.com/nais/digdirator/pkg/idporten/types"
+	"github.com/nais/digdirator/pkg/digdir/types"
 	"gopkg.in/square/go-jose.v2"
 	"io/ioutil"
 	"net/http"
