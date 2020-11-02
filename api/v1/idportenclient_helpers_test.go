@@ -108,7 +108,7 @@ func minimalClient() *IDPortenClient {
 			PostLogoutRedirectURIs: nil,
 			RefreshTokenLifetime:   3600,
 		},
-		Status: IDPortenClientStatus{
+		Status: ClientStatus{
 			ProvisionHash: expectedHash,
 		},
 	}

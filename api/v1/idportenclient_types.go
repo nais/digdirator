@@ -18,8 +18,8 @@ type IDPortenClient struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   IDPortenClientSpec   `json:"spec,omitempty"`
-	Status IDPortenClientStatus `json:"status,omitempty"`
+	Spec   IDPortenClientSpec `json:"spec,omitempty"`
+	Status ClientStatus       `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -46,20 +46,6 @@ type IDPortenClientSpec struct {
 	PostLogoutRedirectURIs []string `json:"postLogoutRedirectURIs"`
 	// RefreshTokenLifetime is the lifetime in seconds for the issued refresh token from ID-porten
 	RefreshTokenLifetime int `json:"refreshTokenLifetime"`
-}
-
-// IDPortenClientStatus defines the observed state of IDPortenClient
-type IDPortenClientStatus struct {
-	// ClientID is the ID-porten client ID
-	ClientID string `json:"clientID"`
-	// Timestamp is the last time the Status subresource was updated
-	Timestamp metav1.Time `json:"timestamp,omitempty"`
-	// ProvisionHash is the hash of the IDPortenClient object
-	ProvisionHash string `json:"provisionHash,omitempty"`
-	// CorrelationID is the ID referencing the processing transaction last performed on this resource
-	CorrelationID string `json:"correlationID"`
-	// KeyIDs is the list of key IDs for valid JWKs registered for the client at ID-porten
-	KeyIDs []string `json:"keyIDs"`
 }
 
 func init() {

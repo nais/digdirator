@@ -74,11 +74,13 @@ func run() error {
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
 
+	// TODO Signer for maskinporten clients?
 	signer, err := setupSigner(cfg)
 	if err != nil {
 		return fmt.Errorf("unable to setup signer: %w", err)
 	}
 
+	// TODO changes needed, add maskinporten recon?
 	if err = (&idportenclient.Reconciler{
 		Client:     mgr.GetClient(),
 		Reader:     mgr.GetAPIReader(),

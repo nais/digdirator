@@ -37,7 +37,7 @@ func (f finalizer) process(tx *transaction) (ctrl.Result, error) {
 		tx.log.Info("finalizer triggered, deleting resources...")
 
 		if len(tx.instance.Status.ClientID) > 0 {
-			if err := tx.digdirclient.Delete(tx.ctx, tx.instance.Status.ClientID); err != nil {
+			if err := tx.digdirClient.Delete(tx.ctx, tx.instance.Status.ClientID); err != nil {
 				return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
 			}
 		}

@@ -99,7 +99,7 @@ func minimalMaskinportenClient() *MaskinportenClient {
 		Spec: MaskinportenClientSpec{
 			Scopes: nil,
 		},
-		Status: MaskinportenClientStatus{
+		Status: ClientStatus{
 			ProvisionHash: expectedHash,
 		},
 	}
