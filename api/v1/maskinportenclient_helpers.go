@@ -11,6 +11,26 @@ import (
 
 const Maskinporten = "maskinporten"
 
+func (in *MaskinportenClient) ClientName() string {
+	return in.GetName()
+}
+
+func (in *MaskinportenClient) NameSpace() string {
+	return in.GetNamespace()
+}
+
+func (in *MaskinportenClient) StatusClientID() string {
+	return in.Status.ClientID
+}
+
+func (in *MaskinportenClient) Description() string {
+	return in.ClientDescription()
+}
+
+func (in *MaskinportenClient) SecretName() string {
+	return in.Spec.SecretName
+}
+
 func (in *MaskinportenClient) IsBeingDeleted() bool {
 	return !in.ObjectMeta.DeletionTimestamp.IsZero()
 }

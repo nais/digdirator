@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/go-logr/zapr"
 	"github.com/nais/digdirator/controllers/idportenclient"
+	"github.com/nais/digdirator/controllers/maskinportenclient"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/metrics"
@@ -46,7 +47,7 @@ func main() {
 	err := run()
 
 	if err != nil {
-		log.Error(err, "Run loop errored")
+		log.Error(err, "\nRun loop errored")
 		os.Exit(1)
 	}
 
@@ -80,8 +81,20 @@ func run() error {
 		return fmt.Errorf("unable to setup signer: %w", err)
 	}
 
-	// TODO changes needed, add maskinporten recon?
 	if err = (&idportenclient.Reconciler{
+		Client:     mgr.GetClient(),
+		Reader:     mgr.GetAPIReader(),
+		Scheme:     mgr.GetScheme(),
+		Recorder:   mgr.GetEventRecorderFor("digdirator"),
+		Config:     cfg,
+		Signer:     signer,
+		HttpClient: http.DefaultClient,
+	}).SetupWithManager(mgr); err != nil {
+		return fmt.Errorf("unable to create controller: %w", err)
+	}
+	// +kubebuilder:scaffold:builder
+
+	if err = (&maskinportenclient.Reconciler{
 		Client:     mgr.GetClient(),
 		Reader:     mgr.GetAPIReader(),
 		Scheme:     mgr.GetScheme(),
@@ -162,6 +175,7 @@ func setupConfig() (*config.Config, error) {
 		config.DigDirAuthScopes,
 		config.DigDirAuthBaseURL,
 		config.DigDirIDPortenBaseURL,
+		config.DigDirMaskinportenBaseURL,
 		config.DigDirAuthKmsKeyPath,
 	}); err != nil {
 		return nil, err

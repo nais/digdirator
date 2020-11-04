@@ -1,42 +1,30 @@
-package fixtures
+package idporten
 
 import (
 	"context"
 	"fmt"
 	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/pkg/fixtures"
 	"github.com/nais/digdirator/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ClusterFixtures struct {
 	client.Client
-	Config
+	fixtures.Config
 	idPortenClient *v1.IDPortenClient
 	namespace      *corev1.Namespace
 	pod            *corev1.Pod
 	unusedSecret   *corev1.Secret
 }
 
-type Config struct {
-	IDPortenClientName string
-	NamespaceName      string
-	SecretName         string
-	UnusedSecretName   string
-}
-
-type resource struct {
-	client.ObjectKey
-	runtime.Object
-}
-
-func New(cli client.Client, config Config) ClusterFixtures {
+func New(cli client.Client, config fixtures.Config) ClusterFixtures {
 	return ClusterFixtures{Client: cli, Config: config}
 }
 
@@ -60,7 +48,7 @@ func (c ClusterFixtures) WithNamespace() ClusterFixtures {
 func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 	key := types.NamespacedName{
 		Namespace: c.NamespaceName,
-		Name:      c.IDPortenClientName,
+		Name:      c.DigidirClientName,
 	}
 
 	spec := v1.IDPortenClientSpec{
@@ -85,7 +73,7 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 func (c ClusterFixtures) WithPod() ClusterFixtures {
 	key := types.NamespacedName{
 		Namespace: c.NamespaceName,
-		Name:      c.IDPortenClientName,
+		Name:      c.DigidirClientName,
 	}
 	c.pod = &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -131,7 +119,7 @@ func (c ClusterFixtures) WithUnusedSecret() ClusterFixtures {
 			Name:      c.UnusedSecretName,
 			Namespace: c.NamespaceName,
 			Labels: map[string]string{
-				labels.AppLabelKey:  c.IDPortenClientName,
+				labels.AppLabelKey:  c.DigidirClientName,
 				labels.TypeLabelKey: labels.TypeLabelValue,
 			},
 		},
@@ -165,12 +153,12 @@ func (c ClusterFixtures) Setup() error {
 }
 
 func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
-	resources := make([]resource, 0)
+	resources := make([]fixtures.Resource, 0)
 	if c.idPortenClient != nil {
-		resources = append(resources, resource{
+		resources = append(resources, fixtures.Resource{
 			ObjectKey: client.ObjectKey{
 				Namespace: c.NamespaceName,
-				Name:      c.IDPortenClientName,
+				Name:      c.DigidirClientName,
 			},
 			Object: &v1.IDPortenClient{},
 		})
@@ -195,7 +183,7 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 	}
 }
 
-func allExists(ctx context.Context, cli client.Client, resources []resource) (bool, error) {
+func allExists(ctx context.Context, cli client.Client, resources []fixtures.Resource) (bool, error) {
 	for _, resource := range resources {
 		err := cli.Get(ctx, resource.ObjectKey, resource.Object)
 		if err == nil {

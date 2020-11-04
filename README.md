@@ -41,6 +41,8 @@ digdir:
     kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
   idporten:
     base-url: "base URL endpoint for idporten oidc admin api"
+  maskinporten:
+    base-url: "base URL endpoint for maskinporten api"
 cluster-name: local
 development-mode: true
 ```

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/controllers"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/labels"
 	"github.com/nais/digdirator/pkg/pods"
@@ -16,19 +17,24 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"strings"
 )
 
 const (
-	JwkKey       = "IDPORTEN_CLIENT_JWK"
-	ClientID     = "IDPORTEN_CLIENT_ID"
-	WellKnownURL = "IDPORTEN_WELL_KNOWN_URL"
-	RedirectURI  = "IDPORTEN_REDIRECT_URI"
+	JwkKey                   = "IDPORTEN_CLIENT_JWK"
+	ClientID                 = "IDPORTEN_CLIENT_ID"
+	WellKnownURL             = "IDPORTEN_WELL_KNOWN_URL"
+	RedirectURI              = "IDPORTEN_REDIRECT_URI"
+	MaskinportenJwkKey       = "MASKINPORTEN_CLIENT_JWK"
+	MaskinportenClientID     = "MASKINPORTEN_CLIENT_ID"
+	MaskinportenWellKnownURL = "MASKINPORTEN_WELL_KNOWN_URL"
+	MaskinportenScopes       = "MASKINPORTEN_SCOPES"
 )
 
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch
 
-func CreateOrUpdate(ctx context.Context, instance *v1.IDPortenClient, cli client.Client, scheme *runtime.Scheme, jwk jose.JSONWebKey) (controllerutil.OperationResult, error) {
-	spec, err := Spec(instance, jwk)
+func CreateOrUpdateIdporten(ctx context.Context, instance *v1.IDPortenClient, cli client.Client, scheme *runtime.Scheme, jwk jose.JSONWebKey) (controllerutil.OperationResult, error) {
+	spec, err := IdportenSpec(instance, jwk)
 	if err != nil {
 		return controllerutil.OperationResultNone, fmt.Errorf("creating secretSpec object: %w", err)
 	}
@@ -51,7 +57,31 @@ func CreateOrUpdate(ctx context.Context, instance *v1.IDPortenClient, cli client
 	return res, nil
 }
 
-func GetManaged(ctx context.Context, instance *v1.IDPortenClient, reader client.Reader) (*Lists, error) {
+func CreateOrUpdateMaskinporten(ctx context.Context, instance *v1.MaskinportenClient, cli client.Client, scheme *runtime.Scheme, jwk jose.JSONWebKey) (controllerutil.OperationResult, error) {
+	spec, err := MaskinportenSpec(instance, jwk)
+	if err != nil {
+		return controllerutil.OperationResultNone, fmt.Errorf("creating secretSpec object: %w", err)
+	}
+
+	if err := ctrl.SetControllerReference(instance, spec, scheme); err != nil {
+		return controllerutil.OperationResultNone, fmt.Errorf("setting controller reference: %w", err)
+	}
+
+	err = cli.Create(ctx, spec)
+	res := controllerutil.OperationResultCreated
+
+	if errors.IsAlreadyExists(err) {
+		err = cli.Update(ctx, spec)
+		res = controllerutil.OperationResultUpdated
+	}
+
+	if err != nil {
+		return controllerutil.OperationResultNone, fmt.Errorf("applying secretSpec: %w", err)
+	}
+	return res, nil
+}
+
+func GetManaged(ctx context.Context, instance controllers.Instance, reader client.Reader) (*Lists, error) {
 	// fetch all application pods for this app
 	podList, err := pods.GetForApplication(ctx, instance, reader)
 	if err != nil {
@@ -76,20 +106,20 @@ func Delete(ctx context.Context, secret corev1.Secret, cli client.Client) error 
 	return nil
 }
 
-func getAll(ctx context.Context, instance *v1.IDPortenClient, reader client.Reader) (corev1.SecretList, error) {
+func getAll(ctx context.Context, instance controllers.Instance, reader client.Reader) (corev1.SecretList, error) {
 	var list corev1.SecretList
 	mLabels := client.MatchingLabels{
-		labels.AppLabelKey:  instance.GetName(),
+		labels.AppLabelKey:  instance.ClientName(),
 		labels.TypeLabelKey: labels.TypeLabelValue,
 	}
-	if err := reader.List(ctx, &list, client.InNamespace(instance.Namespace), mLabels); err != nil {
+	if err := reader.List(ctx, &list, client.InNamespace(instance.NameSpace()), mLabels); err != nil {
 		return list, err
 	}
 	return list, nil
 }
 
-func Spec(instance *v1.IDPortenClient, jwk jose.JSONWebKey) (*corev1.Secret, error) {
-	data, err := StringData(jwk, instance)
+func IdportenSpec(instance *v1.IDPortenClient, jwk jose.JSONWebKey) (*corev1.Secret, error) {
+	data, err := IdportenStringData(jwk, instance)
 	if err != nil {
 		return nil, err
 	}
@@ -98,21 +128,37 @@ func Spec(instance *v1.IDPortenClient, jwk jose.JSONWebKey) (*corev1.Secret, err
 			Kind:       "Secret",
 			APIVersion: "v1",
 		},
-		ObjectMeta: ObjectMeta(instance),
+		ObjectMeta: ObjectMeta(controllers.Instance(instance)),
 		StringData: data,
 		Type:       corev1.SecretTypeOpaque,
 	}, nil
 }
 
-func ObjectMeta(instance *v1.IDPortenClient) metav1.ObjectMeta {
+func MaskinportenSpec(instance *v1.MaskinportenClient, jwk jose.JSONWebKey) (*corev1.Secret, error) {
+	data, err := MaskinportenStringData(jwk, instance)
+	if err != nil {
+		return nil, err
+	}
+	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: ObjectMeta(controllers.Instance(instance)),
+		StringData: data,
+		Type:       corev1.SecretTypeOpaque,
+	}, nil
+}
+
+func ObjectMeta(instance controllers.Instance) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:      instance.Spec.SecretName,
-		Namespace: instance.Namespace,
+		Name:      instance.SecretName(),
+		Namespace: instance.NameSpace(),
 		Labels:    labels.DefaultLabels(instance),
 	}
 }
 
-func StringData(jwk jose.JSONWebKey, instance *v1.IDPortenClient) (map[string]string, error) {
+func IdportenStringData(jwk jose.JSONWebKey, instance *v1.IDPortenClient) (map[string]string, error) {
 	wellKnownURL := viper.GetString(config.DigDirAuthBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
 	jwkJson, err := jwk.MarshalJSON()
 	if err != nil {
@@ -121,7 +167,25 @@ func StringData(jwk jose.JSONWebKey, instance *v1.IDPortenClient) (map[string]st
 	return map[string]string{
 		JwkKey:       string(jwkJson),
 		WellKnownURL: wellKnownURL,
-		ClientID:     instance.Status.ClientID,
+		ClientID:     instance.StatusClientID(),
 		RedirectURI:  instance.Spec.RedirectURI,
 	}, nil
+}
+
+func MaskinportenStringData(jwk jose.JSONWebKey, instance *v1.MaskinportenClient) (map[string]string, error) {
+	wellKnownURL := viper.GetString(config.DigDirMaskinportenBaseURL) + "/.well-known/oauth-authorization-server"
+	jwkJson, err := jwk.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("marshalling JWK: %w", err)
+	}
+	return map[string]string{
+		MaskinportenJwkKey:       string(jwkJson),
+		MaskinportenWellKnownURL: wellKnownURL,
+		MaskinportenClientID:     instance.StatusClientID(),
+		MaskinportenScopes:       ToScopesString(instance.Spec.Scopes),
+	}, nil
+}
+
+func ToScopesString(scopes []string) string {
+	return strings.Join(scopes[:], " ")
 }

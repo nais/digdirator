@@ -9,6 +9,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func (in *IDPortenClient) ClientName() string {
+	return in.GetName()
+}
+
+func (in *IDPortenClient) NameSpace() string {
+	return in.GetNamespace()
+}
+
+func (in *IDPortenClient) StatusClientID() string {
+	return in.Status.ClientID
+}
+
+func (in *IDPortenClient) Description() string {
+	return in.ClientDescription()
+}
+
+func (in *IDPortenClient) SecretName() string {
+	return in.Spec.SecretName
+}
+
 func (in *IDPortenClient) IsBeingDeleted() bool {
 	return !in.ObjectMeta.DeletionTimestamp.IsZero()
 }

@@ -34,6 +34,8 @@ type MaskinportenClientList struct {
 type MaskinportenClientSpec struct {
 	// Scopes is a list of valid scopes that the client can request tokens for
 	Scopes []string `json:"scopes"`
+	// SecretName is the name of the resulting Secret resource to be created
+	SecretName string `json:"secretName"`
 }
 
 func init() {

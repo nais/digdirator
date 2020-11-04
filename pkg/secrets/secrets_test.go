@@ -15,27 +15,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestCreateSecretSpec(t *testing.T) {
-	client := &v1.IDPortenClient{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-app",
-			Namespace: "test",
-		},
-		Spec: v1.IDPortenClientSpec{
-			SecretName:  "test-secret",
-			RedirectURI: "https://my-app.nav.no",
-		},
-		Status: v1.IDPortenClientStatus{
-			ClientID: "test-client-id",
-		},
-	}
+func TestCreateSecretSpecMaskinporten(t *testing.T) {
+	client := maskinportenClientSetup("test-name")
 	jwk, err := crypto.GenerateJwk()
 	assert.NoError(t, err)
 
-	spec, err := secrets.Spec(client, *jwk)
+	spec, err := secrets.MaskinportenSpec(client, *jwk)
 	assert.NoError(t, err, "should not error")
 
-	stringData, err := secrets.StringData(*jwk, client)
+	stringData, err := secrets.MaskinportenStringData(*jwk, client)
 	assert.NoError(t, err, "should not error")
 
 	t.Run("Name should equal provided name in Spec", func(t *testing.T) {
@@ -62,42 +50,33 @@ func TestCreateSecretSpec(t *testing.T) {
 	})
 
 	t.Run("StringData should contain expected fields and values", func(t *testing.T) {
-		t.Run("Secret Data should contain Private JWK", func(t *testing.T) {
+		t.Run("Secret Data should contain "+secrets.MaskinportenJwkKey, func(t *testing.T) {
 			expected, err := json.Marshal(jwk)
 			assert.NoError(t, err)
-			assert.Equal(t, string(expected), spec.StringData[secrets.JwkKey])
+			assert.Equal(t, string(expected), spec.StringData[secrets.MaskinportenJwkKey])
 		})
-		t.Run("Secret Data should contain well-known URL", func(t *testing.T) {
-			expected := viper.GetString(config.DigDirAuthBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
-			assert.Equal(t, expected, spec.StringData[secrets.WellKnownURL])
+		t.Run("Secret Data should contain "+secrets.MaskinportenWellKnownURL, func(t *testing.T) {
+			expected := viper.GetString(config.DigDirMaskinportenBaseURL) + "/.well-known/oauth-authorization-server"
+			assert.Equal(t, expected, spec.StringData[secrets.MaskinportenWellKnownURL])
 		})
-		t.Run("Secret Data should contain client ID", func(t *testing.T) {
-			assert.Equal(t, client.Status.ClientID, spec.StringData[secrets.ClientID])
+		t.Run("Secret Data should contain "+secrets.MaskinportenClientID, func(t *testing.T) {
+			assert.Equal(t, client.Status.ClientID, spec.StringData[secrets.MaskinportenClientID])
 		})
-		t.Run("Secret Data should contain redirect URI", func(t *testing.T) {
-			assert.Equal(t, client.Spec.RedirectURI, spec.StringData[secrets.RedirectURI])
+		t.Run("Secret Data should contain "+secrets.MaskinportenScopes+" with a single string of scopes separated by space", func(t *testing.T) {
+			assert.Equal(t, secrets.ToScopesString(client.Spec.Scopes), spec.StringData[secrets.MaskinportenScopes])
 		})
 	})
 }
 
-func TestObjectMeta(t *testing.T) {
-	name := "test-name"
-	app := &v1.IDPortenClient{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-app",
-			Namespace: "test",
-		},
-		Spec: v1.IDPortenClientSpec{
-			SecretName: name,
-		},
-	}
+func TestMaskinportenObjectMeta(t *testing.T) {
+	app := maskinportenClientSetup("test-name")
 
 	om := secrets.ObjectMeta(app)
 
 	t.Run("Name should be set", func(t *testing.T) {
 		actual := om.GetName()
 		assert.NotEmpty(t, actual)
-		assert.Equal(t, name, actual)
+		assert.Equal(t, app.Spec.SecretName, actual)
 	})
 
 	t.Run("Namespace should be set", func(t *testing.T) {
@@ -114,4 +93,116 @@ func TestObjectMeta(t *testing.T) {
 		assert.NotEmpty(t, actualLabels, "Labels should not be empty")
 		assert.Equal(t, expectedLabels, actualLabels, "Labels should be set")
 	})
+}
+
+func maskinportenClientSetup(secretName string) *v1.MaskinportenClient {
+	return &v1.MaskinportenClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-app",
+			Namespace: "test",
+		},
+		Spec: v1.MaskinportenClientSpec{
+			SecretName: secretName,
+			Scopes:     []string{"scope:one", "scope:two"},
+		},
+		Status: v1.ClientStatus{
+			ClientID: "test-client-id",
+		},
+	}
+}
+
+func TestCreateSecretSpec(t *testing.T) {
+	client := idportenClientSetup("test-name")
+	jwk, err := crypto.GenerateJwk()
+	assert.NoError(t, err)
+
+	spec, err := secrets.IdportenSpec(client, *jwk)
+	assert.NoError(t, err, "should not error")
+
+	stringData, err := secrets.IdportenStringData(*jwk, client)
+	assert.NoError(t, err, "should not error")
+
+	t.Run("Name should equal provided name in Spec", func(t *testing.T) {
+		expected := client.Spec.SecretName
+		actual := spec.Name
+		assert.NotEmpty(t, actual)
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("Secret spec should be as expected", func(t *testing.T) {
+		expected := &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: secrets.ObjectMeta(client),
+			StringData: stringData,
+			Type:       corev1.SecretTypeOpaque,
+		}
+		assert.NotEmpty(t, spec)
+		assert.Equal(t, expected, spec)
+
+		assert.Equal(t, corev1.SecretTypeOpaque, spec.Type, "Secret Type should be Opaque")
+	})
+
+	t.Run("StringData should contain expected fields and values", func(t *testing.T) {
+		t.Run("Secret Data should contain "+secrets.JwkKey, func(t *testing.T) {
+			expected, err := json.Marshal(jwk)
+			assert.NoError(t, err)
+			assert.Equal(t, string(expected), spec.StringData[secrets.JwkKey])
+		})
+		t.Run("Secret Data should contain "+secrets.WellKnownURL, func(t *testing.T) {
+			expected := viper.GetString(config.DigDirAuthBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
+			assert.Equal(t, expected, spec.StringData[secrets.WellKnownURL])
+		})
+		t.Run("Secret Data should contain "+secrets.ClientID, func(t *testing.T) {
+			assert.Equal(t, client.Status.ClientID, spec.StringData[secrets.ClientID])
+		})
+		t.Run("Secret Data should contain "+secrets.RedirectURI, func(t *testing.T) {
+			assert.Equal(t, client.Spec.RedirectURI, spec.StringData[secrets.RedirectURI])
+		})
+	})
+}
+
+func TestIdportenObjectMeta(t *testing.T) {
+	app := idportenClientSetup("test-name")
+
+	om := secrets.ObjectMeta(app)
+
+	t.Run("Name should be set", func(t *testing.T) {
+		actual := om.GetName()
+		assert.NotEmpty(t, actual)
+		assert.Equal(t, app.Spec.SecretName, actual)
+	})
+
+	t.Run("Namespace should be set", func(t *testing.T) {
+		actual := om.GetNamespace()
+		assert.NotEmpty(t, actual)
+		assert.Equal(t, app.GetNamespace(), actual)
+	})
+	t.Run("Labels should be set", func(t *testing.T) {
+		actualLabels := om.GetLabels()
+		expectedLabels := map[string]string{
+			labels.AppLabelKey:  app.GetName(),
+			labels.TypeLabelKey: labels.TypeLabelValue,
+		}
+		assert.NotEmpty(t, actualLabels, "Labels should not be empty")
+		assert.Equal(t, expectedLabels, actualLabels, "Labels should be set")
+	})
+}
+
+func idportenClientSetup(secretName string) *v1.IDPortenClient {
+	return &v1.IDPortenClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-app",
+			Namespace: "test",
+		},
+		Spec: v1.IDPortenClientSpec{
+			SecretName:  secretName,
+			RedirectURI: "https://my-app.nav.no",
+		},
+		Status: v1.ClientStatus{
+			ClientID: "test-client-id",
+		},
+	}
 }

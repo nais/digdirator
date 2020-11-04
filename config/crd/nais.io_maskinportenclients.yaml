@@ -54,14 +54,19 @@ spec:
               items:
                 type: string
               type: array
+            secretName:
+              description: SecretName is the name of the resulting Secret resource
+                to be created
+              type: string
           required:
           - scopes
+          - secretName
           type: object
         status:
-          description: MaskinportenClientStatus defines the observed state of MaskinportenClient
+          description: ClientStatus defines the observed state of Current Client
           properties:
             clientID:
-              description: ClientID is the Maskinporten client ID
+              description: ClientID is the current Client ID
               type: string
             correlationID:
               description: CorrelationID is the ID referencing the processing transaction
@@ -69,12 +74,12 @@ spec:
               type: string
             keyIDs:
               description: KeyIDs is the list of key IDs for valid JWKs registered
-                for the client at Maskinporten
+                for the client at Digdir
               items:
                 type: string
               type: array
             provisionHash:
-              description: ProvisionHash is the hash of the MaskinportenClient object
+              description: ProvisionHash is the hash of the Current Client object
               type: string
             timestamp:
               description: Timestamp is the last time the Status subresource was updated

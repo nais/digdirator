@@ -1,4 +1,4 @@
-package idportenclient
+package maskinportenclient
 
 import (
 	"context"
@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const RequeueInterval = 10 * time.Second
+const requeueInterval = 10 * time.Second
 
 // ClientReconciler reconciles a Client object
 type Reconciler struct {
@@ -37,9 +37,10 @@ type Reconciler struct {
 	Signer     jose.Signer
 	HttpClient *http.Client
 }
+
 type transaction struct {
 	ctx            context.Context
-	instance       *v1.IDPortenClient
+	instance       *v1.MaskinportenClient
 	log            *log.Entry
 	managedSecrets *secrets.Lists
 	digdirClient   *digdir.Client
@@ -92,13 +93,13 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 	correlationID := uuid.New().String()
 
 	logger := *log.WithFields(log.Fields{
-		"IDPortenClient": req.NamespacedName,
-		"correlationID":  correlationID,
+		"MaskinportenClient": req.NamespacedName,
+		"correlationID":      correlationID,
 	})
 
 	ctx := context.Background()
 
-	instance := &v1.IDPortenClient{}
+	instance := &v1.MaskinportenClient{}
 	instanceInterface := controllers.Instance(instance)
 	if err := r.Reader.Get(ctx, req.NamespacedName, instance); err != nil {
 		return nil, err
@@ -125,7 +126,8 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 }
 
 func (r *Reconciler) process(tx *transaction) error {
-	idportenClient, err := tx.digdirClient.ClientExists(tx.instance, tx.ctx)
+	var instanceInterface = controllers.Instance(tx.instance)
+	idportenClient, err := tx.digdirClient.ClientExists(instanceInterface, tx.ctx)
 	if err != nil {
 		return fmt.Errorf("checking if client exists: %w", err)
 	}
@@ -215,9 +217,9 @@ func (r *Reconciler) registerJwk(tx *transaction, jwk jose.JSONWebKey, clientID 
 
 func (r *Reconciler) handleError(tx *transaction, err error) (ctrl.Result, error) {
 	tx.log.Error(fmt.Errorf("processing ID-porten client: %w", err))
-	r.Recorder.Event(tx.instance, corev1.EventTypeWarning, "Failed", fmt.Sprintf("Failed to synchronize ID-porten client, retrying in %s", RequeueInterval))
+	r.Recorder.Event(tx.instance, corev1.EventTypeWarning, "Failed", fmt.Sprintf("Failed to synchronize ID-porten client, retrying in %s", requeueInterval))
 	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsFailedProcessingCount, tx.instance.Namespace)
-	return ctrl.Result{RequeueAfter: RequeueInterval}, nil
+	return ctrl.Result{RequeueAfter: requeueInterval}, nil
 }
 
 func (r *Reconciler) complete(tx *transaction) (ctrl.Result, error) {

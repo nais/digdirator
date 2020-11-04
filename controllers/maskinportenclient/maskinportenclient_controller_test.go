@@ -1,4 +1,4 @@
-package idportenclient
+package maskinportenclient
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/fixtures"
-	"github.com/nais/digdirator/pkg/fixtures/idporten"
+	"github.com/nais/digdirator/pkg/fixtures/maskinporten"
 	"github.com/nais/digdirator/pkg/labels"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +38,7 @@ const (
 )
 
 var cli client.Client
-var clientExists bool
+var ClientExists bool
 
 func TestMain(m *testing.M) {
 	testEnv, err := setup()
@@ -48,47 +48,6 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	_ = testEnv.Stop()
 	os.Exit(code)
-}
-
-func idportenHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.URL.Path == "/idporten-oidc-provider/token":
-			response := `{ "access_token": "token" }`
-			_, _ = w.Write([]byte(response))
-		// GET (list) clients
-		case r.URL.Path == "/clients" && r.Method == http.MethodGet:
-			var path string
-			if clientExists {
-				path = "testdata/list-response-exists.json"
-			} else {
-				path = "testdata/list-response.json"
-			}
-			response, _ := ioutil.ReadFile(path)
-			_, _ = w.Write(response)
-		// POST (create) client
-		case r.URL.Path == "/clients" && r.Method == http.MethodPost:
-			response, _ := ioutil.ReadFile("testdata/create-response.json")
-			_, _ = w.Write(response)
-		// PUT (update) existing client
-		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodPut:
-			response, _ := ioutil.ReadFile("testdata/update-response.json")
-			_, _ = w.Write(response)
-		// DELETE existing client
-		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodDelete:
-			w.WriteHeader(http.StatusOK)
-		// POST JWKS (overwriting)
-		case r.URL.Path == fmt.Sprintf("/clients/%s/jwks", clientId) && r.Method == http.MethodPost:
-			var path string
-			if clientExists {
-				path = "testdata/register-jwks-response-exists.json"
-			} else {
-				path = "testdata/register-jwks-response.json"
-			}
-			response, _ := ioutil.ReadFile(path)
-			_, _ = w.Write(response)
-		}
-	}
 }
 
 func setup() (*envtest.Environment, error) {
@@ -101,6 +60,7 @@ func setup() (*envtest.Environment, error) {
 	}
 
 	cfg, err := testEnv.Start()
+
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +77,7 @@ func setup() (*envtest.Environment, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("starting manager: %v", err)
 	}
 
 	cli = mgr.GetClient()
@@ -127,7 +87,6 @@ func setup() (*envtest.Environment, error) {
 		return nil, fmt.Errorf("loading config: %v", err)
 	}
 
-	// TODO: consider replacing this with the KmsSigner or RsaSigner, however the KmsSigner requires a lot of mocking
 	jwk, err := loadJwkFromPath("testdata/testjwk")
 	if err != nil {
 		return nil, fmt.Errorf("loading jwk credentials: %v", err)
@@ -168,7 +127,7 @@ func setup() (*envtest.Environment, error) {
 	return testEnv, nil
 }
 
-func TestIDPortenController(t *testing.T) {
+func TestMaskinportenController(t *testing.T) {
 	cfg := fixtures.Config{
 		DigidirClientName: "test-client",
 		NamespaceName:     "test-namespace",
@@ -177,26 +136,26 @@ func TestIDPortenController(t *testing.T) {
 	}
 
 	// set up preconditions for cluster
-	clusterFixtures := idporten.New(cli, cfg).MinimalConfig().WithPod().WithUnusedSecret()
+	clusterFixtures := maskinporten.New(cli, cfg).MinimalConfig().WithPod().WithUnusedSecret()
 
-	// create IDPortenClient
+	// create MaskinportenClient
 	if err := clusterFixtures.Setup(); err != nil {
 		t.Fatalf("failed to set up cluster fixtures: %v", err)
 	}
 
-	instance := &v1.IDPortenClient{}
+	instance := &v1.MaskinportenClient{}
 	key := client.ObjectKey{
 		Name:      "test-client",
 		Namespace: "test-namespace",
 	}
-	assert.Eventually(t, resourceExists(key, instance), timeout, interval, "IDPortenClient should exist")
+	assert.Eventually(t, resourceExists(key, instance), timeout, interval, "MaskinportenClient should exist")
 	assert.Eventually(t, func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		assert.NoError(t, err)
 		b, err := instance.HashUnchanged()
 		assert.NoError(t, err)
 		return b
-	}, timeout, interval, "IDPortenClient should be synchronized")
+	}, timeout, interval, "MaskinportenClient should be synchronized")
 	assert.NotEmpty(t, instance.Status.ClientID)
 	assert.NotEmpty(t, instance.Status.KeyIDs)
 	assert.NotEmpty(t, instance.Status.ProvisionHash)
@@ -213,9 +172,9 @@ func TestIDPortenController(t *testing.T) {
 		Namespace: cfg.NamespaceName,
 		Name:      cfg.UnusedSecretName,
 	}, &corev1.Secret{}), timeout, interval, "unused Secret should not exist")
-	clientExists = true
+	ClientExists = true
 
-	// update IDPortenClient
+	// update MaskinportenClient
 	previousSecretName := cfg.SecretName
 	previousHash := instance.Status.ProvisionHash
 
@@ -242,12 +201,12 @@ func TestIDPortenController(t *testing.T) {
 	// old secret should still exist
 	assertSecretExists(t, previousSecretName, cfg.NamespaceName, instance)
 
-	// delete IDPortenClient
+	// delete MaskinportenClient
 	err = cli.Delete(context.Background(), instance)
 
-	assert.NoError(t, err, "deleting IDPortenClient")
+	assert.NoError(t, err, "deleting MaskinportenClient")
 
-	assert.Eventually(t, resourceDoesNotExist(key, instance), timeout, interval, "IDPortenClient should not exist")
+	assert.Eventually(t, resourceDoesNotExist(key, instance), timeout, interval, "MaskinportenClient should not exist")
 }
 
 func resourceExists(key client.ObjectKey, instance runtime.Object) func() bool {
@@ -264,7 +223,7 @@ func resourceDoesNotExist(key client.ObjectKey, instance runtime.Object) func() 
 	}
 }
 
-func assertSecretExists(t *testing.T, name string, namespace string, instance *v1.IDPortenClient) {
+func assertSecretExists(t *testing.T, name string, namespace string, instance *v1.MaskinportenClient) {
 	key := client.ObjectKey{
 		Namespace: namespace,
 		Name:      name,
@@ -286,7 +245,7 @@ func assertSecretExists(t *testing.T, name string, namespace string, instance *v
 	assert.Equal(t, corev1.SecretTypeOpaque, a.Type, "Secret type should be Opaque")
 }
 
-func containsOwnerRef(refs []metav1.OwnerReference, owner v1.IDPortenClient) bool {
+func containsOwnerRef(refs []metav1.OwnerReference, owner v1.MaskinportenClient) bool {
 	expected := metav1.OwnerReference{
 		APIVersion: owner.APIVersion,
 		Kind:       owner.Kind,
@@ -320,10 +279,51 @@ func loadJwkFromPath(path string) (*jose.JSONWebKey, error) {
 	return jwk, nil
 }
 
+func idportenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/idporten-oidc-provider/token":
+			response := `{ "access_token": "token" }`
+			_, _ = w.Write([]byte(response))
+		// GET (list) clients
+		case r.URL.Path == "/clients" && r.Method == http.MethodGet:
+			var path string
+			if ClientExists {
+				path = "testdata/list-response-exists.json"
+			} else {
+				path = "testdata/list-response.json"
+			}
+			response, _ := ioutil.ReadFile(path)
+			_, _ = w.Write(response)
+		// POST (create) client
+		case r.URL.Path == "/clients" && r.Method == http.MethodPost:
+			response, _ := ioutil.ReadFile("testdata/create-response.json")
+			_, _ = w.Write(response)
+		// PUT (update) existing client
+		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodPut:
+			response, _ := ioutil.ReadFile("testdata/update-response.json")
+			_, _ = w.Write(response)
+		// DELETE existing client
+		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodDelete:
+			w.WriteHeader(http.StatusOK)
+		// POST JWKS (overwriting)
+		case r.URL.Path == fmt.Sprintf("/clients/%s/jwks", clientId) && r.Method == http.MethodPost:
+			var path string
+			if ClientExists {
+				path = "testdata/register-jwks-response-exists.json"
+			} else {
+				path = "testdata/register-jwks-response.json"
+			}
+			response, _ := ioutil.ReadFile(path)
+			_, _ = w.Write(response)
+		}
+	}
+}
+
 func signerFromJwk(jwk *jose.JSONWebKey) (jose.Signer, error) {
 	signerOpts := jose.SignerOptions{}
 	signerOpts.WithType("JWT")
-	signerOpts.WithHeader("x5c", extractX5c(jwk))
+	signerOpts.WithHeader("x5c", ExtractX5c(jwk))
 
 	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: jwk.Key}, &signerOpts)
 	if err != nil {
@@ -332,7 +332,7 @@ func signerFromJwk(jwk *jose.JSONWebKey) (jose.Signer, error) {
 	return signer, nil
 }
 
-func extractX5c(jwk *jose.JSONWebKey) []string {
+func ExtractX5c(jwk *jose.JSONWebKey) []string {
 	x5c := make([]string, 0)
 	for _, cert := range jwk.Certificates {
 		x5c = append(x5c, base64.StdEncoding.EncodeToString(cert.Raw))

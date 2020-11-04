@@ -83,10 +83,10 @@ spec:
           - secretName
           type: object
         status:
-          description: IDPortenClientStatus defines the observed state of IDPortenClient
+          description: ClientStatus defines the observed state of Current Client
           properties:
             clientID:
-              description: ClientID is the ID-porten client ID
+              description: ClientID is the current Client ID
               type: string
             correlationID:
               description: CorrelationID is the ID referencing the processing transaction
@@ -94,12 +94,12 @@ spec:
               type: string
             keyIDs:
               description: KeyIDs is the list of key IDs for valid JWKs registered
-                for the client at ID-porten
+                for the client at Digdir
               items:
                 type: string
               type: array
             provisionHash:
-              description: ProvisionHash is the hash of the IDPortenClient object
+              description: ProvisionHash is the hash of the Current Client object
               type: string
             timestamp:
               description: Timestamp is the last time the Status subresource was updated

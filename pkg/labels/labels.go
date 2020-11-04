@@ -1,7 +1,7 @@
 package labels
 
 import (
-	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/controllers"
 )
 
 const (
@@ -10,9 +10,9 @@ const (
 	TypeLabelValue string = "digdirator.nais.io"
 )
 
-func DefaultLabels(instance *v1.IDPortenClient) map[string]string {
+func DefaultLabels(instance controllers.Instance) map[string]string {
 	return map[string]string{
-		AppLabelKey:  instance.GetName(),
+		AppLabelKey:  instance.ClientName(),
 		TypeLabelKey: TypeLabelValue,
 	}
 }

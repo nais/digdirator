@@ -19,8 +19,9 @@ type Config struct {
 }
 
 type DigDir struct {
-	Auth     Auth     `json:"auth"`
-	IDPorten IDPorten `json:"idporten"`
+	Auth         Auth         `json:"auth"`
+	IDPorten     IDPorten     `json:"idporten"`
+	Maskinporten Maskinporten `json:"maskinporten"`
 }
 
 type Auth struct {
@@ -36,17 +37,22 @@ type IDPorten struct {
 	BaseURL string `json:"base-url"`
 }
 
+type Maskinporten struct {
+	BaseURL string `json:"base-url"`
+}
+
 const (
-	MetricsAddress          = "metrics-address"
-	ClusterName             = "cluster-name"
-	DevelopmentMode         = "development-mode"
-	DigDirAuthAudience      = "digdir.auth.audience"
-	DigDirAuthClientID      = "digdir.auth.client-id"
-	DigDirAuthCertChainPath = "digdir.auth.cert-chain-path"
-	DigDirAuthScopes        = "digdir.auth.scopes"
-	DigDirAuthBaseURL       = "digdir.auth.base-url"
-	DigDirAuthKmsKeyPath    = "digdir.auth.kms-key-path"
-	DigDirIDPortenBaseURL   = "digdir.idporten.base-url"
+	MetricsAddress            = "metrics-address"
+	ClusterName               = "cluster-name"
+	DevelopmentMode           = "development-mode"
+	DigDirAuthAudience        = "digdir.auth.audience"
+	DigDirAuthClientID        = "digdir.auth.client-id"
+	DigDirAuthCertChainPath   = "digdir.auth.cert-chain-path"
+	DigDirAuthScopes          = "digdir.auth.scopes"
+	DigDirAuthBaseURL         = "digdir.auth.base-url"
+	DigDirAuthKmsKeyPath      = "digdir.auth.kms-key-path"
+	DigDirIDPortenBaseURL     = "digdir.idporten.base-url"
+	DigDirMaskinportenBaseURL = "digdir.maskinporten.base-url"
 )
 
 func init() {
@@ -70,6 +76,7 @@ func init() {
 	flag.String(DigDirAuthCertChainPath, "", "Path to PEM file containing certificate chain for authenticating to DigDir.")
 	flag.String(DigDirAuthScopes, "", "List of scopes for JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirAuthBaseURL, "", "Base URL endpoint for authenticating to DigDir.")
+	flag.String(DigDirMaskinportenBaseURL, "", "Base URL endpoint for interacting with Maskinporten API.")
 	flag.String(DigDirIDPortenBaseURL, "", "Base URL endpoint for interacting with IDPorten API.")
 	flag.String(DigDirAuthKmsKeyPath, "", "Full path to key including version in Google Cloud KMS.")
 }
@@ -115,6 +122,7 @@ func (c Config) Validate(required []string) error {
 			errs = append(errs, key)
 		}
 	}
+
 	for _, key := range errs {
 		log.Printf("required key '%s' not configured", key)
 	}
