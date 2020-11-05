@@ -47,7 +47,7 @@ func main() {
 	err := run()
 
 	if err != nil {
-		log.Error(err, "\nRun loop errored")
+		log.Error(err, "Run loop errored")
 		os.Exit(1)
 	}
 
@@ -75,7 +75,8 @@ func run() error {
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
 
-	// TODO Signer for maskinporten clients?
+	// TODO Signer for maskinporten clients
+	// TODO Metrics for maskinporten?
 	signer, err := setupSigner(cfg)
 	if err != nil {
 		return fmt.Errorf("unable to setup signer: %w", err)
