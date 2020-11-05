@@ -44,12 +44,22 @@ func unique(keys []jose.JSONWebKey) []jose.JSONWebKey {
 }
 
 func getJWKFromSecret(secret v1.Secret) (jose.JSONWebKey, error) {
-	jwkBytes := secret.Data[secrets.JwkKey]
-
+	var jwkBytes []byte
 	var jwk jose.JSONWebKey
+	if secret.Data[secrets.JwkKey] != nil {
+		jwkBytes = secret.Data[secrets.JwkKey]
+		return unmarshalJSON(jwk, jwkBytes)
+	}
+	if secret.Data[secrets.MaskinportenJwkKey] != nil {
+		var jwkBytes = secret.Data[secrets.MaskinportenJwkKey]
+		return unmarshalJSON(jwk, jwkBytes)
+	}
+	return jwk, nil
+}
+
+func unmarshalJSON(jwk jose.JSONWebKey, jwkBytes []byte) (jose.JSONWebKey, error) {
 	if err := jwk.UnmarshalJSON(jwkBytes); err != nil {
 		return jwk, fmt.Errorf("unmarshalling JWK from secret")
 	}
-
 	return jwk, nil
 }

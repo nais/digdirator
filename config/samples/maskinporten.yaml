@@ -1,0 +1,10 @@
+---
+apiVersion: nais.io/v1
+kind: Maskinportenclient
+metadata:
+  name: my-app
+  namespace: default
+spec:
+  secretName: my-secret
+  postLogoutRedirectURIs:
+    - "nav:test/scope"

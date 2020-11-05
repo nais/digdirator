@@ -85,7 +85,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1.IDPortenClient{}).
+		For(&v1.MaskinportenClient{}).
 		Complete(r)
 }
 
@@ -112,41 +112,41 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 		return nil, fmt.Errorf("getting managed secrets: %w", err)
 	}
 
-	idportenClient := digdir.NewClient(r.HttpClient, r.Signer, r.Config)
+	digdirClient := digdir.NewClient(r.HttpClient, r.Signer, r.Config)
 
-	logger.Info("processing IDPortenClient...")
+	logger.Info("processing MaskinportenClient...")
 
 	return &transaction{
 		ctx,
 		instance,
 		&logger,
 		managedSecrets,
-		&idportenClient,
+		&digdirClient,
 	}, nil
 }
 
 func (r *Reconciler) process(tx *transaction) error {
 	var instanceInterface = controllers.Instance(tx.instance)
-	idportenClient, err := tx.digdirClient.ClientExists(instanceInterface, tx.ctx)
+	digdirClient, err := tx.digdirClient.ClientExists(instanceInterface, tx.ctx)
 	if err != nil {
 		return fmt.Errorf("checking if client exists: %w", err)
 	}
 
 	registrationPayload := tx.instance.ToClientRegistration()
-	if idportenClient != nil {
-		idportenClient, err = r.updateClient(tx, registrationPayload, idportenClient.ClientID)
+	if digdirClient != nil {
+		digdirClient, err = r.updateClient(tx, registrationPayload, digdirClient.ClientID)
 		metrics.IncWithNamespaceLabel(metrics.IDPortenClientsUpdatedCount, tx.instance.Namespace)
 	} else {
-		idportenClient, err = r.createClient(tx, registrationPayload)
+		digdirClient, err = r.createClient(tx, registrationPayload)
 		metrics.IncWithNamespaceLabel(metrics.IDPortenClientsCreatedCount, tx.instance.Namespace)
 	}
 	if err != nil {
 		return err
 	}
 
-	tx.log = tx.log.WithField("ClientID", idportenClient.ClientID)
+	tx.log = tx.log.WithField("ClientID", digdirClient.ClientID)
 	if len(tx.instance.Status.ClientID) == 0 {
-		tx.instance.Status.ClientID = idportenClient.ClientID
+		tx.instance.Status.ClientID = digdirClient.ClientID
 	}
 
 	jwk, err := crypto.GenerateJwk()
@@ -154,7 +154,7 @@ func (r *Reconciler) process(tx *transaction) error {
 		return fmt.Errorf("generating new JWK for client: %w", err)
 	}
 
-	if err := r.registerJwk(tx, *jwk, idportenClient.ClientID); err != nil {
+	if err := r.registerJwk(tx, *jwk, digdirClient.ClientID); err != nil {
 		return err
 	}
 	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsRotatedCount, tx.instance.Namespace)
@@ -173,25 +173,25 @@ func (r *Reconciler) process(tx *transaction) error {
 func (r *Reconciler) createClient(tx *transaction, payload types.ClientRegistration) (*types.ClientRegistration, error) {
 	tx.log.Debug("client does not exist in ID-porten, registering...")
 
-	idportenClient, err := tx.digdirClient.Register(tx.ctx, payload)
+	digdirClient, err := tx.digdirClient.Register(tx.ctx, payload)
 	if err != nil {
 		return nil, fmt.Errorf("registering client to ID-porten: %w", err)
 	}
 
-	tx.log.WithField("ClientID", idportenClient.ClientID).Info("client registered")
-	return idportenClient, nil
+	tx.log.WithField("ClientID", digdirClient.ClientID).Info("client registered")
+	return digdirClient, nil
 }
 
 func (r *Reconciler) updateClient(tx *transaction, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {
 	tx.log.Debug("client already exists in ID-porten, updating...")
 
-	idportenClient, err := tx.digdirClient.Update(tx.ctx, payload, clientID)
+	digdirClient, err := tx.digdirClient.Update(tx.ctx, payload, clientID)
 	if err != nil {
 		return nil, fmt.Errorf("updating client at ID-porten: %w", err)
 	}
 
-	tx.log.WithField("ClientID", idportenClient.ClientID).Info("client updated")
-	return idportenClient, err
+	tx.log.WithField("ClientID", digdirClient.ClientID).Info("client updated")
+	return digdirClient, err
 }
 
 func (r *Reconciler) registerJwk(tx *transaction, jwk jose.JSONWebKey, clientID string) error {
@@ -223,7 +223,7 @@ func (r *Reconciler) handleError(tx *transaction, err error) (ctrl.Result, error
 }
 
 func (r *Reconciler) complete(tx *transaction) (ctrl.Result, error) {
-	tx.log.Debug("updating status for IDPortenClient")
+	tx.log.Debug("updating status for MaskinportenClient")
 
 	if err := tx.instance.UpdateHash(); err != nil {
 		return ctrl.Result{}, err

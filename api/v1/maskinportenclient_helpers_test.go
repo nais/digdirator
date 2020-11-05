@@ -86,7 +86,7 @@ func TestMaskinportenClient_UpdateHash(t *testing.T) {
 
 	err := app.UpdateHash()
 	assert.NoError(t, err)
-	assert.Equal(t, "db68f38423a12192", app.Status.ProvisionHash)
+	assert.Equal(t, "ddbcd7f2b2711184", app.Status.ProvisionHash)
 }
 
 func minimalMaskinportenClient() *MaskinportenClient {
