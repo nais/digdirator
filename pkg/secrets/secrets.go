@@ -21,10 +21,10 @@ import (
 )
 
 const (
-	JwkKey                   = "IDPORTEN_CLIENT_JWK"
-	ClientID                 = "IDPORTEN_CLIENT_ID"
-	WellKnownURL             = "IDPORTEN_WELL_KNOWN_URL"
-	RedirectURI              = "IDPORTEN_REDIRECT_URI"
+	IDPortenJwkKey           = "IDPORTEN_CLIENT_JWK"
+	IDPortenClientID         = "IDPORTEN_CLIENT_ID"
+	IDPortenWellKnownURL     = "IDPORTEN_WELL_KNOWN_URL"
+	IDPortenRedirectURI      = "IDPORTEN_REDIRECT_URI"
 	MaskinportenJwkKey       = "MASKINPORTEN_CLIENT_JWK"
 	MaskinportenClientID     = "MASKINPORTEN_CLIENT_ID"
 	MaskinportenWellKnownURL = "MASKINPORTEN_WELL_KNOWN_URL"
@@ -108,10 +108,17 @@ func Delete(ctx context.Context, secret corev1.Secret, cli client.Client) error 
 
 func getAll(ctx context.Context, instance controllers.Instance, reader client.Reader) (corev1.SecretList, error) {
 	var list corev1.SecretList
-	mLabels := client.MatchingLabels{
-		labels.AppLabelKey:  instance.ClientName(),
-		labels.TypeLabelKey: labels.TypeLabelValue,
+	var mLabels client.MatchingLabels
+
+	switch instance.(type) {
+	case *v1.IDPortenClient:
+		mLabels = labels.IDPortenLabels(instance)
+	case *v1.MaskinportenClient:
+		mLabels = labels.MaskinportenLabels(instance)
+	default:
+		return list, fmt.Errorf("instance does not implement 'controllers.Instance'")
 	}
+
 	if err := reader.List(ctx, &list, client.InNamespace(instance.NameSpace()), mLabels); err != nil {
 		return list, err
 	}
@@ -128,7 +135,7 @@ func IdportenSpec(instance *v1.IDPortenClient, jwk jose.JSONWebKey) (*corev1.Sec
 			Kind:       "Secret",
 			APIVersion: "v1",
 		},
-		ObjectMeta: ObjectMeta(controllers.Instance(instance)),
+		ObjectMeta: ObjectMeta(controllers.Instance(instance), labels.IDPortenLabels(instance)),
 		StringData: data,
 		Type:       corev1.SecretTypeOpaque,
 	}, nil
@@ -144,17 +151,17 @@ func MaskinportenSpec(instance *v1.MaskinportenClient, jwk jose.JSONWebKey) (*co
 			Kind:       "Secret",
 			APIVersion: "v1",
 		},
-		ObjectMeta: ObjectMeta(controllers.Instance(instance)),
+		ObjectMeta: ObjectMeta(controllers.Instance(instance), labels.MaskinportenLabels(instance)),
 		StringData: data,
 		Type:       corev1.SecretTypeOpaque,
 	}, nil
 }
 
-func ObjectMeta(instance controllers.Instance) metav1.ObjectMeta {
+func ObjectMeta(instance controllers.Instance, labels map[string]string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:      instance.SecretName(),
 		Namespace: instance.NameSpace(),
-		Labels:    labels.DefaultLabels(instance),
+		Labels:    labels,
 	}
 }
 
@@ -165,10 +172,10 @@ func IdportenStringData(jwk jose.JSONWebKey, instance *v1.IDPortenClient) (map[s
 		return nil, fmt.Errorf("marshalling JWK: %w", err)
 	}
 	return map[string]string{
-		JwkKey:       string(jwkJson),
-		WellKnownURL: wellKnownURL,
-		ClientID:     instance.StatusClientID(),
-		RedirectURI:  instance.Spec.RedirectURI,
+		IDPortenJwkKey:       string(jwkJson),
+		IDPortenWellKnownURL: wellKnownURL,
+		IDPortenClientID:     instance.StatusClientID(),
+		IDPortenRedirectURI:  instance.Spec.RedirectURI,
 	}, nil
 }
 

@@ -39,7 +39,7 @@ func TestCreateSecretSpecMaskinporten(t *testing.T) {
 				Kind:       "Secret",
 				APIVersion: "v1",
 			},
-			ObjectMeta: secrets.ObjectMeta(client),
+			ObjectMeta: secrets.ObjectMeta(client, labels.MaskinportenLabels(client)),
 			StringData: stringData,
 			Type:       corev1.SecretTypeOpaque,
 		}
@@ -71,7 +71,7 @@ func TestCreateSecretSpecMaskinporten(t *testing.T) {
 func TestMaskinportenObjectMeta(t *testing.T) {
 	app := maskinportenClientSetup("test-name")
 
-	om := secrets.ObjectMeta(app)
+	om := secrets.ObjectMeta(app, labels.MaskinportenLabels(app))
 
 	t.Run("Name should be set", func(t *testing.T) {
 		actual := om.GetName()
@@ -88,7 +88,7 @@ func TestMaskinportenObjectMeta(t *testing.T) {
 		actualLabels := om.GetLabels()
 		expectedLabels := map[string]string{
 			labels.AppLabelKey:  app.GetName(),
-			labels.TypeLabelKey: labels.TypeLabelValue,
+			labels.TypeLabelKey: labels.MaskinportenTypeLabelValue,
 		}
 		assert.NotEmpty(t, actualLabels, "Labels should not be empty")
 		assert.Equal(t, expectedLabels, actualLabels, "Labels should be set")
@@ -135,7 +135,7 @@ func TestCreateSecretSpec(t *testing.T) {
 				Kind:       "Secret",
 				APIVersion: "v1",
 			},
-			ObjectMeta: secrets.ObjectMeta(client),
+			ObjectMeta: secrets.ObjectMeta(client, labels.IDPortenLabels(client)),
 			StringData: stringData,
 			Type:       corev1.SecretTypeOpaque,
 		}
@@ -146,20 +146,20 @@ func TestCreateSecretSpec(t *testing.T) {
 	})
 
 	t.Run("StringData should contain expected fields and values", func(t *testing.T) {
-		t.Run("Secret Data should contain "+secrets.JwkKey, func(t *testing.T) {
+		t.Run("Secret Data should contain "+secrets.IDPortenJwkKey, func(t *testing.T) {
 			expected, err := json.Marshal(jwk)
 			assert.NoError(t, err)
-			assert.Equal(t, string(expected), spec.StringData[secrets.JwkKey])
+			assert.Equal(t, string(expected), spec.StringData[secrets.IDPortenJwkKey])
 		})
-		t.Run("Secret Data should contain "+secrets.WellKnownURL, func(t *testing.T) {
+		t.Run("Secret Data should contain "+secrets.IDPortenWellKnownURL, func(t *testing.T) {
 			expected := viper.GetString(config.DigDirAuthBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
-			assert.Equal(t, expected, spec.StringData[secrets.WellKnownURL])
+			assert.Equal(t, expected, spec.StringData[secrets.IDPortenWellKnownURL])
 		})
-		t.Run("Secret Data should contain "+secrets.ClientID, func(t *testing.T) {
-			assert.Equal(t, client.Status.ClientID, spec.StringData[secrets.ClientID])
+		t.Run("Secret Data should contain "+secrets.IDPortenClientID, func(t *testing.T) {
+			assert.Equal(t, client.Status.ClientID, spec.StringData[secrets.IDPortenClientID])
 		})
-		t.Run("Secret Data should contain "+secrets.RedirectURI, func(t *testing.T) {
-			assert.Equal(t, client.Spec.RedirectURI, spec.StringData[secrets.RedirectURI])
+		t.Run("Secret Data should contain "+secrets.IDPortenRedirectURI, func(t *testing.T) {
+			assert.Equal(t, client.Spec.RedirectURI, spec.StringData[secrets.IDPortenRedirectURI])
 		})
 	})
 }
@@ -167,7 +167,7 @@ func TestCreateSecretSpec(t *testing.T) {
 func TestIdportenObjectMeta(t *testing.T) {
 	app := idportenClientSetup("test-name")
 
-	om := secrets.ObjectMeta(app)
+	om := secrets.ObjectMeta(app, labels.IDPortenLabels(app))
 
 	t.Run("Name should be set", func(t *testing.T) {
 		actual := om.GetName()
@@ -184,7 +184,7 @@ func TestIdportenObjectMeta(t *testing.T) {
 		actualLabels := om.GetLabels()
 		expectedLabels := map[string]string{
 			labels.AppLabelKey:  app.GetName(),
-			labels.TypeLabelKey: labels.TypeLabelValue,
+			labels.TypeLabelKey: labels.IDPortenTypeLabelValue,
 		}
 		assert.NotEmpty(t, actualLabels, "Labels should not be empty")
 		assert.Equal(t, expectedLabels, actualLabels, "Labels should be set")

@@ -136,7 +136,7 @@ func TestMaskinportenController(t *testing.T) {
 	}
 
 	// set up preconditions for cluster
-	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithMaskinportenClient().WithPod().WithUnusedSecret()
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithMaskinportenClient().WithPod().WithUnusedSecret(labels.MaskinportenTypeLabelValue)
 
 	// create MaskinportenClient
 	if err := clusterFixtures.Setup(); err != nil {
@@ -237,7 +237,7 @@ func assertSecretExists(t *testing.T, name string, namespace string, instance *v
 	actualLabels := a.GetLabels()
 	expectedLabels := map[string]string{
 		labels.AppLabelKey:  instance.GetName(),
-		labels.TypeLabelKey: labels.TypeLabelValue,
+		labels.TypeLabelKey: labels.MaskinportenTypeLabelValue,
 	}
 	assert.NotEmpty(t, actualLabels, "Labels should not be empty")
 	assert.Equal(t, expectedLabels, actualLabels, "Labels should be set")

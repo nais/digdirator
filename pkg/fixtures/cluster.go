@@ -143,7 +143,7 @@ func (c ClusterFixtures) WithPod() ClusterFixtures {
 	return c
 }
 
-func (c ClusterFixtures) WithUnusedSecret() ClusterFixtures {
+func (c ClusterFixtures) WithUnusedSecret(label string) ClusterFixtures {
 	c.unusedSecret = &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -154,7 +154,7 @@ func (c ClusterFixtures) WithUnusedSecret() ClusterFixtures {
 			Namespace: c.NamespaceName,
 			Labels: map[string]string{
 				labels.AppLabelKey:  c.DigidirClientName,
-				labels.TypeLabelKey: labels.TypeLabelValue,
+				labels.TypeLabelKey: label,
 			},
 		},
 	}

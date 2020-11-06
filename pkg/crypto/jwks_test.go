@@ -32,17 +32,20 @@ func TestMergeJwks(t *testing.T) {
 		ListMeta: metav1.ListMeta{},
 		Items: []v1.Secret{
 			{
-				Data: map[string][]byte{secrets.JwkKey: []byte(jwkString)},
+				Data: map[string][]byte{secrets.IDPortenJwkKey: []byte(jwkString)},
 			},
 			{
-				Data: map[string][]byte{secrets.JwkKey: []byte(jwkString)},
+				Data: map[string][]byte{secrets.IDPortenJwkKey: []byte(jwkString)},
+			},
+			{
+				Data: map[string][]byte{secrets.MaskinportenJwkKey: []byte(jwkString)},
 			},
 		},
 	}
 	newJwk, err := crypto.GenerateJwk()
 	assert.NoError(t, err)
 
-	jwks, err := crypto.MergeJwks(*newJwk, secretsInUse)
+	jwks, err := crypto.MergeJwks(*newJwk, secretsInUse, secrets.IDPortenJwkKey)
 	assert.NoError(t, err)
 
 	assert.Len(t, jwks.Keys, 2, "should merge new JWK with JWKs in use without duplicates")

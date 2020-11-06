@@ -126,7 +126,7 @@ func (m metrics) Refresh(ctx context.Context) {
 	exp := 10 * time.Second
 
 	mLabels := client.MatchingLabels{
-		labels.TypeLabelKey: labels.TypeLabelValue,
+		labels.TypeLabelKey: labels.IDPortenTypeLabelValue,
 	}
 
 	var secretList corev1.SecretList

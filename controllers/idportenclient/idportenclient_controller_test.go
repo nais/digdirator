@@ -177,7 +177,7 @@ func TestIDPortenController(t *testing.T) {
 	}
 
 	// set up preconditions for cluster
-	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithIDPortenClient().WithPod().WithUnusedSecret()
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithIDPortenClient().WithPod().WithUnusedSecret(labels.IDPortenTypeLabelValue)
 
 	// create IDPortenClient
 	if err := clusterFixtures.Setup(); err != nil {
@@ -278,7 +278,7 @@ func assertSecretExists(t *testing.T, name string, namespace string, instance *v
 	actualLabels := a.GetLabels()
 	expectedLabels := map[string]string{
 		labels.AppLabelKey:  instance.GetName(),
-		labels.TypeLabelKey: labels.TypeLabelValue,
+		labels.TypeLabelKey: labels.IDPortenTypeLabelValue,
 	}
 	assert.NotEmpty(t, actualLabels, "Labels should not be empty")
 	assert.Equal(t, expectedLabels, actualLabels, "Labels should be set")

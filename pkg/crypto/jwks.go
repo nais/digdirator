@@ -2,21 +2,23 @@ package crypto
 
 import (
 	"fmt"
-	"github.com/nais/digdirator/pkg/secrets"
 	"gopkg.in/square/go-jose.v2"
 	v1 "k8s.io/api/core/v1"
 )
 
-func MergeJwks(jwk jose.JSONWebKey, secretsInUse v1.SecretList) (*jose.JSONWebKeySet, error) {
+func MergeJwks(jwk jose.JSONWebKey, secretsInUse v1.SecretList, secretKey string) (*jose.JSONWebKeySet, error) {
 	keys := make([]jose.JSONWebKey, 0)
 	keys = append(keys, jwk.Public())
 
 	for _, secret := range secretsInUse.Items {
-		key, err := getJWKFromSecret(secret)
+		key, err := getJWKFromSecret(secret, secretKey)
 		if err != nil {
 			return nil, fmt.Errorf("getting key IDs from secret: %w", err)
 		}
-		keys = append(keys, key.Public())
+		if key != nil {
+			keyValue := *key
+			keys = append(keys, keyValue.Public())
+		}
 	}
 
 	return &jose.JSONWebKeySet{Keys: unique(keys)}, nil
@@ -43,23 +45,14 @@ func unique(keys []jose.JSONWebKey) []jose.JSONWebKey {
 	return filtered
 }
 
-func getJWKFromSecret(secret v1.Secret) (jose.JSONWebKey, error) {
-	var jwkBytes []byte
+func getJWKFromSecret(secret v1.Secret, key string) (*jose.JSONWebKey, error) {
 	var jwk jose.JSONWebKey
-	if secret.Data[secrets.JwkKey] != nil {
-		jwkBytes = secret.Data[secrets.JwkKey]
-		return unmarshalJSON(jwk, jwkBytes)
+	jwkBytes, found := secret.Data[key]
+	if !found {
+		return nil, nil
 	}
-	if secret.Data[secrets.MaskinportenJwkKey] != nil {
-		var jwkBytes = secret.Data[secrets.MaskinportenJwkKey]
-		return unmarshalJSON(jwk, jwkBytes)
-	}
-	return jwk, nil
-}
-
-func unmarshalJSON(jwk jose.JSONWebKey, jwkBytes []byte) (jose.JSONWebKey, error) {
 	if err := jwk.UnmarshalJSON(jwkBytes); err != nil {
-		return jwk, fmt.Errorf("unmarshalling JWK from secret")
+		return nil, fmt.Errorf("unmarshalling JWK from secret")
 	}
-	return jwk, nil
+	return &jwk, nil
 }

@@ -193,7 +193,7 @@ func (r *Reconciler) updateClient(tx *transaction, payload types.ClientRegistrat
 }
 
 func (r *Reconciler) registerJwk(tx *transaction, jwk jose.JSONWebKey, clientID string) error {
-	jwks, err := crypto.MergeJwks(jwk, tx.managedSecrets.Used)
+	jwks, err := crypto.MergeJwks(jwk, tx.managedSecrets.Used, secrets.IDPortenJwkKey)
 	if err != nil {
 		return fmt.Errorf("merging new JWK with JWKs in use: %w", err)
 	}
