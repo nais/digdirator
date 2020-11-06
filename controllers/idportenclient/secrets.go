@@ -17,7 +17,7 @@ func (r *Reconciler) secrets() secretsReconciler {
 
 func (s secretsReconciler) createOrUpdate(tx *transaction, jwk jose.JSONWebKey) error {
 	tx.log.Infof("processing secret with name '%s'...", tx.instance.Spec.SecretName)
-	res, err := secrets.CreateOrUpdateIdporten(tx.ctx, tx.instance, s.Client, s.Scheme, jwk)
+	res, err := secrets.CreateOrUpdate(tx.ctx, tx.instance, s.Client, s.Scheme, jwk)
 	if err != nil {
 		return fmt.Errorf("creating or updating secret: %w", err)
 	}
