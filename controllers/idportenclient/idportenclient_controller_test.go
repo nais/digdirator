@@ -7,7 +7,6 @@ import (
 	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/fixtures"
-	"github.com/nais/digdirator/pkg/fixtures/idporten"
 	"github.com/nais/digdirator/pkg/labels"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -178,7 +177,7 @@ func TestIDPortenController(t *testing.T) {
 	}
 
 	// set up preconditions for cluster
-	clusterFixtures := idporten.New(cli, cfg).MinimalConfig().WithPod().WithUnusedSecret()
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithIDPortenClient().WithPod().WithUnusedSecret()
 
 	// create IDPortenClient
 	if err := clusterFixtures.Setup(); err != nil {

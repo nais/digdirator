@@ -1,12 +1,12 @@
-package idporten
+package fixtures
 
 import (
 	"context"
 	"fmt"
 	v1 "github.com/nais/digdirator/api/v1"
-	"github.com/nais/digdirator/pkg/fixtures"
 	"github.com/nais/digdirator/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -17,19 +17,32 @@ import (
 
 type ClusterFixtures struct {
 	client.Client
-	fixtures.Config
-	idPortenClient *v1.IDPortenClient
-	namespace      *corev1.Namespace
-	pod            *corev1.Pod
-	unusedSecret   *corev1.Secret
+	Config
+	idPortenClient     *v1.IDPortenClient
+	maskinportenClient *v1.MaskinportenClient
+	namespace          *corev1.Namespace
+	pod                *corev1.Pod
+	unusedSecret       *corev1.Secret
 }
 
-func New(cli client.Client, config fixtures.Config) ClusterFixtures {
+type Config struct {
+	DigidirClientName string
+	NamespaceName     string
+	SecretName        string
+	UnusedSecretName  string
+}
+
+type Resource struct {
+	client.ObjectKey
+	runtime.Object
+}
+
+func New(cli client.Client, config Config) ClusterFixtures {
 	return ClusterFixtures{Client: cli, Config: config}
 }
 
 func (c ClusterFixtures) MinimalConfig() ClusterFixtures {
-	return c.WithNamespace().WithIDPortenClient()
+	return c.WithNamespace()
 }
 
 func (c ClusterFixtures) WithNamespace() ClusterFixtures {
@@ -60,6 +73,27 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 		RefreshTokenLifetime:   0,
 	}
 	c.idPortenClient = &v1.IDPortenClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        key.Name,
+			Namespace:   key.Namespace,
+			ClusterName: "test-cluster",
+		},
+		Spec: spec,
+	}
+	return c
+}
+
+func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
+	key := types.NamespacedName{
+		Namespace: c.NamespaceName,
+		Name:      c.DigidirClientName,
+	}
+
+	spec := v1.MaskinportenClientSpec{
+		SecretName: c.SecretName,
+		Scopes:     []string{"scopes"},
+	}
+	c.maskinportenClient = &v1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        key.Name,
 			Namespace:   key.Namespace,
@@ -139,6 +173,11 @@ func (c ClusterFixtures) Setup() error {
 			return err
 		}
 	}
+	if c.maskinportenClient != nil {
+		if err := c.Create(ctx, c.maskinportenClient); err != nil {
+			return err
+		}
+	}
 	if c.pod != nil {
 		if err := c.Create(ctx, c.pod); err != nil {
 			return err
@@ -153,14 +192,23 @@ func (c ClusterFixtures) Setup() error {
 }
 
 func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
-	resources := make([]fixtures.Resource, 0)
+	resources := make([]Resource, 0)
 	if c.idPortenClient != nil {
-		resources = append(resources, fixtures.Resource{
+		resources = append(resources, Resource{
 			ObjectKey: client.ObjectKey{
 				Namespace: c.NamespaceName,
 				Name:      c.DigidirClientName,
 			},
 			Object: &v1.IDPortenClient{},
+		})
+	}
+	if c.maskinportenClient != nil {
+		resources = append(resources, Resource{
+			ObjectKey: client.ObjectKey{
+				Namespace: c.NamespaceName,
+				Name:      c.DigidirClientName,
+			},
+			Object: &v1.MaskinportenClient{},
 		})
 	}
 
@@ -183,7 +231,7 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 	}
 }
 
-func allExists(ctx context.Context, cli client.Client, resources []fixtures.Resource) (bool, error) {
+func allExists(ctx context.Context, cli client.Client, resources []Resource) (bool, error) {
 	for _, resource := range resources {
 		err := cli.Get(ctx, resource.ObjectKey, resource.Object)
 		if err == nil {
