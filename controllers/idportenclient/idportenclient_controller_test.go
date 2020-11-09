@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/controllers/common/reconciler"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/fixtures"
 	"github.com/nais/digdirator/pkg/labels"
@@ -145,7 +146,7 @@ func setup() (*envtest.Environment, error) {
 	digdiratorConfig.DigDir.Auth.BaseURL = testServer.URL
 	digdiratorConfig.DigDir.IDPorten.BaseURL = testServer.URL
 
-	err = (&Reconciler{
+	err = (&Reconciler{Reconciler: reconciler.Reconciler{
 		Client:     cli,
 		Reader:     mgr.GetAPIReader(),
 		Scheme:     mgr.GetScheme(),
@@ -153,7 +154,7 @@ func setup() (*envtest.Environment, error) {
 		Config:     digdiratorConfig,
 		Signer:     signer,
 		HttpClient: httpClient,
-	}).SetupWithManager(mgr)
+	}}).SetupWithManager(mgr)
 
 	if err != nil {
 		return nil, err

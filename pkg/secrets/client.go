@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/nais/digdirator/controllers/common"
+	"github.com/nais/digdirator/controllers/common/reconciler"
 	"github.com/nais/digdirator/pkg/pods"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -16,33 +17,60 @@ import (
 
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch
 
-func CreateOrUpdate(
-	ctx context.Context,
-	instance common.Instance,
-	cli client.Client,
-	scheme *runtime.Scheme,
-	jwk jose.JSONWebKey,
-) (controllerutil.OperationResult, error) {
-	spec, err := OpaqueSecret(instance, jwk)
-	if err != nil {
-		return controllerutil.OperationResultNone, err
-	}
-	if err := ctrl.SetControllerReference(instance, spec, scheme); err != nil {
-		return controllerutil.OperationResultNone, fmt.Errorf("setting controller reference: %w", err)
-	}
-	return createOrUpdate(ctx, cli, spec)
+type Client struct {
+	ctx      context.Context
+	instance common.Instance
+	logger   *log.Entry
+	reconciler.Reconciler
 }
 
-func GetManaged(ctx context.Context, instance common.Instance, reader client.Reader) (*Lists, error) {
+func NewClient(ctx context.Context, instance common.Instance, logger *log.Entry, reconciler reconciler.Reconciler) Client {
+	return Client{
+		ctx:        ctx,
+		instance:   instance,
+		logger:     logger,
+		Reconciler: reconciler,
+	}
+}
+
+func (s Client) CreateOrUpdate(jwk jose.JSONWebKey) error {
+	s.logger.Infof("processing secret with name '%s'...", s.instance.SecretName())
+	spec, err := OpaqueSecret(s.instance, jwk)
+	if err != nil {
+		return fmt.Errorf("creating secret spec: %w", err)
+	}
+	if err := ctrl.SetControllerReference(s.instance, spec, s.Scheme); err != nil {
+		return fmt.Errorf("setting controller reference: %w", err)
+	}
+
+	err = s.Client.Create(s.ctx, spec)
+	res := controllerutil.OperationResultCreated
+
+	if errors.IsAlreadyExists(err) {
+		err = s.Client.Update(s.ctx, spec)
+		res = controllerutil.OperationResultUpdated
+	}
+	if err != nil {
+		return fmt.Errorf("applying secretSpec: %w", err)
+	}
+	s.logger.Infof("secret '%s' %s", s.instance.SecretName(), res)
+	return nil
+}
+
+func (s Client) GetManaged() (*Lists, error) {
 	// fetch all application pods for this app
-	podList, err := pods.GetForApplication(ctx, instance, reader)
+	podList, err := pods.GetForApplication(s.ctx, s.instance, s.Reader)
 	if err != nil {
 		return nil, err
 	}
 
 	// fetch all managed secrets
-	allSecrets, err := getAll(ctx, instance, reader)
-	if err != nil {
+	var allSecrets corev1.SecretList
+	opts := []client.ListOption{
+		client.InNamespace(s.instance.GetNamespace()),
+		client.MatchingLabels(s.instance.Labels()),
+	}
+	if err := s.Reader.List(s.ctx, &allSecrets, opts...); err != nil {
 		return nil, err
 	}
 
@@ -51,32 +79,15 @@ func GetManaged(ctx context.Context, instance common.Instance, reader client.Rea
 	return &podSecrets, nil
 }
 
-func Delete(ctx context.Context, secret corev1.Secret, cli client.Client) error {
-	if err := cli.Delete(ctx, &secret); err != nil {
-		return fmt.Errorf("deleting unused secret: %w", err)
+func (s Client) DeleteUnused(unused corev1.SecretList) error {
+	for _, oldSecret := range unused.Items {
+		if oldSecret.Name == s.instance.SecretName() {
+			continue
+		}
+		s.logger.Infof("deleting unused secret '%s'...", oldSecret.Name)
+		if err := s.Client.Delete(s.ctx, &oldSecret); err != nil {
+			return fmt.Errorf("deleting unused secret: %w", err)
+		}
 	}
 	return nil
-}
-
-func createOrUpdate(ctx context.Context, cli client.Client, spec *corev1.Secret) (controllerutil.OperationResult, error) {
-	err := cli.Create(ctx, spec)
-	res := controllerutil.OperationResultCreated
-
-	if errors.IsAlreadyExists(err) {
-		err = cli.Update(ctx, spec)
-		res = controllerutil.OperationResultUpdated
-	}
-	if err != nil {
-		return controllerutil.OperationResultNone, fmt.Errorf("applying secretSpec: %w", err)
-	}
-	return res, nil
-}
-
-func getAll(ctx context.Context, instance common.Instance, reader client.Reader) (corev1.SecretList, error) {
-	var list corev1.SecretList
-
-	if err := reader.List(ctx, &list, client.InNamespace(instance.GetNamespace()), client.MatchingLabels(instance.Labels())); err != nil {
-		return list, err
-	}
-	return list, nil
 }
