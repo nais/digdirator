@@ -58,6 +58,7 @@ Application -> Application: start create and sign JWT
 Application -> digdir: signed JWT
 digdir -> Application: access_token
 Application -> External: request data with access_token
+External -> digdir: check signature
 External -> External: authenticate and authorize
 External -> Application: data
 

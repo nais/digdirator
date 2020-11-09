@@ -5,13 +5,13 @@ Digdirator is a Kubernetes cluster operator for automated registration and lifec
 ## CRD
 
 The operator introduces two new Kind´s:  
-`IDPortenClient` (shortname `idportenclient`) and `MaskinportenClient` (shortname `maskinportenclient`), and acts upon changes to resources of this kind.
+`IDPortenClient` (shortname `idportenclient`) and `MaskinportenClient` (shortname `maskinportenclient`), and acts upon changes to resources of its kind.
 
 See the specs:
 [config/crd/nais.io_idportenclients.yaml](config/crd/nais.io_idportenclients.yaml) and
-[config/crd/nais.io_maskinportenclients.yaml](config/crd/nais.io_maskinportenclinets.yaml) for details.
+[config/crd/nais.io_maskinportenclients.yaml](config/crd/nais.io_maskinportenclients.yaml) for details.
 
-An example resource is available in [config/samples/idportenclient.yaml](config/samples/idportenclient.yaml).
+An example of resources is available in [config/samples/idportenclient.yaml](config/samples/idportenclient.yaml) and [config/samples/maskinportenclient.yaml](config/samples/maskinportenclient.yaml).
 
 ## Lifecycle
 
