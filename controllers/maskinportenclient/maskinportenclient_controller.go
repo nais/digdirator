@@ -26,6 +26,10 @@ type Reconciler struct {
 	reconciler.Reconciler
 }
 
+func NewReconciler(reconciler reconciler.Reconciler) *Reconciler {
+	return &Reconciler{Reconciler: reconciler}
+}
+
 type transaction struct {
 	instance *v1.MaskinportenClient
 	transaction2.Transaction
@@ -104,14 +108,14 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 
 	logger.Info("processing MaskinportenClient...")
 
-	return &transaction{Transaction: transaction2.Transaction{
-		Ctx:            ctx,
-		Logger:         &logger,
-		ManagedSecrets: managedSecrets,
-		DigdirClient:   &digdirClient,
-		SecretsClient:  secretsClient,
-		Instance:       instance,
-	}, instance: instance}, nil
+	return &transaction{Transaction: transaction2.NewTransaction(
+		ctx,
+		instance,
+		&logger,
+		managedSecrets,
+		&digdirClient,
+		secretsClient,
+	), instance: instance}, nil
 }
 
 func (r *Reconciler) process(tx *transaction) error {

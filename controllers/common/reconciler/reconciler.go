@@ -22,3 +22,23 @@ type Reconciler struct {
 	Signer     jose.Signer
 	HttpClient *http.Client
 }
+
+func NewReconciler(
+	client client.Client,
+	reader client.Reader,
+	scheme *runtime.Scheme,
+	recorder record.EventRecorder,
+	config *config.Config,
+	signer jose.Signer,
+	httpClient *http.Client,
+) Reconciler {
+	return Reconciler{
+		Client:     client,
+		Reader:     reader,
+		Scheme:     scheme,
+		Recorder:   recorder,
+		Config:     config,
+		Signer:     signer,
+		HttpClient: httpClient,
+	}
+}

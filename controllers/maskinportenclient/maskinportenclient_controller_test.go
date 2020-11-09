@@ -105,16 +105,17 @@ func setup() (*envtest.Environment, error) {
 	digdiratorConfig.DigDir.Auth.BaseURL = testServer.URL
 	digdiratorConfig.DigDir.IDPorten.BaseURL = testServer.URL
 
-	err = (&Reconciler{Reconciler: reconciler.Reconciler{
-		Client:     cli,
-		Reader:     mgr.GetAPIReader(),
-		Scheme:     mgr.GetScheme(),
-		Recorder:   mgr.GetEventRecorderFor("digdirator"),
-		Config:     digdiratorConfig,
-		Signer:     signer,
-		HttpClient: httpClient,
-	}}).SetupWithManager(mgr)
-
+	commonReconciler := reconciler.NewReconciler(
+		mgr.GetClient(),
+		mgr.GetAPIReader(),
+		mgr.GetScheme(),
+		mgr.GetEventRecorderFor("digdirator"),
+		digdiratorConfig,
+		signer,
+		httpClient,
+	)
+	maskinportenReconciler := NewReconciler(commonReconciler)
+	err = maskinportenReconciler.SetupWithManager(mgr)
 	if err != nil {
 		return nil, err
 	}

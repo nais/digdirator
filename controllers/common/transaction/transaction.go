@@ -16,3 +16,21 @@ type Transaction struct {
 	DigdirClient   *digdir.Client
 	SecretsClient  secrets.Client
 }
+
+func NewTransaction(
+	ctx context.Context,
+	instance common.Instance,
+	logger *log.Entry,
+	managedSecrets *secrets.Lists,
+	digdirClient *digdir.Client,
+	secretsClient secrets.Client,
+) Transaction {
+	return Transaction{
+		Ctx:            ctx,
+		Instance:       instance,
+		Logger:         logger,
+		ManagedSecrets: managedSecrets,
+		DigdirClient:   digdirClient,
+		SecretsClient:  secretsClient,
+	}
+}

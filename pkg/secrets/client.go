@@ -25,12 +25,7 @@ type Client struct {
 }
 
 func NewClient(ctx context.Context, instance common.Instance, logger *log.Entry, reconciler reconciler.Reconciler) Client {
-	return Client{
-		ctx:        ctx,
-		instance:   instance,
-		logger:     logger,
-		Reconciler: reconciler,
-	}
+	return Client{ctx: ctx, instance: instance, logger: logger, Reconciler: reconciler}
 }
 
 func (s Client) CreateOrUpdate(jwk jose.JSONWebKey) error {
