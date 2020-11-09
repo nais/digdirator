@@ -3,7 +3,6 @@ package transaction
 import (
 	"context"
 	"github.com/nais/digdirator/controllers/common"
-	"github.com/nais/digdirator/controllers/finalizer"
 	"github.com/nais/digdirator/pkg/digdir"
 	"github.com/nais/digdirator/pkg/secrets"
 	log "github.com/sirupsen/logrus"
@@ -15,6 +14,5 @@ type Transaction struct {
 	Logger         *log.Entry
 	ManagedSecrets *secrets.Lists
 	DigdirClient   *digdir.Client
-	Finalizer      finalizer.Finalizer
 	SecretsClient  secrets.Client
 }
