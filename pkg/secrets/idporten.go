@@ -8,6 +8,13 @@ import (
 	"gopkg.in/square/go-jose.v2"
 )
 
+const (
+	IDPortenJwkKey       = "IDPORTEN_CLIENT_JWK"
+	IDPortenClientID     = "IDPORTEN_CLIENT_ID"
+	IDPortenWellKnownURL = "IDPORTEN_WELL_KNOWN_URL"
+	IDPortenRedirectURI  = "IDPORTEN_REDIRECT_URI"
+)
+
 func IDPortenStringData(jwk jose.JSONWebKey, instance *v1.IDPortenClient) (map[string]string, error) {
 	wellKnownURL := viper.GetString(config.DigDirAuthBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
 	jwkJson, err := jwk.MarshalJSON()

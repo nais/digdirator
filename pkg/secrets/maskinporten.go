@@ -9,6 +9,13 @@ import (
 	"strings"
 )
 
+const (
+	MaskinportenJwkKey       = "MASKINPORTEN_CLIENT_JWK"
+	MaskinportenClientID     = "MASKINPORTEN_CLIENT_ID"
+	MaskinportenWellKnownURL = "MASKINPORTEN_WELL_KNOWN_URL"
+	MaskinportenScopes       = "MASKINPORTEN_SCOPES"
+)
+
 func MaskinportenStringData(jwk jose.JSONWebKey, instance *v1.MaskinportenClient) (map[string]string, error) {
 	wellKnownURL := viper.GetString(config.DigDirMaskinportenBaseURL) + "/.well-known/oauth-authorization-server"
 	jwkJson, err := jwk.MarshalJSON()
