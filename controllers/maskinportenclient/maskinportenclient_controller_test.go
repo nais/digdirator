@@ -88,7 +88,7 @@ func setup() (*envtest.Environment, error) {
 		return nil, fmt.Errorf("loading config: %v", err)
 	}
 
-	jwk, err := loadJwkFromPath("testdata/testjwk")
+	jwk, err := loadJwkFromPath("../common/testdata/testjwk")
 	if err != nil {
 		return nil, fmt.Errorf("loading jwk credentials: %v", err)
 	}
@@ -299,19 +299,19 @@ func idportenHandler() http.HandlerFunc {
 		case r.URL.Path == "/clients" && r.Method == http.MethodGet:
 			var path string
 			if ClientExists {
-				path = "testdata/list-response-exists.json"
+				path = "../common/testdata/list-response-exists.json"
 			} else {
-				path = "testdata/list-response.json"
+				path = "../common/testdata/list-response.json"
 			}
 			response, _ := ioutil.ReadFile(path)
 			_, _ = w.Write(response)
 		// POST (create) client
 		case r.URL.Path == "/clients" && r.Method == http.MethodPost:
-			response, _ := ioutil.ReadFile("testdata/create-response.json")
+			response, _ := ioutil.ReadFile("../common/testdata/create-response.json")
 			_, _ = w.Write(response)
 		// PUT (update) existing client
 		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodPut:
-			response, _ := ioutil.ReadFile("testdata/update-response.json")
+			response, _ := ioutil.ReadFile("../common/testdata/update-response.json")
 			_, _ = w.Write(response)
 		// DELETE existing client
 		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodDelete:
@@ -320,9 +320,9 @@ func idportenHandler() http.HandlerFunc {
 		case r.URL.Path == fmt.Sprintf("/clients/%s/jwks", clientId) && r.Method == http.MethodPost:
 			var path string
 			if ClientExists {
-				path = "testdata/register-jwks-response-exists.json"
+				path = "../common/testdata/register-jwks-response-exists.json"
 			} else {
-				path = "testdata/register-jwks-response.json"
+				path = "../common/testdata/register-jwks-response.json"
 			}
 			response, _ := ioutil.ReadFile(path)
 			_, _ = w.Write(response)
