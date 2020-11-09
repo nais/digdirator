@@ -4,17 +4,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/nais/digdirator/controllers/common"
+	"github.com/nais/digdirator/controllers/common/reconciler"
+	transaction2 "github.com/nais/digdirator/controllers/common/transaction"
 	"github.com/nais/digdirator/controllers/finalizer"
-	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/digdir"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/metrics"
 	"gopkg.in/square/go-jose.v2"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
-	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	v1 "github.com/nais/digdirator/api/v1"
@@ -25,27 +22,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const requeueInterval = 10 * time.Second
-
-// ClientReconciler reconciles a Client object
 type Reconciler struct {
-	Client client.Client
-	Reader client.Reader
-	Scheme *runtime.Scheme
-
-	Recorder   record.EventRecorder
-	Config     *config.Config
-	Signer     jose.Signer
-	HttpClient *http.Client
+	reconciler.Reconciler
 }
 
 type transaction struct {
-	ctx            context.Context
-	instance       *v1.MaskinportenClient
-	log            *log.Entry
-	managedSecrets *secrets.Lists
-	digdirClient   *digdir.Client
-	finalizer      finalizer.Finalizer
+	instance *v1.MaskinportenClient
+	transaction2.Transaction
 }
 
 // +kubebuilder:rbac:groups=nais.io,resources=IDPortenClients,verbs=get;list;watch;create;update;patch;delete
@@ -59,22 +42,22 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	defer func() {
-		tx.log.Infof("finished processing request")
+		tx.Logger.Infof("finished processing request")
 	}()
 
 	if common.InstanceIsBeingDeleted(tx.instance) {
-		return tx.finalizer.Process(tx.instance)
+		return tx.Finalizer.Process(tx.instance)
 	}
 
 	if !common.HasFinalizer(tx.instance, finalizer.FinalizerName) {
-		return tx.finalizer.Register(tx.instance)
+		return tx.Finalizer.Register(tx.instance)
 	}
 
 	if hashUnchanged, err := tx.instance.HashUnchanged(); hashUnchanged {
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		tx.log.Info("object state already reconciled, nothing to do")
+		tx.Logger.Info("object state already reconciled, nothing to do")
 		return ctrl.Result{}, nil
 	}
 
@@ -108,7 +91,9 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 	instance.SetClusterName(r.Config.ClusterName)
 	instance.Status.CorrelationID = correlationID
 
-	managedSecrets, err := secrets.GetManaged(ctx, instance, r.Reader)
+	secretsClient := secrets.NewClient(ctx, instance, &logger, r.Reconciler)
+
+	managedSecrets, err := secretsClient.GetManaged()
 	if err != nil {
 		return nil, fmt.Errorf("getting managed secrets: %w", err)
 	}
@@ -119,18 +104,18 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 
 	logger.Info("processing MaskinportenClient...")
 
-	return &transaction{
-		ctx,
-		instance,
-		&logger,
-		managedSecrets,
-		&digdirClient,
-		fin,
-	}, nil
+	return &transaction{Transaction: transaction2.Transaction{
+		Ctx:            ctx,
+		Logger:         &logger,
+		ManagedSecrets: managedSecrets,
+		DigdirClient:   &digdirClient,
+		Finalizer:      fin,
+		SecretsClient:  secretsClient,
+	}, instance: instance}, nil
 }
 
 func (r *Reconciler) process(tx *transaction) error {
-	digdirClient, err := tx.digdirClient.ClientExists(tx.instance, tx.ctx)
+	digdirClient, err := tx.DigdirClient.ClientExists(tx.instance, tx.Ctx)
 	if err != nil {
 		return fmt.Errorf("checking if client exists: %w", err)
 	}
@@ -147,7 +132,7 @@ func (r *Reconciler) process(tx *transaction) error {
 		return err
 	}
 
-	tx.log = tx.log.WithField("ClientID", digdirClient.ClientID)
+	tx.Logger = tx.Logger.WithField("ClientID", digdirClient.ClientID)
 	if len(tx.instance.Status.ClientID) == 0 {
 		tx.instance.Status.ClientID = digdirClient.ClientID
 	}
@@ -162,11 +147,11 @@ func (r *Reconciler) process(tx *transaction) error {
 	}
 	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsRotatedCount, tx.instance.GetNamespace())
 
-	if err := r.secrets().createOrUpdate(tx, *jwk); err != nil {
-		return err
+	if err := tx.SecretsClient.CreateOrUpdate(*jwk); err != nil {
+		return fmt.Errorf("creating or updating secret: %w", err)
 	}
 
-	if err := r.secrets().deleteUnused(tx, tx.managedSecrets.Unused); err != nil {
+	if err := tx.SecretsClient.DeleteUnused(tx.ManagedSecrets.Unused); err != nil {
 		return err
 	}
 
@@ -174,72 +159,72 @@ func (r *Reconciler) process(tx *transaction) error {
 }
 
 func (r *Reconciler) createClient(tx *transaction, payload types.ClientRegistration) (*types.ClientRegistration, error) {
-	tx.log.Debug("client does not exist in ID-porten, registering...")
+	tx.Logger.Debug("client does not exist in ID-porten, registering...")
 
-	digdirClient, err := tx.digdirClient.Register(tx.ctx, payload)
+	digdirClient, err := tx.DigdirClient.Register(tx.Ctx, payload)
 	if err != nil {
 		return nil, fmt.Errorf("registering client to ID-porten: %w", err)
 	}
 
-	tx.log.WithField("ClientID", digdirClient.ClientID).Info("client registered")
+	tx.Logger.WithField("ClientID", digdirClient.ClientID).Info("client registered")
 	return digdirClient, nil
 }
 
 func (r *Reconciler) updateClient(tx *transaction, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {
-	tx.log.Debug("client already exists in ID-porten, updating...")
+	tx.Logger.Debug("client already exists in ID-porten, updating...")
 
-	digdirClient, err := tx.digdirClient.Update(tx.ctx, payload, clientID)
+	digdirClient, err := tx.DigdirClient.Update(tx.Ctx, payload, clientID)
 	if err != nil {
 		return nil, fmt.Errorf("updating client at ID-porten: %w", err)
 	}
 
-	tx.log.WithField("ClientID", digdirClient.ClientID).Info("client updated")
+	tx.Logger.WithField("ClientID", digdirClient.ClientID).Info("client updated")
 	return digdirClient, err
 }
 
 func (r *Reconciler) registerJwk(tx *transaction, jwk jose.JSONWebKey, clientID string) error {
-	jwks, err := crypto.MergeJwks(jwk, tx.managedSecrets.Used, secrets.MaskinportenJwkKey)
+	jwks, err := crypto.MergeJwks(jwk, tx.ManagedSecrets.Used, secrets.MaskinportenJwkKey)
 	if err != nil {
 		return fmt.Errorf("merging new JWK with JWKs in use: %w", err)
 	}
 
-	tx.log.Debug("generated new JWKS for client, registering...")
+	tx.Logger.Debug("generated new JWKS for client, registering...")
 
-	jwksResponse, err := tx.digdirClient.RegisterKeys(tx.ctx, clientID, jwks)
+	jwksResponse, err := tx.DigdirClient.RegisterKeys(tx.Ctx, clientID, jwks)
 
 	if err != nil {
 		return fmt.Errorf("registering JWKS for client at ID-porten: %w", err)
 	}
 
 	tx.instance.Status.KeyIDs = crypto.KeyIDsFromJwks(&jwksResponse.JSONWebKeySet)
-	tx.log = tx.log.WithField("KeyIDs", tx.instance.Status.KeyIDs)
-	tx.log.Info("new JWKS for client registered")
+	tx.Logger = tx.Logger.WithField("KeyIDs", tx.instance.Status.KeyIDs)
+	tx.Logger.Info("new JWKS for client registered")
 
 	return nil
 }
 
 func (r *Reconciler) handleError(tx *transaction, err error) (ctrl.Result, error) {
-	tx.log.Error(fmt.Errorf("processing ID-porten client: %w", err))
-	r.Recorder.Event(tx.instance, corev1.EventTypeWarning, "Failed", fmt.Sprintf("Failed to synchronize ID-porten client, retrying in %s", requeueInterval))
+	tx.Logger.Error(fmt.Errorf("processing ID-porten client: %w", err))
+	r.Recorder.Event(tx.instance, corev1.EventTypeWarning, "Failed", fmt.Sprintf("Failed to synchronize ID-porten client, retrying in %s", reconciler.RequeueInterval))
 	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsFailedProcessingCount, tx.instance.GetNamespace())
-	return ctrl.Result{RequeueAfter: requeueInterval}, nil
+	return ctrl.Result{RequeueAfter: reconciler.RequeueInterval}, nil
 }
 
 func (r *Reconciler) complete(tx *transaction) (ctrl.Result, error) {
-	tx.log.Debug("updating status for MaskinportenClient")
+	tx.Logger.Debug("updating status for MaskinportenClient")
 
 	if err := tx.instance.UpdateHash(); err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.Client.Status().Update(tx.ctx, tx.instance); err != nil {
+	if err := r.Client.Status().Update(tx.Ctx, tx.instance); err != nil {
 		return ctrl.Result{}, fmt.Errorf("updating status subresource: %w", err)
 	}
 
-	tx.log.Info("status subresource successfully updated")
+	tx.Logger.Info("status subresource successfully updated")
 
 	r.Recorder.Event(tx.instance, corev1.EventTypeNormal, "Synchronized", "ID-porten client is up-to-date")
 
-	tx.log.Info("successfully reconciled")
+	tx.Logger.Info("successfully reconciled")
 
 	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsProcessedCount, tx.instance.GetNamespace())
 

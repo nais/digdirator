@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/zapr"
+	"github.com/nais/digdirator/controllers/common/reconciler"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/controllers/maskinportenclient"
 	"github.com/nais/digdirator/pkg/config"
@@ -82,7 +83,7 @@ func run() error {
 		return fmt.Errorf("unable to setup signer: %w", err)
 	}
 
-	if err = (&idportenclient.Reconciler{
+	if err = (&idportenclient.Reconciler{Reconciler: reconciler.Reconciler{
 		Client:     mgr.GetClient(),
 		Reader:     mgr.GetAPIReader(),
 		Scheme:     mgr.GetScheme(),
@@ -90,12 +91,12 @@ func run() error {
 		Config:     cfg,
 		Signer:     signer,
 		HttpClient: http.DefaultClient,
-	}).SetupWithManager(mgr); err != nil {
+	}}).SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
 	// +kubebuilder:scaffold:builder
 
-	if err = (&maskinportenclient.Reconciler{
+	if err = (&maskinportenclient.Reconciler{Reconciler: reconciler.Reconciler{
 		Client:     mgr.GetClient(),
 		Reader:     mgr.GetAPIReader(),
 		Scheme:     mgr.GetScheme(),
@@ -103,7 +104,7 @@ func run() error {
 		Config:     cfg,
 		Signer:     signer,
 		HttpClient: http.DefaultClient,
-	}).SetupWithManager(mgr); err != nil {
+	}}).SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
 	// +kubebuilder:scaffold:builder
