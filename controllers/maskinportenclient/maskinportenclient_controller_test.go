@@ -180,6 +180,7 @@ func TestMaskinportenController(t *testing.T) {
 	// update MaskinportenClient
 	previousSecretName := cfg.SecretName
 	previousHash := instance.Status.ProvisionHash
+	previousCorrelationID := instance.Status.CorrelationID
 
 	// set new secretname in spec -> trigger update
 	instance.Spec.SecretName = "new-secret-name"
@@ -197,6 +198,7 @@ func TestMaskinportenController(t *testing.T) {
 	assert.Len(t, instance.Status.KeyIDs, 2, "should contain two key IDs")
 	assert.Contains(t, instance.Status.KeyIDs, "some-keyid", "previous key should still be valid")
 	assert.Contains(t, instance.Status.KeyIDs, "some-new-keyid", "new key should be valid")
+	assert.NotEqual(t, previousCorrelationID, instance.Status.CorrelationID, "should generate new correlation ID")
 
 	// new secret should exist
 	assertSecretExists(t, instance.Spec.SecretName, cfg.NamespaceName, instance)
