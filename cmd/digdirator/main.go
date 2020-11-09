@@ -83,28 +83,24 @@ func run() error {
 		return fmt.Errorf("unable to setup signer: %w", err)
 	}
 
-	if err = (&idportenclient.Reconciler{Reconciler: reconciler.Reconciler{
-		Client:     mgr.GetClient(),
-		Reader:     mgr.GetAPIReader(),
-		Scheme:     mgr.GetScheme(),
-		Recorder:   mgr.GetEventRecorderFor("digdirator"),
-		Config:     cfg,
-		Signer:     signer,
-		HttpClient: http.DefaultClient,
-	}}).SetupWithManager(mgr); err != nil {
+	commonReconciler := reconciler.NewReconciler(
+		mgr.GetClient(),
+		mgr.GetAPIReader(),
+		mgr.GetScheme(),
+		mgr.GetEventRecorderFor("digdirator"),
+		cfg,
+		signer,
+		http.DefaultClient,
+	)
+
+	idportenReconciler := idportenclient.NewReconciler(commonReconciler)
+	if err = idportenReconciler.SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
 	// +kubebuilder:scaffold:builder
 
-	if err = (&maskinportenclient.Reconciler{Reconciler: reconciler.Reconciler{
-		Client:     mgr.GetClient(),
-		Reader:     mgr.GetAPIReader(),
-		Scheme:     mgr.GetScheme(),
-		Recorder:   mgr.GetEventRecorderFor("digdirator"),
-		Config:     cfg,
-		Signer:     signer,
-		HttpClient: http.DefaultClient,
-	}}).SetupWithManager(mgr); err != nil {
+	maskinportenReconciler := maskinportenclient.NewReconciler(commonReconciler)
+	if err = maskinportenReconciler.SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
 	// +kubebuilder:scaffold:builder
