@@ -3,7 +3,8 @@ package idportenclient
 import (
 	"context"
 	"fmt"
-	"github.com/nais/digdirator/controllers"
+	"github.com/nais/digdirator/controllers/common"
+	"github.com/nais/digdirator/controllers/finalizer"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/digdir"
@@ -37,12 +38,14 @@ type Reconciler struct {
 	Signer     jose.Signer
 	HttpClient *http.Client
 }
+
 type transaction struct {
 	ctx            context.Context
 	instance       *v1.IDPortenClient
 	log            *log.Entry
 	managedSecrets *secrets.Lists
 	digdirClient   *digdir.Client
+	finalizer      finalizer.Finalizer
 }
 
 // +kubebuilder:rbac:groups=nais.io,resources=IDPortenClients,verbs=get;list;watch;create;update;patch;delete
@@ -59,12 +62,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		tx.log.Infof("finished processing request")
 	}()
 
-	if tx.instance.IsBeingDeleted() {
-		return r.finalizer().process(tx)
+	if !common.HasFinalizer(tx.instance, finalizer.FinalizerName) {
+		return tx.finalizer.Register(tx.instance)
 	}
 
-	if !tx.instance.HasFinalizer(FinalizerName) {
-		return r.finalizer().register(tx)
+	if common.InstanceIsBeingDeleted(tx.instance) {
+		return tx.finalizer.Process(tx.instance)
 	}
 
 	if hashUnchanged, err := tx.instance.HashUnchanged(); hashUnchanged {
@@ -99,19 +102,20 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 	ctx := context.Background()
 
 	instance := &v1.IDPortenClient{}
-	instanceInterface := controllers.Instance(instance)
 	if err := r.Reader.Get(ctx, req.NamespacedName, instance); err != nil {
 		return nil, err
 	}
 	instance.SetClusterName(r.Config.ClusterName)
 	instance.Status.CorrelationID = correlationID
 
-	managedSecrets, err := secrets.GetManaged(ctx, instanceInterface, r.Reader)
+	managedSecrets, err := secrets.GetManaged(ctx, instance, r.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("getting managed secrets: %w", err)
 	}
 
 	idportenClient := digdir.NewClient(r.HttpClient, r.Signer, r.Config)
+
+	fin := finalizer.NewFinalizer(r.Client, ctx, &logger, r.Recorder, idportenClient, instance.StatusClientID())
 
 	logger.Info("processing IDPortenClient...")
 
@@ -121,6 +125,7 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 		&logger,
 		managedSecrets,
 		&idportenClient,
+		fin,
 	}, nil
 }
 
@@ -133,10 +138,10 @@ func (r *Reconciler) process(tx *transaction) error {
 	registrationPayload := tx.instance.ToClientRegistration()
 	if idportenClient != nil {
 		idportenClient, err = r.updateClient(tx, registrationPayload, idportenClient.ClientID)
-		metrics.IncWithNamespaceLabel(metrics.IDPortenClientsUpdatedCount, tx.instance.Namespace)
+		metrics.IncWithNamespaceLabel(metrics.IDPortenClientsUpdatedCount, tx.instance.GetNamespace())
 	} else {
 		idportenClient, err = r.createClient(tx, registrationPayload)
-		metrics.IncWithNamespaceLabel(metrics.IDPortenClientsCreatedCount, tx.instance.Namespace)
+		metrics.IncWithNamespaceLabel(metrics.IDPortenClientsCreatedCount, tx.instance.GetNamespace())
 	}
 	if err != nil {
 		return err
@@ -155,7 +160,7 @@ func (r *Reconciler) process(tx *transaction) error {
 	if err := r.registerJwk(tx, *jwk, idportenClient.ClientID); err != nil {
 		return err
 	}
-	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsRotatedCount, tx.instance.Namespace)
+	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsRotatedCount, tx.instance.GetNamespace())
 
 	if err := r.secrets().createOrUpdate(tx, *jwk); err != nil {
 		return err
@@ -216,7 +221,7 @@ func (r *Reconciler) registerJwk(tx *transaction, jwk jose.JSONWebKey, clientID 
 func (r *Reconciler) handleError(tx *transaction, err error) (ctrl.Result, error) {
 	tx.log.Error(fmt.Errorf("processing ID-porten client: %w", err))
 	r.Recorder.Event(tx.instance, corev1.EventTypeWarning, "Failed", fmt.Sprintf("Failed to synchronize ID-porten client, retrying in %s", RequeueInterval))
-	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsFailedProcessingCount, tx.instance.Namespace)
+	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsFailedProcessingCount, tx.instance.GetNamespace())
 	return ctrl.Result{RequeueAfter: RequeueInterval}, nil
 }
 
@@ -236,7 +241,7 @@ func (r *Reconciler) complete(tx *transaction) (ctrl.Result, error) {
 
 	tx.log.Info("successfully reconciled")
 
-	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsProcessedCount, tx.instance.Namespace)
+	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsProcessedCount, tx.instance.GetNamespace())
 
 	return ctrl.Result{}, nil
 }

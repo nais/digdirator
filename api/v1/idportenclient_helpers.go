@@ -5,44 +5,24 @@ import (
 	"fmt"
 	hash "github.com/mitchellh/hashstructure"
 	"github.com/nais/digdirator/pkg/digdir/types"
-	"github.com/nais/digdirator/pkg/util"
+	"github.com/nais/digdirator/pkg/labels"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-func (in *IDPortenClient) ClientName() string {
-	return in.GetName()
-}
-
-func (in *IDPortenClient) NameSpace() string {
-	return in.GetNamespace()
-}
 
 func (in *IDPortenClient) StatusClientID() string {
 	return in.Status.ClientID
 }
 
 func (in *IDPortenClient) Description() string {
-	return in.ClientDescription()
+	return in.GetUniqueName()
 }
 
 func (in *IDPortenClient) SecretName() string {
 	return in.Spec.SecretName
 }
 
-func (in *IDPortenClient) IsBeingDeleted() bool {
-	return !in.ObjectMeta.DeletionTimestamp.IsZero()
-}
-
-func (in *IDPortenClient) HasFinalizer(finalizerName string) bool {
-	return util.ContainsString(in.ObjectMeta.Finalizers, finalizerName)
-}
-
-func (in *IDPortenClient) AddFinalizer(finalizerName string) {
-	in.ObjectMeta.Finalizers = append(in.ObjectMeta.Finalizers, finalizerName)
-}
-
-func (in *IDPortenClient) RemoveFinalizer(finalizerName string) {
-	in.ObjectMeta.Finalizers = util.RemoveString(in.ObjectMeta.Finalizers, finalizerName)
+func (in *IDPortenClient) Labels() map[string]string {
+	return labels.IDPortenLabels(in)
 }
 
 func (in *IDPortenClient) UpdateHash() error {
@@ -53,10 +33,6 @@ func (in *IDPortenClient) UpdateHash() error {
 	}
 	in.Status.ProvisionHash = newHash
 	return nil
-}
-
-func (in *IDPortenClient) ClientDescription() string {
-	return fmt.Sprintf("%s:%s:%s", in.ClusterName, in.Namespace, in.Name)
 }
 
 func (in *IDPortenClient) HashUnchanged() (bool, error) {
@@ -77,7 +53,7 @@ func (in IDPortenClient) Hash() (string, error) {
 }
 
 func (in IDPortenClient) GetUniqueName() string {
-	return fmt.Sprintf("%s:%s:%s", in.ClusterName, in.Namespace, in.Name)
+	return fmt.Sprintf("%s:%s:%s", in.GetClusterName(), in.GetNamespace(), in.GetName())
 }
 
 func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {

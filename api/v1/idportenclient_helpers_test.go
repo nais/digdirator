@@ -16,53 +16,6 @@ func TestIDPortenClient_GetUniqueName(t *testing.T) {
 	assert.Equal(t, expected, minimalClient().GetUniqueName())
 }
 
-func TestIDPortenClient_HasFinalizer(t *testing.T) {
-	t.Run("Minimal Application should not have finalizer", func(t *testing.T) {
-		assert.False(t, minimalClient().HasFinalizer(finalizerName))
-	})
-	t.Run("Application with finalizer should have finalizer", func(t *testing.T) {
-		app := minimalClient()
-		app.ObjectMeta.Finalizers = []string{finalizerName}
-		assert.True(t, app.HasFinalizer(finalizerName))
-	})
-}
-
-func TestIDPortenClient_AddFinalizer(t *testing.T) {
-	app := minimalClient()
-	t.Run("Minimal Application should not have finalizer", func(t *testing.T) {
-		assert.False(t, app.HasFinalizer(finalizerName))
-	})
-	t.Run("Application should have finalizer after add", func(t *testing.T) {
-		app.AddFinalizer(finalizerName)
-		assert.True(t, app.HasFinalizer(finalizerName))
-	})
-}
-
-func TestIDPortenClient_RemoveFinalizer(t *testing.T) {
-	app := minimalClient()
-	app.ObjectMeta.Finalizers = []string{finalizerName}
-	t.Run("Minimal Application should have finalizer", func(t *testing.T) {
-		assert.True(t, app.HasFinalizer(finalizerName))
-	})
-	t.Run("Application should not have finalizer after remove", func(t *testing.T) {
-		app.RemoveFinalizer(finalizerName)
-		actual := app.HasFinalizer(finalizerName)
-		assert.False(t, actual)
-	})
-}
-
-func TestIDPortenClient_IsBeingDeleted(t *testing.T) {
-	t.Run("Minimal Application without deletion marker should not be marked for deletion", func(t *testing.T) {
-		assert.False(t, minimalClient().IsBeingDeleted())
-	})
-	t.Run("Application with deletion marker should be marked for deletion", func(t *testing.T) {
-		app := minimalClient()
-		now := metav1.Now()
-		app.ObjectMeta.DeletionTimestamp = &now
-		assert.True(t, app.IsBeingDeleted())
-	})
-}
-
 func TestIDPortenClient_Hash(t *testing.T) {
 	actual, err := minimalClient().Hash()
 	assert.NoError(t, err)

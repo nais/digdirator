@@ -5,46 +5,26 @@ import (
 	"fmt"
 	hash "github.com/mitchellh/hashstructure"
 	"github.com/nais/digdirator/pkg/digdir/types"
-	"github.com/nais/digdirator/pkg/util"
+	"github.com/nais/digdirator/pkg/labels"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const Maskinporten = "maskinporten"
-
-func (in *MaskinportenClient) ClientName() string {
-	return in.GetName()
-}
-
-func (in *MaskinportenClient) NameSpace() string {
-	return in.GetNamespace()
-}
 
 func (in *MaskinportenClient) StatusClientID() string {
 	return in.Status.ClientID
 }
 
 func (in *MaskinportenClient) Description() string {
-	return in.ClientDescription()
+	return in.GetUniqueName()
 }
 
 func (in *MaskinportenClient) SecretName() string {
 	return in.Spec.SecretName
 }
 
-func (in *MaskinportenClient) IsBeingDeleted() bool {
-	return !in.ObjectMeta.DeletionTimestamp.IsZero()
-}
-
-func (in *MaskinportenClient) HasFinalizer(finalizerName string) bool {
-	return util.ContainsString(in.ObjectMeta.Finalizers, finalizerName)
-}
-
-func (in *MaskinportenClient) AddFinalizer(finalizerName string) {
-	in.ObjectMeta.Finalizers = append(in.ObjectMeta.Finalizers, finalizerName)
-}
-
-func (in *MaskinportenClient) RemoveFinalizer(finalizerName string) {
-	in.ObjectMeta.Finalizers = util.RemoveString(in.ObjectMeta.Finalizers, finalizerName)
+func (in *MaskinportenClient) Labels() map[string]string {
+	return labels.MaskinportenLabels(in)
 }
 
 func (in *MaskinportenClient) UpdateHash() error {
@@ -55,10 +35,6 @@ func (in *MaskinportenClient) UpdateHash() error {
 	}
 	in.Status.ProvisionHash = newHash
 	return nil
-}
-
-func (in *MaskinportenClient) ClientDescription() string {
-	return fmt.Sprintf("%s:%s:%s", in.ClusterName, in.Namespace, in.Name)
 }
 
 func (in *MaskinportenClient) HashUnchanged() (bool, error) {
@@ -79,7 +55,7 @@ func (in MaskinportenClient) Hash() (string, error) {
 }
 
 func (in MaskinportenClient) GetUniqueName() string {
-	return fmt.Sprintf("%s:%s:%s:%s", Maskinporten, in.ClusterName, in.Namespace, in.Name)
+	return fmt.Sprintf("%s:%s:%s:%s", Maskinporten, in.GetClusterName(), in.GetNamespace(), in.GetName())
 }
 
 func (in MaskinportenClient) ToClientRegistration() types.ClientRegistration {

@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/digdirator/controllers"
+	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"gopkg.in/square/go-jose.v2"
@@ -40,7 +40,7 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 	return registration, nil
 }
 
-func (c Client) ClientExists(desired controllers.Instance, ctx context.Context) (*types.ClientRegistration, error) {
+func (c Client) ClientExists(desired common.Instance, ctx context.Context) (*types.ClientRegistration, error) {
 	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.IDPorten.BaseURL)
 	clients := make([]types.ClientRegistration, 0)
 
@@ -140,7 +140,7 @@ func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Confi
 	}
 }
 
-func clientMatches(actual types.ClientRegistration, desired controllers.Instance) bool {
+func clientMatches(actual types.ClientRegistration, desired common.Instance) bool {
 	idExists := len(desired.StatusClientID()) > 0
 	idMatches := actual.ClientID == desired.StatusClientID()
 	descriptionMatches := actual.Description == desired.Description()

@@ -3,14 +3,11 @@ package secrets
 import (
 	"context"
 	"fmt"
-	v1 "github.com/nais/digdirator/api/v1"
-	"github.com/nais/digdirator/controllers"
-	"github.com/nais/digdirator/pkg/labels"
+	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/pkg/pods"
 	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,44 +18,22 @@ import (
 
 func CreateOrUpdate(
 	ctx context.Context,
-	instance controllers.Instance,
+	instance common.Instance,
 	cli client.Client,
 	scheme *runtime.Scheme,
 	jwk jose.JSONWebKey,
 ) (controllerutil.OperationResult, error) {
-
-	var data map[string]string
-	var err error
-	var objectMeta metav1.ObjectMeta
-	var metav1Object metav1.Object
-
-	switch instance.(type) {
-	case *v1.IDPortenClient:
-		metav1Object = instance.(*v1.IDPortenClient)
-		objectMeta = ObjectMeta(instance, labels.IDPortenLabels(instance))
-		data, err = IDPortenStringData(jwk, instance.(*v1.IDPortenClient))
-	case *v1.MaskinportenClient:
-		metav1Object = instance.(*v1.MaskinportenClient)
-		objectMeta = ObjectMeta(instance, labels.MaskinportenLabels(instance))
-		data, err = MaskinportenStringData(jwk, instance.(*v1.MaskinportenClient))
-	default:
-		return controllerutil.OperationResultNone, fmt.Errorf("instance does not implement 'controllers.Instance'")
-	}
-
+	spec, err := OpaqueSecret(instance, jwk)
 	if err != nil {
 		return controllerutil.OperationResultNone, err
 	}
-
-	spec := Spec(data, objectMeta)
-
-	if err := ctrl.SetControllerReference(metav1Object, spec, scheme); err != nil {
+	if err := ctrl.SetControllerReference(instance, spec, scheme); err != nil {
 		return controllerutil.OperationResultNone, fmt.Errorf("setting controller reference: %w", err)
 	}
-
 	return createOrUpdate(ctx, cli, spec)
 }
 
-func GetManaged(ctx context.Context, instance controllers.Instance, reader client.Reader) (*Lists, error) {
+func GetManaged(ctx context.Context, instance common.Instance, reader client.Reader) (*Lists, error) {
 	// fetch all application pods for this app
 	podList, err := pods.GetForApplication(ctx, instance, reader)
 	if err != nil {
@@ -97,20 +72,10 @@ func createOrUpdate(ctx context.Context, cli client.Client, spec *corev1.Secret)
 	return res, nil
 }
 
-func getAll(ctx context.Context, instance controllers.Instance, reader client.Reader) (corev1.SecretList, error) {
+func getAll(ctx context.Context, instance common.Instance, reader client.Reader) (corev1.SecretList, error) {
 	var list corev1.SecretList
-	var mLabels client.MatchingLabels
 
-	switch instance.(type) {
-	case *v1.IDPortenClient:
-		mLabels = labels.IDPortenLabels(instance)
-	case *v1.MaskinportenClient:
-		mLabels = labels.MaskinportenLabels(instance)
-	default:
-		return list, fmt.Errorf("instance does not implement 'controllers.Instance'")
-	}
-
-	if err := reader.List(ctx, &list, client.InNamespace(instance.NameSpace()), mLabels); err != nil {
+	if err := reader.List(ctx, &list, client.InNamespace(instance.GetNamespace()), client.MatchingLabels(instance.Labels())); err != nil {
 		return list, err
 	}
 	return list, nil
