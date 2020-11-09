@@ -45,12 +45,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		tx.Logger.Infof("finished processing request")
 	}()
 
+	finalizerClient := finalizer.Client(r.Reconciler, tx.Transaction)
+
 	if common.InstanceIsBeingDeleted(tx.instance) {
-		return tx.Finalizer.Process(tx.instance)
+		return finalizerClient.Process()
 	}
 
 	if !common.HasFinalizer(tx.instance, finalizer.FinalizerName) {
-		return tx.Finalizer.Register(tx.instance)
+		return finalizerClient.Register()
 	}
 
 	if hashUnchanged, err := tx.instance.HashUnchanged(); hashUnchanged {
@@ -100,8 +102,6 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 
 	digdirClient := digdir.NewClient(r.HttpClient, r.Signer, r.Config)
 
-	fin := finalizer.NewFinalizer(r.Client, ctx, &logger, r.Recorder, digdirClient, instance.StatusClientID())
-
 	logger.Info("processing MaskinportenClient...")
 
 	return &transaction{Transaction: transaction2.Transaction{
@@ -109,8 +109,8 @@ func (r *Reconciler) prepare(req ctrl.Request) (*transaction, error) {
 		Logger:         &logger,
 		ManagedSecrets: managedSecrets,
 		DigdirClient:   &digdirClient,
-		Finalizer:      fin,
 		SecretsClient:  secretsClient,
+		Instance:       instance,
 	}, instance: instance}, nil
 }
 
