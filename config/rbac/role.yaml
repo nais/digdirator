@@ -65,3 +65,24 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - nais.io
+  resources:
+  - MaskinportenClients
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - nais.io
+  resources:
+  - MaskinportenClients/status
+  verbs:
+  - create
+  - get
+  - patch
+  - update

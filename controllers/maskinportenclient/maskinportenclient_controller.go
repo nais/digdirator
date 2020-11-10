@@ -35,8 +35,8 @@ type transaction struct {
 	transaction2.Transaction
 }
 
-// +kubebuilder:rbac:groups=nais.io,resources=IDPortenClients,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=nais.io,resources=IDPortenClients/status,verbs=get;update;patch;create
+// +kubebuilder:rbac:groups=nais.io,resources=MaskinportenClients,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=nais.io,resources=MaskinportenClients/status,verbs=get;update;patch;create
 // +kubebuilder:rbac:groups=*,resources=events,verbs=get;list;watch;create;update
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
