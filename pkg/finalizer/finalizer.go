@@ -19,7 +19,7 @@ type Finalizer struct {
 	transaction.Transaction
 }
 
-func Client(reconciler reconciler.Reconciler, transaction transaction.Transaction) Finalizer {
+func NewFinalizer(reconciler reconciler.Reconciler, transaction transaction.Transaction) Finalizer {
 	return Finalizer{Reconciler: reconciler, Transaction: transaction}
 }
 
