@@ -144,6 +144,7 @@ func clientMatches(actual types.ClientRegistration, desired common.Instance) boo
 	idExists := len(desired.StatusClientID()) > 0
 	idMatches := actual.ClientID == desired.StatusClientID()
 	descriptionMatches := actual.Description == desired.Description()
+	integrationTypeMatches := actual.IntegrationType == desired.IntegrationType()
 
-	return (idExists && idMatches) || descriptionMatches
+	return ((idExists && idMatches) || descriptionMatches) && integrationTypeMatches
 }

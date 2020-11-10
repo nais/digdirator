@@ -9,8 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const Maskinporten = "maskinporten"
-
 func (in *MaskinportenClient) StatusClientID() string {
 	return in.Status.ClientID
 }
@@ -25,6 +23,10 @@ func (in *MaskinportenClient) SecretName() string {
 
 func (in *MaskinportenClient) Labels() map[string]string {
 	return labels.MaskinportenLabels(in)
+}
+
+func (in *MaskinportenClient) IntegrationType() types.IntegrationType {
+	return types.IntegrationTypeMaskinporten
 }
 
 func (in *MaskinportenClient) UpdateHash() error {
@@ -55,7 +57,7 @@ func (in MaskinportenClient) Hash() (string, error) {
 }
 
 func (in MaskinportenClient) GetUniqueName() string {
-	return fmt.Sprintf("%s:%s:%s:%s", Maskinporten, in.GetClusterName(), in.GetNamespace(), in.GetName())
+	return fmt.Sprintf("%s:%s:%s", in.GetClusterName(), in.GetNamespace(), in.GetName())
 }
 
 func (in MaskinportenClient) ToClientRegistration() types.ClientRegistration {

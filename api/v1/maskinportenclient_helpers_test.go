@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"github.com/nais/digdirator/pkg/digdir/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,7 +9,7 @@ import (
 )
 
 func TestMaskinportenClient_GetUniqueName(t *testing.T) {
-	expected := "maskinporten:test-cluster:test-namespace:test-app"
+	expected := "test-cluster:test-namespace:test-app"
 	assert.Equal(t, expected, minimalMaskinportenClient().GetUniqueName())
 }
 
@@ -40,6 +41,11 @@ func TestMaskinportenClient_UpdateHash(t *testing.T) {
 	err := app.UpdateHash()
 	assert.NoError(t, err)
 	assert.Equal(t, "ddbcd7f2b2711184", app.Status.ProvisionHash)
+}
+
+func TestMaskinportenClient_IntegrationType(t *testing.T) {
+	app := minimalMaskinportenClient()
+	assert.Equal(t, types.IntegrationTypeMaskinporten, app.IntegrationType())
 }
 
 func minimalMaskinportenClient() *MaskinportenClient {

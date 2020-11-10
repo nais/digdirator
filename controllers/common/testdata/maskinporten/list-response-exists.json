@@ -33,5 +33,40 @@
     "scopes": ["openid", "profile", "idporten:dcr.read"],
     "supplier_orgno": "string",
     "token_endpoint_auth_method": "client_secret_basic"
+  },
+  {
+    "access_token_lifetime": 0,
+    "active": true,
+    "application_type": "native, web, browser",
+    "authorization_lifetime": 0,
+    "client_id": "some-random-id",
+    "client_name": "Min eksempelklient",
+    "client_orgno": "string",
+    "client_uri": "string",
+    "created": "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+    "description": "Viser noen eksempelverdier",
+    "frontchannel_logout_session_required": true,
+    "frontchannel_logout_uri": "string",
+    "grant_types": ["authorization_code", "refresh_token"],
+    "integration_type": "maskinporten",
+    "last_updated": "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+    "onbehalfof": [
+      {
+        "client_uri": "string",
+        "created": "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+        "description": "string",
+        "last_updated": "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+        "name": "string",
+        "onbehalfof": "string",
+        "orgno": "string"
+      }
+    ],
+    "post_logout_redirect_uris": ["http://localhost/myService/loggedout"],
+    "redirect_uris": ["http://localhost/myService"],
+    "refresh_token_lifetime": 0,
+    "refresh_token_usage": "ONETIME",
+    "scopes": ["openid", "profile", "idporten:dcr.read"],
+    "supplier_orgno": "string",
+    "token_endpoint_auth_method": "client_secret_basic"
   }
 ]

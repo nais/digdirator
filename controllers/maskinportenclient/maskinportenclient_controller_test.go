@@ -99,7 +99,7 @@ func setup() (*envtest.Environment, error) {
 		return nil, fmt.Errorf("creating signer from jwk: %v", err)
 	}
 
-	testServer := httptest.NewServer(idportenHandler())
+	testServer := httptest.NewServer(maskinportenHandler())
 	httpClient := testServer.Client()
 	digdiratorConfig.ClusterName = "test-cluster"
 	digdiratorConfig.DigDir.Auth.BaseURL = testServer.URL
@@ -293,7 +293,7 @@ func loadJwkFromPath(path string) (*jose.JSONWebKey, error) {
 	return jwk, nil
 }
 
-func idportenHandler() http.HandlerFunc {
+func maskinportenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/idporten-oidc-provider/token":
@@ -303,19 +303,19 @@ func idportenHandler() http.HandlerFunc {
 		case r.URL.Path == "/clients" && r.Method == http.MethodGet:
 			var path string
 			if ClientExists {
-				path = "../common/testdata/list-response-exists.json"
+				path = "../common/testdata/maskinporten/list-response-exists.json"
 			} else {
-				path = "../common/testdata/list-response.json"
+				path = "../common/testdata/maskinporten/list-response.json"
 			}
 			response, _ := ioutil.ReadFile(path)
 			_, _ = w.Write(response)
 		// POST (create) client
 		case r.URL.Path == "/clients" && r.Method == http.MethodPost:
-			response, _ := ioutil.ReadFile("../common/testdata/create-response.json")
+			response, _ := ioutil.ReadFile("../common/testdata/maskinporten/create-response.json")
 			_, _ = w.Write(response)
 		// PUT (update) existing client
 		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodPut:
-			response, _ := ioutil.ReadFile("../common/testdata/update-response.json")
+			response, _ := ioutil.ReadFile("../common/testdata/maskinporten/update-response.json")
 			_, _ = w.Write(response)
 		// DELETE existing client
 		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodDelete:

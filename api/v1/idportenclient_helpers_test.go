@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"github.com/nais/digdirator/pkg/digdir/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -44,6 +45,11 @@ func TestIDPortenClient_UpdateHash(t *testing.T) {
 	err := app.UpdateHash()
 	assert.NoError(t, err)
 	assert.Equal(t, "f409103c18d3017b", app.Status.ProvisionHash)
+}
+
+func TestIDPortenClient_IntegrationType(t *testing.T) {
+	app := minimalClient()
+	assert.Equal(t, types.IntegrationTypeIDPorten, app.IntegrationType())
 }
 
 func minimalClient() *IDPortenClient {

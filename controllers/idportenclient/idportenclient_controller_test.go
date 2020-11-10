@@ -61,19 +61,19 @@ func idportenHandler() http.HandlerFunc {
 		case r.URL.Path == "/clients" && r.Method == http.MethodGet:
 			var path string
 			if clientExists {
-				path = "../common/testdata/list-response-exists.json"
+				path = "../common/testdata/idporten/list-response-exists.json"
 			} else {
-				path = "../common/testdata/list-response.json"
+				path = "../common/testdata/idporten/list-response.json"
 			}
 			response, _ := ioutil.ReadFile(path)
 			_, _ = w.Write(response)
 		// POST (create) client
 		case r.URL.Path == "/clients" && r.Method == http.MethodPost:
-			response, _ := ioutil.ReadFile("../common/testdata/create-response.json")
+			response, _ := ioutil.ReadFile("../common/testdata/idporten/create-response.json")
 			_, _ = w.Write(response)
 		// PUT (update) existing client
 		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodPut:
-			response, _ := ioutil.ReadFile("../common/testdata/update-response.json")
+			response, _ := ioutil.ReadFile("../common/testdata/idporten/update-response.json")
 			_, _ = w.Write(response)
 		// DELETE existing client
 		case r.URL.Path == fmt.Sprintf("/clients/%s", clientId) && r.Method == http.MethodDelete:

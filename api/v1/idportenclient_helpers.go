@@ -56,6 +56,10 @@ func (in IDPortenClient) GetUniqueName() string {
 	return fmt.Sprintf("%s:%s:%s", in.GetClusterName(), in.GetNamespace(), in.GetName())
 }
 
+func (in IDPortenClient) IntegrationType() types.IntegrationType {
+	return types.IntegrationTypeIDPorten
+}
+
 func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
 	return types.ClientRegistration{
 		AccessTokenLifetime:               3600,
