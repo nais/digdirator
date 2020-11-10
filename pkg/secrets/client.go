@@ -80,16 +80,9 @@ func (s Client) DeleteUnused(unused corev1.SecretList) error {
 			continue
 		}
 		s.logger.Infof("deleting unused secret '%s'...", oldSecret.Name)
-		if err := s.Delete(oldSecret); err != nil {
-			return err
+		if err := s.Client.Delete(s.ctx, &oldSecret); err != nil {
+			return fmt.Errorf("deleting unused secret: %w", err)
 		}
-	}
-	return nil
-}
-
-func (s Client) Delete(secret corev1.Secret) error {
-	if err := s.Client.Delete(s.ctx, &secret); err != nil {
-		return fmt.Errorf("deleting unused secret: %w", err)
 	}
 	return nil
 }

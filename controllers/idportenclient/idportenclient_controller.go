@@ -8,10 +8,10 @@ import (
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/common/reconciler"
 	transaction2 "github.com/nais/digdirator/controllers/common/transaction"
-	"github.com/nais/digdirator/controllers/finalizer"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/digdir"
 	"github.com/nais/digdirator/pkg/digdir/types"
+	"github.com/nais/digdirator/pkg/finalizer"
 	"github.com/nais/digdirator/pkg/metrics"
 	"github.com/nais/digdirator/pkg/secrets"
 	log "github.com/sirupsen/logrus"
@@ -48,14 +48,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		tx.Logger.Infof("finished processing request")
 	}()
 
-	finalizerClient := finalizer.Client(r.Reconciler, tx.Transaction)
-
-	if !common.HasFinalizer(tx.instance, finalizer.FinalizerName) {
-		return finalizerClient.Register()
-	}
+	finalizerClient := finalizer.NewFinalizer(r.Reconciler, tx.Transaction)
 
 	if common.InstanceIsBeingDeleted(tx.instance) {
 		return finalizerClient.Process()
+	}
+
+	if !common.HasFinalizer(tx.instance, finalizer.FinalizerName) {
+		return finalizerClient.Register()
 	}
 
 	if hashUnchanged, err := tx.instance.HashUnchanged(); hashUnchanged {
