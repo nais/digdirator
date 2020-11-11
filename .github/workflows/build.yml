@@ -57,11 +57,14 @@ jobs:
           git commit -a -m "Bump digdirator to version ${version}"
           git push
   integration_test:
-    - name: Trigger external workflow for Integration tests
-      # needs: deploy
-      uses: benc-uk/workflow-dispatch@v1
-      with:
-        workflow: Build - Push and Deploy
-        repo: navikt/maskinporten-digdirator
-        token: ${{ secrets.PERSONAL_TOKEN }}
+    name: Trigger external workflow for Integration tests
+    # needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run integration tests
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Build - Push and Deploy
+          repo: navikt/maskinporten-digdirator
+          token: ${{ secrets.PERSONAL_TOKEN }}
 
