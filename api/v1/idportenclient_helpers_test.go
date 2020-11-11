@@ -2,57 +2,63 @@ package v1
 
 import (
 	"github.com/nais/digdirator/pkg/digdir/types"
+	"github.com/nais/digdirator/pkg/labels"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var finalizerName = "test-finalizer"
+const expectedIDPortenClientHash = "3f89fee23d842a44"
 
-const expectedHash = "3f89fee23d842a44"
-
-func TestIDPortenClient_GetUniqueName(t *testing.T) {
+func TestIDPortenClient_MakeDescription(t *testing.T) {
 	expected := "test-cluster:test-namespace:test-app"
-	assert.Equal(t, expected, minimalClient().GetUniqueName())
+	assert.Equal(t, expected, minimalIDPortenClient().MakeDescription())
 }
 
-func TestIDPortenClient_Hash(t *testing.T) {
-	actual, err := minimalClient().Hash()
+func TestIDPortenClient_CalculateHash(t *testing.T) {
+	actual, err := minimalIDPortenClient().CalculateHash()
 	assert.NoError(t, err)
-	assert.Equal(t, expectedHash, actual)
+	assert.Equal(t, expectedIDPortenClientHash, actual)
 }
 
-func TestIDPortenClient_HashUnchanged(t *testing.T) {
+func TestIDPortenClient_MakeLabels(t *testing.T) {
+	app := minimalIDPortenClient()
+	expected := labels.IDPortenLabels(app)
+	assert.Equal(t, app.MakeLabels(), expected)
+}
+
+func TestIDPortenClient_IsHashUnchanged(t *testing.T) {
 	t.Run("Minimal Application should have unchanged hash value", func(t *testing.T) {
-		actual, err := minimalClient().HashUnchanged()
+		actual, err := minimalIDPortenClient().IsHashUnchanged()
 		assert.NoError(t, err)
 		assert.True(t, actual)
 	})
 	t.Run("Application with changed value should have changed hash value", func(t *testing.T) {
-		app := minimalClient()
+		app := minimalIDPortenClient()
 		app.Spec.ClientURI = "changed"
-		actual, err := app.HashUnchanged()
+		actual, err := app.IsHashUnchanged()
 		assert.NoError(t, err)
 		assert.False(t, actual)
 	})
 }
 
-func TestIDPortenClient_UpdateHash(t *testing.T) {
-	app := minimalClient()
+func TestIDPortenClient_SetHash(t *testing.T) {
+	app := minimalIDPortenClient()
 	app.Spec.ClientURI = "changed"
 
-	err := app.UpdateHash()
+	hash, err := app.CalculateHash()
 	assert.NoError(t, err)
-	assert.Equal(t, "f409103c18d3017b", app.Status.ProvisionHash)
+	app.GetStatus().SetHash(hash)
+	assert.Equal(t, "f409103c18d3017b", app.GetStatus().GetHash())
 }
 
 func TestIDPortenClient_IntegrationType(t *testing.T) {
-	app := minimalClient()
-	assert.Equal(t, types.IntegrationTypeIDPorten, app.IntegrationType())
+	app := minimalIDPortenClient()
+	assert.Equal(t, types.IntegrationTypeIDPorten, app.GetIntegrationType())
 }
 
-func minimalClient() *IDPortenClient {
+func minimalIDPortenClient() *IDPortenClient {
 	return &IDPortenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "test-app",
@@ -68,7 +74,7 @@ func minimalClient() *IDPortenClient {
 			RefreshTokenLifetime:   3600,
 		},
 		Status: ClientStatus{
-			ProvisionHash: expectedHash,
+			ProvisionHash: expectedIDPortenClientHash,
 		},
 	}
 }

@@ -24,7 +24,7 @@ func IDPortenStringData(jwk jose.JSONWebKey, instance *v1.IDPortenClient) (map[s
 	return map[string]string{
 		IDPortenJwkKey:       string(jwkJson),
 		IDPortenWellKnownURL: wellKnownURL,
-		IDPortenClientID:     instance.StatusClientID(),
+		IDPortenClientID:     instance.GetStatus().GetClientID(),
 		IDPortenRedirectURI:  instance.Spec.RedirectURI,
 	}, nil
 }

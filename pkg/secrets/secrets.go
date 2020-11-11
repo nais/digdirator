@@ -3,13 +3,12 @@ package secrets
 import (
 	"fmt"
 	v1 "github.com/nais/digdirator/api/v1"
-	"github.com/nais/digdirator/controllers/common"
 	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func OpaqueSecret(instance common.Instance, jwk jose.JSONWebKey) (*corev1.Secret, error) {
+func OpaqueSecret(instance v1.Instance, jwk jose.JSONWebKey) (*corev1.Secret, error) {
 	var stringData map[string]string
 	var err error
 
@@ -34,9 +33,9 @@ func OpaqueSecret(instance common.Instance, jwk jose.JSONWebKey) (*corev1.Secret
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.SecretName(),
+			Name:      instance.GetSecretName(),
 			Namespace: instance.GetNamespace(),
-			Labels:    instance.Labels(),
+			Labels:    instance.MakeLabels(),
 		},
 		StringData: stringData,
 		Type:       corev1.SecretTypeOpaque,

@@ -3,7 +3,6 @@ package maskinportenclient
 import (
 	"context"
 	"fmt"
-	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/common/reconciler"
 	transaction2 "github.com/nais/digdirator/controllers/common/transaction"
 	"github.com/nais/digdirator/pkg/crypto"
@@ -51,15 +50,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	finalizerClient := finalizer.NewFinalizer(r.Reconciler, tx.Transaction)
 
-	if common.InstanceIsBeingDeleted(tx.instance) {
+	if v1.InstanceIsBeingDeleted(tx.instance) {
 		return finalizerClient.Process()
 	}
 
-	if !common.HasFinalizer(tx.instance, finalizer.FinalizerName) {
+	if !v1.HasFinalizer(tx.instance, finalizer.FinalizerName) {
 		return finalizerClient.Register()
 	}
 
-	if hashUnchanged, err := tx.instance.HashUnchanged(); hashUnchanged {
+	if hashUnchanged, err := tx.instance.IsHashUnchanged(); hashUnchanged {
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -217,9 +216,12 @@ func (r *Reconciler) handleError(tx *transaction, err error) (ctrl.Result, error
 func (r *Reconciler) complete(tx *transaction) (ctrl.Result, error) {
 	tx.Logger.Debug("updating status for MaskinportenClient")
 
-	if err := tx.instance.UpdateHash(); err != nil {
+	hash, err := tx.instance.CalculateHash()
+	if err != nil {
 		return ctrl.Result{}, err
 	}
+	tx.instance.GetStatus().SetHash(hash)
+
 	if err := r.Client.Status().Update(tx.Ctx, tx.instance); err != nil {
 		return ctrl.Result{}, fmt.Errorf("updating status subresource: %w", err)
 	}

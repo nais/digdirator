@@ -2,7 +2,7 @@ package transaction
 
 import (
 	"context"
-	"github.com/nais/digdirator/controllers/common"
+	"github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/digdir"
 	"github.com/nais/digdirator/pkg/secrets"
 	log "github.com/sirupsen/logrus"
@@ -10,7 +10,7 @@ import (
 
 type Transaction struct {
 	Ctx            context.Context
-	Instance       common.Instance
+	Instance       v1.Instance
 	Logger         *log.Entry
 	ManagedSecrets *secrets.Lists
 	DigdirClient   *digdir.Client
@@ -19,7 +19,7 @@ type Transaction struct {
 
 func NewTransaction(
 	ctx context.Context,
-	instance common.Instance,
+	instance v1.Instance,
 	logger *log.Entry,
 	managedSecrets *secrets.Lists,
 	digdirClient *digdir.Client,

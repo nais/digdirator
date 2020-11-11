@@ -25,7 +25,7 @@ func MaskinportenStringData(jwk jose.JSONWebKey, instance *v1.MaskinportenClient
 	return map[string]string{
 		MaskinportenJwkKey:       string(jwkJson),
 		MaskinportenWellKnownURL: wellKnownURL,
-		MaskinportenClientID:     instance.StatusClientID(),
+		MaskinportenClientID:     instance.GetStatus().GetClientID(),
 		MaskinportenScopes:       JoinToString(instance.Spec.Scopes),
 	}, nil
 }

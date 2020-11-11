@@ -197,7 +197,7 @@ func TestIDPortenController(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		assert.NoError(t, err)
-		b, err := instance.HashUnchanged()
+		b, err := instance.IsHashUnchanged()
 		assert.NoError(t, err)
 		return b
 	}, timeout, interval, "IDPortenClient should be synchronized")

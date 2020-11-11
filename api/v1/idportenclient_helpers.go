@@ -1,63 +1,36 @@
 package v1
 
 import (
-	"encoding/json"
-	"fmt"
-	hash "github.com/mitchellh/hashstructure"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/labels"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (in *IDPortenClient) StatusClientID() string {
-	return in.Status.ClientID
+func (in *IDPortenClient) CalculateHash() (string, error) {
+	return CalculateHash(in.Spec)
 }
 
-func (in *IDPortenClient) Description() string {
-	return in.GetUniqueName()
+func (in *IDPortenClient) IsHashUnchanged() (bool, error) {
+	return IsHashUnchanged(in)
 }
 
-func (in *IDPortenClient) SecretName() string {
+func (in *IDPortenClient) GetIntegrationType() types.IntegrationType {
+	return types.IntegrationTypeIDPorten
+}
+
+func (in *IDPortenClient) GetSecretName() string {
 	return in.Spec.SecretName
 }
 
-func (in *IDPortenClient) Labels() map[string]string {
+func (in *IDPortenClient) GetStatus() *ClientStatus {
+	return &in.Status
+}
+
+func (in *IDPortenClient) MakeLabels() map[string]string {
 	return labels.IDPortenLabels(in)
 }
 
-func (in *IDPortenClient) UpdateHash() error {
-	in.Status.Timestamp = metav1.Now()
-	newHash, err := in.Hash()
-	if err != nil {
-		return fmt.Errorf("calculating application hash: %w", err)
-	}
-	in.Status.ProvisionHash = newHash
-	return nil
-}
-
-func (in *IDPortenClient) HashUnchanged() (bool, error) {
-	newHash, err := in.Hash()
-	if err != nil {
-		return false, fmt.Errorf("checking if hash is unchanged: %w", err)
-	}
-	return in.Status.ProvisionHash == newHash, nil
-}
-
-func (in IDPortenClient) Hash() (string, error) {
-	marshalled, err := json.Marshal(in.Spec)
-	if err != nil {
-		return "", err
-	}
-	h, err := hash.Hash(marshalled, nil)
-	return fmt.Sprintf("%x", h), err
-}
-
-func (in IDPortenClient) GetUniqueName() string {
-	return fmt.Sprintf("%s:%s:%s", in.GetClusterName(), in.GetNamespace(), in.GetName())
-}
-
-func (in IDPortenClient) IntegrationType() types.IntegrationType {
-	return types.IntegrationTypeIDPorten
+func (in *IDPortenClient) MakeDescription() string {
+	return MakeDescription(in)
 }
 
 func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
@@ -67,7 +40,7 @@ func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
 		AuthorizationLifeTime:             0,
 		ClientName:                        types.DefaultClientName,
 		ClientURI:                         in.Spec.ClientURI,
-		Description:                       in.GetUniqueName(),
+		Description:                       in.MakeDescription(),
 		FrontchannelLogoutSessionRequired: false,
 		FrontchannelLogoutURI:             in.Spec.FrontchannelLogoutURI,
 		GrantTypes: []types.GrantType{

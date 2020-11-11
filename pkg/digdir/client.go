@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/digdirator/controllers/common"
+	"github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"gopkg.in/square/go-jose.v2"
@@ -40,7 +40,7 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 	return registration, nil
 }
 
-func (c Client) ClientExists(desired common.Instance, ctx context.Context) (*types.ClientRegistration, error) {
+func (c Client) ClientExists(desired v1.Instance, ctx context.Context) (*types.ClientRegistration, error) {
 	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.IDPorten.BaseURL)
 	clients := make([]types.ClientRegistration, 0)
 
@@ -140,11 +140,13 @@ func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Confi
 	}
 }
 
-func clientMatches(actual types.ClientRegistration, desired common.Instance) bool {
-	idExists := len(desired.StatusClientID()) > 0
-	idMatches := actual.ClientID == desired.StatusClientID()
-	descriptionMatches := actual.Description == desired.Description()
-	integrationTypeMatches := actual.IntegrationType == desired.IntegrationType()
+func clientMatches(actual types.ClientRegistration, desired v1.Instance) bool {
+	clientID := desired.GetStatus().GetClientID()
 
-	return ((idExists && idMatches) || descriptionMatches) && integrationTypeMatches
+	idExists := len(clientID) > 0
+	idMatches := actual.ClientID == clientID
+	descriptionMatches := actual.Description == desired.MakeDescription()
+	integrationTypeMatches := actual.IntegrationType == desired.GetIntegrationType()
+
+	return (descriptionMatches || (idExists && idMatches)) && integrationTypeMatches
 }

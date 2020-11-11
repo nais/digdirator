@@ -3,7 +3,7 @@ package secrets
 import (
 	"context"
 	"fmt"
-	"github.com/nais/digdirator/controllers/common"
+	"github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/controllers/common/reconciler"
 	"github.com/nais/digdirator/pkg/pods"
 	log "github.com/sirupsen/logrus"
@@ -19,17 +19,17 @@ import (
 
 type Client struct {
 	ctx      context.Context
-	instance common.Instance
+	instance v1.Instance
 	logger   *log.Entry
 	reconciler.Reconciler
 }
 
-func NewClient(ctx context.Context, instance common.Instance, logger *log.Entry, reconciler reconciler.Reconciler) Client {
+func NewClient(ctx context.Context, instance v1.Instance, logger *log.Entry, reconciler reconciler.Reconciler) Client {
 	return Client{ctx: ctx, instance: instance, logger: logger, Reconciler: reconciler}
 }
 
 func (s Client) CreateOrUpdate(jwk jose.JSONWebKey) error {
-	s.logger.Infof("processing secret with name '%s'...", s.instance.SecretName())
+	s.logger.Infof("processing secret with name '%s'...", s.instance.GetSecretName())
 	spec, err := OpaqueSecret(s.instance, jwk)
 	if err != nil {
 		return fmt.Errorf("creating secret spec: %w", err)
@@ -48,7 +48,7 @@ func (s Client) CreateOrUpdate(jwk jose.JSONWebKey) error {
 	if err != nil {
 		return fmt.Errorf("applying secretSpec: %w", err)
 	}
-	s.logger.Infof("secret '%s' %s", s.instance.SecretName(), res)
+	s.logger.Infof("secret '%s' %s", s.instance.GetSecretName(), res)
 	return nil
 }
 
@@ -63,7 +63,7 @@ func (s Client) GetManaged() (*Lists, error) {
 	var allSecrets corev1.SecretList
 	opts := []client.ListOption{
 		client.InNamespace(s.instance.GetNamespace()),
-		client.MatchingLabels(s.instance.Labels()),
+		client.MatchingLabels(s.instance.MakeLabels()),
 	}
 	if err := s.Reader.List(s.ctx, &allSecrets, opts...); err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (s Client) GetManaged() (*Lists, error) {
 
 func (s Client) DeleteUnused(unused corev1.SecretList) error {
 	for _, oldSecret := range unused.Items {
-		if oldSecret.Name == s.instance.SecretName() {
+		if oldSecret.Name == s.instance.GetSecretName() {
 			continue
 		}
 		s.logger.Infof("deleting unused secret '%s'...", oldSecret.Name)

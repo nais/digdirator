@@ -2,7 +2,7 @@ package finalizer
 
 import (
 	"fmt"
-	"github.com/nais/digdirator/controllers/common"
+	"github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/controllers/common/reconciler"
 	"github.com/nais/digdirator/controllers/common/transaction"
 	corev1 "k8s.io/api/core/v1"
@@ -24,7 +24,7 @@ func NewFinalizer(reconciler reconciler.Reconciler, transaction transaction.Tran
 }
 
 func (f Finalizer) Register() (ctrl.Result, error) {
-	if !common.HasFinalizer(f.Instance, FinalizerName) {
+	if !v1.HasFinalizer(f.Instance, FinalizerName) {
 		f.Logger.Info("finalizer for object not found, registering...")
 		controllerutil.AddFinalizer(f.Instance, FinalizerName)
 		if err := f.Client.Update(f.Ctx, f.Instance); err != nil {
@@ -36,13 +36,13 @@ func (f Finalizer) Register() (ctrl.Result, error) {
 }
 
 func (f Finalizer) Process() (ctrl.Result, error) {
-	if !common.HasFinalizer(f.Instance, FinalizerName) {
+	if !v1.HasFinalizer(f.Instance, FinalizerName) {
 		return ctrl.Result{}, nil
 	}
 
 	f.Logger.Info("finalizer triggered, deleting resources...")
 
-	if len(f.Instance.StatusClientID()) == 0 {
+	if len(f.Instance.GetStatus().GetClientID()) == 0 {
 		return ctrl.Result{}, nil
 	}
 	if err := f.Client.Delete(f.Ctx, f.Instance); err != nil {

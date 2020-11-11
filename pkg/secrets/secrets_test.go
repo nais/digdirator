@@ -38,7 +38,7 @@ func TestOpaqueSecret(t *testing.T) {
 				APIVersion: "v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      client.SecretName(),
+				Name:      client.GetSecretName(),
 				Namespace: client.GetNamespace(),
 				Labels:    expectedLabels,
 			},
