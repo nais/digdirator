@@ -58,7 +58,7 @@ jobs:
           git push
   integration_test:
     name: Trigger external workflow for Integration tests
-    # needs: deploy
+    needs: deploy
     runs-on: ubuntu-latest
     steps:
       - name: Run integration tests
