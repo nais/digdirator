@@ -65,6 +65,6 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: Build - Push and Deploy
-          repo: navikt/maskinporten-digdirator
+          repo: navikt/digdirator-maskinporten
           token: ${{ secrets.PERSONAL_TOKEN }}
 
