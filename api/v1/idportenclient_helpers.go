@@ -11,7 +11,7 @@ import (
 )
 
 func (in *IDPortenClient) CalculateHash() (string, error) {
-	return CalculateHash(in.Spec)
+	return calculateHash(in.Spec)
 }
 
 func (in *IDPortenClient) CreateSecretData(jwk jose.JSONWebKey) (map[string]string, error) {
@@ -26,10 +26,6 @@ func (in *IDPortenClient) CreateSecretData(jwk jose.JSONWebKey) (map[string]stri
 		IDPortenClientID:     in.GetStatus().GetClientID(),
 		IDPortenRedirectURI:  in.Spec.RedirectURI,
 	}, nil
-}
-
-func (in *IDPortenClient) IsHashUnchanged() (bool, error) {
-	return IsHashUnchanged(in)
 }
 
 func (in *IDPortenClient) GetIntegrationType() types.IntegrationType {
@@ -52,12 +48,24 @@ func (in *IDPortenClient) GetStatus() *ClientStatus {
 	return &in.Status
 }
 
+func (in *IDPortenClient) HasFinalizer(finalizerName string) bool {
+	return hasFinalizer(in, finalizerName)
+}
+
+func (in *IDPortenClient) IsBeingDeleted() bool {
+	return isBeingDeleted(in)
+}
+
+func (in *IDPortenClient) IsHashUnchanged() (bool, error) {
+	return isHashUnchanged(in)
+}
+
 func (in *IDPortenClient) MakeLabels() map[string]string {
 	return labels.IDPortenLabels(in)
 }
 
 func (in *IDPortenClient) MakeDescription() string {
-	return MakeDescription(in)
+	return makeDescription(in)
 }
 
 func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {

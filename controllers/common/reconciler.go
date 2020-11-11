@@ -64,14 +64,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance v1.Instance) (ctrl.Res
 		tx.Logger.Infof("finished processing request")
 	}()
 
-	finalizerClient := r.finalizer(*tx)
+	finalizer := r.finalizer(*tx)
 
-	if v1.InstanceIsBeingDeleted(tx.Instance) {
-		return finalizerClient.Process()
+	if tx.Instance.IsBeingDeleted() {
+		return finalizer.Process()
 	}
 
-	if !v1.HasFinalizer(tx.Instance, FinalizerName) {
-		return finalizerClient.Register()
+	if !tx.Instance.HasFinalizer(FinalizerName) {
+		return finalizer.Register()
 	}
 
 	if hashUnchanged, err := tx.Instance.IsHashUnchanged(); hashUnchanged {

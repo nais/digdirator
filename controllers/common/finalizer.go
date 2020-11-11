@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"github.com/nais/digdirator/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -21,7 +20,7 @@ func (r Reconciler) finalizer(transaction Transaction) finalizer {
 }
 
 func (f finalizer) Register() (ctrl.Result, error) {
-	if !v1.HasFinalizer(f.Instance, FinalizerName) {
+	if !f.Instance.HasFinalizer(FinalizerName) {
 		f.Logger.Info("finalizer for object not found, registering...")
 		controllerutil.AddFinalizer(f.Instance, FinalizerName)
 		if err := f.Client.Update(f.Ctx, f.Instance); err != nil {
@@ -33,7 +32,7 @@ func (f finalizer) Register() (ctrl.Result, error) {
 }
 
 func (f finalizer) Process() (ctrl.Result, error) {
-	if !v1.HasFinalizer(f.Instance, FinalizerName) {
+	if !f.Instance.HasFinalizer(FinalizerName) {
 		return ctrl.Result{}, nil
 	}
 

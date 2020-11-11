@@ -12,7 +12,7 @@ import (
 )
 
 func (in *MaskinportenClient) CalculateHash() (string, error) {
-	return CalculateHash(in.Spec)
+	return calculateHash(in.Spec)
 }
 
 func (in *MaskinportenClient) CreateSecretData(jwk jose.JSONWebKey) (map[string]string, error) {
@@ -27,10 +27,6 @@ func (in *MaskinportenClient) CreateSecretData(jwk jose.JSONWebKey) (map[string]
 		MaskinportenClientID:     in.GetStatus().GetClientID(),
 		MaskinportenScopes:       strings.Join(in.Spec.Scopes, " "),
 	}, nil
-}
-
-func (in *MaskinportenClient) IsHashUnchanged() (bool, error) {
-	return IsHashUnchanged(in)
 }
 
 func (in *MaskinportenClient) GetIntegrationType() types.IntegrationType {
@@ -53,12 +49,24 @@ func (in *MaskinportenClient) GetStatus() *ClientStatus {
 	return &in.Status
 }
 
+func (in *MaskinportenClient) HasFinalizer(finalizerName string) bool {
+	return hasFinalizer(in, finalizerName)
+}
+
+func (in *MaskinportenClient) IsBeingDeleted() bool {
+	return isBeingDeleted(in)
+}
+
+func (in *MaskinportenClient) IsHashUnchanged() (bool, error) {
+	return isHashUnchanged(in)
+}
+
 func (in *MaskinportenClient) MakeLabels() map[string]string {
 	return labels.MaskinportenLabels(in)
 }
 
 func (in *MaskinportenClient) MakeDescription() string {
-	return MakeDescription(in)
+	return makeDescription(in)
 }
 
 func (in MaskinportenClient) ToClientRegistration() types.ClientRegistration {

@@ -17,6 +17,8 @@ type Instance interface {
 	runtime.Object
 	CalculateHash() (string, error)
 	CreateSecretData(jose.JSONWebKey) (map[string]string, error)
+	HasFinalizer(string) bool
+	IsBeingDeleted() bool
 	IsHashUnchanged() (bool, error)
 	GetIntegrationType() types.IntegrationType
 	GetInstanceType() string
@@ -71,20 +73,20 @@ func (in *ClientStatus) SetKeyIDs(keyIDs []string) {
 	in.KeyIDs = keyIDs
 }
 
-func InstanceIsBeingDeleted(instance Instance) bool {
+func isBeingDeleted(instance Instance) bool {
 	return !instance.GetDeletionTimestamp().IsZero()
 }
 
-func HasFinalizer(instance Instance, finalizerName string) bool {
+func hasFinalizer(instance Instance, finalizerName string) bool {
 	return util.ContainsString(instance.GetFinalizers(), finalizerName)
 }
 
-// MakeDescription returns a description that identifies an application in NAIS
-func MakeDescription(instance Instance) string {
+// makeDescription returns a description that identifies an application in NAIS
+func makeDescription(instance Instance) string {
 	return fmt.Sprintf("%s:%s:%s", instance.GetClusterName(), instance.GetNamespace(), instance.GetName())
 }
 
-func CalculateHash(in interface{}) (string, error) {
+func calculateHash(in interface{}) (string, error) {
 	marshalled, err := json.Marshal(in)
 	if err != nil {
 		return "", fmt.Errorf("marshalling input: %w", err)
@@ -93,7 +95,7 @@ func CalculateHash(in interface{}) (string, error) {
 	return fmt.Sprintf("%x", h), err
 }
 
-func IsHashUnchanged(instance Instance) (bool, error) {
+func isHashUnchanged(instance Instance) (bool, error) {
 	previousHash := instance.GetStatus().GetHash()
 	currentHash, err := instance.CalculateHash()
 	if err != nil {
