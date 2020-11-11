@@ -64,7 +64,7 @@ jobs:
       - name: Run integration tests
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: Build - Push and Deploy
+          workflow: 3431388
           repo: navikt/digdirator-maskinporten
           token: ${{ secrets.PERSONAL_TOKEN }}
 
