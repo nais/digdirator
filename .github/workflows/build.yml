@@ -66,5 +66,6 @@ jobs:
         with:
           workflow: 3431388
           repo: navikt/digdirator-maskinporten
+          ref: main
           token: ${{ secrets.PERSONAL_TOKEN }}
 
