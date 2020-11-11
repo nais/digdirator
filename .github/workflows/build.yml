@@ -56,3 +56,12 @@ jobs:
           git --no-pager diff --cached
           git commit -a -m "Bump digdirator to version ${version}"
           git push
+  integration_test:
+    - name: Trigger external workflow for Integration tests
+      # needs: deploy
+      uses: benc-uk/workflow-dispatch@v1
+      with:
+        workflow: Build - Push and Deploy
+        repo: navikt/maskinporten-digdirator
+        token: ${{ secrets.PERSONAL_TOKEN }}
+
