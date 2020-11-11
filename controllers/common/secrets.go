@@ -1,11 +1,11 @@
-package secrets
+package common
 
 import (
 	"context"
 	"fmt"
 	"github.com/nais/digdirator/api/v1"
-	"github.com/nais/digdirator/controllers/common/reconciler"
 	"github.com/nais/digdirator/pkg/pods"
+	"github.com/nais/digdirator/pkg/secrets"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -17,20 +17,20 @@ import (
 
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch
 
-type Client struct {
+type secretsClient struct {
 	ctx      context.Context
 	instance v1.Instance
 	logger   *log.Entry
-	reconciler.Reconciler
+	Reconciler
 }
 
-func NewClient(ctx context.Context, instance v1.Instance, logger *log.Entry, reconciler reconciler.Reconciler) Client {
-	return Client{ctx: ctx, instance: instance, logger: logger, Reconciler: reconciler}
+func (r Reconciler) secrets(ctx context.Context, instance v1.Instance, logger *log.Entry) secretsClient {
+	return secretsClient{ctx: ctx, instance: instance, logger: logger, Reconciler: r}
 }
 
-func (s Client) CreateOrUpdate(jwk jose.JSONWebKey) error {
+func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
 	s.logger.Infof("processing secret with name '%s'...", s.instance.GetSecretName())
-	spec, err := OpaqueSecret(s.instance, jwk)
+	spec, err := secrets.OpaqueSecret(s.instance, jwk)
 	if err != nil {
 		return fmt.Errorf("creating secret spec: %w", err)
 	}
@@ -52,7 +52,7 @@ func (s Client) CreateOrUpdate(jwk jose.JSONWebKey) error {
 	return nil
 }
 
-func (s Client) GetManaged() (*Lists, error) {
+func (s secretsClient) GetManaged() (*secrets.Lists, error) {
 	// fetch all application pods for this app
 	podList, err := pods.GetForApplication(s.ctx, s.instance, s.Reader)
 	if err != nil {
@@ -70,11 +70,11 @@ func (s Client) GetManaged() (*Lists, error) {
 	}
 
 	// find intersect between secrets in use by application pods and all managed secrets
-	podSecrets := podSecretLists(allSecrets, *podList)
+	podSecrets := secrets.PodSecretLists(allSecrets, *podList)
 	return &podSecrets, nil
 }
 
-func (s Client) DeleteUnused(unused corev1.SecretList) error {
+func (s secretsClient) DeleteUnused(unused corev1.SecretList) error {
 	for _, oldSecret := range unused.Items {
 		if oldSecret.Name == s.instance.GetSecretName() {
 			continue

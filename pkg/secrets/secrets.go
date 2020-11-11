@@ -1,7 +1,6 @@
 package secrets
 
 import (
-	"fmt"
 	v1 "github.com/nais/digdirator/api/v1"
 	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -9,20 +8,7 @@ import (
 )
 
 func OpaqueSecret(instance v1.Instance, jwk jose.JSONWebKey) (*corev1.Secret, error) {
-	var stringData map[string]string
-	var err error
-
-	switch instance.(type) {
-	case *v1.IDPortenClient:
-		client := instance.(*v1.IDPortenClient)
-		stringData, err = IDPortenStringData(jwk, client)
-	case *v1.MaskinportenClient:
-		client := instance.(*v1.MaskinportenClient)
-		stringData, err = MaskinportenStringData(jwk, client)
-	default:
-		return nil, fmt.Errorf("instance does not implement 'common.Instance'")
-	}
-
+	stringData, err := instance.CreateSecretData(jwk)
 	if err != nil {
 		return nil, err
 	}

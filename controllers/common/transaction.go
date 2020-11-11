@@ -1,4 +1,4 @@
-package transaction
+package common
 
 import (
 	"context"
@@ -14,7 +14,7 @@ type Transaction struct {
 	Logger         *log.Entry
 	ManagedSecrets *secrets.Lists
 	DigdirClient   *digdir.Client
-	SecretsClient  secrets.Client
+	SecretsClient  secretsClient
 }
 
 func NewTransaction(
@@ -23,7 +23,7 @@ func NewTransaction(
 	logger *log.Entry,
 	managedSecrets *secrets.Lists,
 	digdirClient *digdir.Client,
-	secretsClient secrets.Client,
+	secretsClient secretsClient,
 ) Transaction {
 	return Transaction{
 		Ctx:            ctx,

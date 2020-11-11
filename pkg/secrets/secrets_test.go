@@ -1,6 +1,7 @@
 package secrets_test
 
 import (
+	"github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/secrets"
 	"testing"
@@ -12,11 +13,11 @@ import (
 )
 
 func TestOpaqueSecret(t *testing.T) {
-	client := idPortenClient("test-name")
+	client := minimalIDPortenClient()
 	jwk, err := crypto.GenerateJwk()
 	assert.NoError(t, err)
 
-	stringData, err := secrets.IDPortenStringData(*jwk, client)
+	stringData, err := client.CreateSecretData(*jwk)
 	assert.NoError(t, err, "should not error")
 
 	expectedLabels := labels.IDPortenLabels(client)
@@ -65,4 +66,22 @@ func TestOpaqueSecret(t *testing.T) {
 		assert.NotEmpty(t, actualLabels, "Labels should not be empty")
 		assert.Equal(t, expectedLabels, actualLabels, "Labels should be set")
 	})
+}
+
+func minimalIDPortenClient() *v1.IDPortenClient {
+	return &v1.IDPortenClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test-app",
+			Namespace:   "test-namespace",
+			ClusterName: "test-cluster",
+		},
+		Spec: v1.IDPortenClientSpec{
+			ClientURI:              "test",
+			RedirectURI:            "https://test.com",
+			SecretName:             "test",
+			FrontchannelLogoutURI:  "test",
+			PostLogoutRedirectURIs: nil,
+			RefreshTokenLifetime:   3600,
+		},
+	}
 }

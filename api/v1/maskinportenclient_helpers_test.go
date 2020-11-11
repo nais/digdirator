@@ -1,8 +1,13 @@
-package v1
+package v1_test
 
 import (
+	"encoding/json"
+	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/labels"
+	"github.com/spf13/viper"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,17 +63,51 @@ func TestMaskinportenClient_GetIntegrationType(t *testing.T) {
 	assert.Equal(t, types.IntegrationTypeMaskinporten, app.GetIntegrationType())
 }
 
-func minimalMaskinportenClient() *MaskinportenClient {
-	return &MaskinportenClient{
+func TestMaskinporten_CreateSecretData(t *testing.T) {
+	client := minimalMaskinportenClient()
+	client.Spec.Scopes = []string{"scope:one", "scope:two"}
+
+	jwk, err := crypto.GenerateJwk()
+	assert.NoError(t, err)
+
+	stringData, err := client.CreateSecretData(*jwk)
+	assert.NoError(t, err, "should not error")
+
+	t.Run("StringData should contain expected fields and values", func(t *testing.T) {
+		t.Run("Secret Data should contain "+v1.MaskinportenJwkKey, func(t *testing.T) {
+			expected, err := json.Marshal(jwk)
+			assert.NoError(t, err)
+			assert.Equal(t, string(expected), stringData[v1.MaskinportenJwkKey])
+		})
+		t.Run("Secret Data should contain "+v1.MaskinportenWellKnownURL, func(t *testing.T) {
+			expected := viper.GetString(config.DigDirMaskinportenBaseURL) + "/.well-known/oauth-authorization-server"
+			assert.Equal(t, expected, stringData[v1.MaskinportenWellKnownURL])
+		})
+		t.Run("Secret Data should contain "+v1.MaskinportenClientID, func(t *testing.T) {
+			assert.Equal(t, client.Status.ClientID, stringData[v1.MaskinportenClientID])
+		})
+		t.Run("Secret Data should contain "+v1.MaskinportenScopes+" with a single string of scopes separated by space", func(t *testing.T) {
+			assert.Equal(t, "scope:one scope:two", stringData[v1.MaskinportenScopes])
+		})
+	})
+}
+
+func TestMaskinportenClient_GetSecretMapKey(t *testing.T) {
+	client := minimalMaskinportenClient()
+	assert.Equal(t, v1.MaskinportenJwkKey, client.GetSecretMapKey())
+}
+
+func minimalMaskinportenClient() *v1.MaskinportenClient {
+	return &v1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "test-app",
 			Namespace:   "test-namespace",
 			ClusterName: "test-cluster",
 		},
-		Spec: MaskinportenClientSpec{
+		Spec: v1.MaskinportenClientSpec{
 			Scopes: nil,
 		},
-		Status: ClientStatus{
+		Status: v1.ClientStatus{
 			ProvisionHash: expectedMaskinportenClientHash,
 		},
 	}

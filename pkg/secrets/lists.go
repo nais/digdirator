@@ -9,7 +9,7 @@ type Lists struct {
 	Unused corev1.SecretList
 }
 
-func podSecretLists(secrets corev1.SecretList, pods corev1.PodList) Lists {
+func PodSecretLists(secrets corev1.SecretList, pods corev1.PodList) Lists {
 	lists := Lists{
 		Used: corev1.SecretList{
 			Items: make([]corev1.Secret, 0),

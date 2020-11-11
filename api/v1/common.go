@@ -6,6 +6,7 @@ import (
 	"github.com/mitchellh/hashstructure"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/util"
+	"gopkg.in/square/go-jose.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -15,8 +16,11 @@ type Instance interface {
 	metav1.Object
 	runtime.Object
 	CalculateHash() (string, error)
+	CreateSecretData(jose.JSONWebKey) (map[string]string, error)
 	IsHashUnchanged() (bool, error)
 	GetIntegrationType() types.IntegrationType
+	GetInstanceType() string
+	GetSecretMapKey() string
 	GetSecretName() string
 	GetStatus() *ClientStatus
 	MakeLabels() map[string]string
@@ -49,6 +53,22 @@ func (in *ClientStatus) SetHash(hash string) {
 
 func (in *ClientStatus) GetClientID() string {
 	return in.ClientID
+}
+
+func (in *ClientStatus) SetClientID(clientID string) {
+	in.ClientID = clientID
+}
+
+func (in *ClientStatus) SetCorrelationID(correlationID string) {
+	in.CorrelationID = correlationID
+}
+
+func (in *ClientStatus) GetKeyIDs() []string {
+	return in.KeyIDs
+}
+
+func (in *ClientStatus) SetKeyIDs(keyIDs []string) {
+	in.KeyIDs = keyIDs
 }
 
 func InstanceIsBeingDeleted(instance Instance) bool {

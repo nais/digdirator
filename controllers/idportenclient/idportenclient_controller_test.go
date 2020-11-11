@@ -5,11 +5,10 @@ import (
 	"encoding/base64"
 	"fmt"
 	v1 "github.com/nais/digdirator/api/v1"
-	"github.com/nais/digdirator/controllers/common/reconciler"
+	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/fixtures"
 	"github.com/nais/digdirator/pkg/labels"
-	"github.com/nais/digdirator/pkg/secrets"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/square/go-jose.v2"
@@ -146,7 +145,7 @@ func setup() (*envtest.Environment, error) {
 	digdiratorConfig.DigDir.Auth.BaseURL = testServer.URL
 	digdiratorConfig.DigDir.IDPorten.BaseURL = testServer.URL
 
-	commonReconciler := reconciler.NewReconciler(
+	commonReconciler := common.NewReconciler(
 		mgr.GetClient(),
 		mgr.GetAPIReader(),
 		mgr.GetScheme(),
@@ -290,15 +289,15 @@ func assertSecretExists(t *testing.T, name string, namespace string, instance *v
 	assert.Equal(t, expectedLabels, actualLabels, "Labels should be set")
 
 	assert.Equal(t, corev1.SecretTypeOpaque, a.Type, "Secret type should be Opaque")
-	assert.NotEmpty(t, a.Data[secrets.IDPortenClientID])
-	assert.NotEmpty(t, a.Data[secrets.IDPortenJwkKey])
-	assert.NotEmpty(t, a.Data[secrets.IDPortenRedirectURI])
-	assert.NotEmpty(t, a.Data[secrets.IDPortenWellKnownURL])
+	assert.NotEmpty(t, a.Data[v1.IDPortenClientID])
+	assert.NotEmpty(t, a.Data[v1.IDPortenJwkKey])
+	assert.NotEmpty(t, a.Data[v1.IDPortenRedirectURI])
+	assert.NotEmpty(t, a.Data[v1.IDPortenWellKnownURL])
 
-	assert.Empty(t, a.Data[secrets.MaskinportenJwkKey])
-	assert.Empty(t, a.Data[secrets.MaskinportenClientID])
-	assert.Empty(t, a.Data[secrets.MaskinportenScopes])
-	assert.Empty(t, a.Data[secrets.MaskinportenWellKnownURL])
+	assert.Empty(t, a.Data[v1.MaskinportenJwkKey])
+	assert.Empty(t, a.Data[v1.MaskinportenClientID])
+	assert.Empty(t, a.Data[v1.MaskinportenScopes])
+	assert.Empty(t, a.Data[v1.MaskinportenWellKnownURL])
 }
 
 func containsOwnerRef(refs []metav1.OwnerReference, owner v1.IDPortenClient) bool {

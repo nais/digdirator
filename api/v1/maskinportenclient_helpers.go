@@ -1,12 +1,32 @@
 package v1
 
 import (
+	"fmt"
+	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/labels"
+	"github.com/spf13/viper"
+	"gopkg.in/square/go-jose.v2"
+	"reflect"
+	"strings"
 )
 
 func (in *MaskinportenClient) CalculateHash() (string, error) {
 	return CalculateHash(in.Spec)
+}
+
+func (in *MaskinportenClient) CreateSecretData(jwk jose.JSONWebKey) (map[string]string, error) {
+	wellKnownURL := viper.GetString(config.DigDirMaskinportenBaseURL) + "/.well-known/oauth-authorization-server"
+	jwkJson, err := jwk.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("marshalling JWK: %w", err)
+	}
+	return map[string]string{
+		MaskinportenJwkKey:       string(jwkJson),
+		MaskinportenWellKnownURL: wellKnownURL,
+		MaskinportenClientID:     in.GetStatus().GetClientID(),
+		MaskinportenScopes:       strings.Join(in.Spec.Scopes, " "),
+	}, nil
 }
 
 func (in *MaskinportenClient) IsHashUnchanged() (bool, error) {
@@ -15,6 +35,14 @@ func (in *MaskinportenClient) IsHashUnchanged() (bool, error) {
 
 func (in *MaskinportenClient) GetIntegrationType() types.IntegrationType {
 	return types.IntegrationTypeMaskinporten
+}
+
+func (in *MaskinportenClient) GetInstanceType() string {
+	return reflect.TypeOf(in).String()
+}
+
+func (in *MaskinportenClient) GetSecretMapKey() string {
+	return MaskinportenJwkKey
 }
 
 func (in *MaskinportenClient) GetSecretName() string {

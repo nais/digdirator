@@ -1,12 +1,31 @@
 package v1
 
 import (
+	"fmt"
+	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/labels"
+	"github.com/spf13/viper"
+	"gopkg.in/square/go-jose.v2"
+	"reflect"
 )
 
 func (in *IDPortenClient) CalculateHash() (string, error) {
 	return CalculateHash(in.Spec)
+}
+
+func (in *IDPortenClient) CreateSecretData(jwk jose.JSONWebKey) (map[string]string, error) {
+	wellKnownURL := viper.GetString(config.DigDirAuthBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
+	jwkJson, err := jwk.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("marshalling JWK: %w", err)
+	}
+	return map[string]string{
+		IDPortenJwkKey:       string(jwkJson),
+		IDPortenWellKnownURL: wellKnownURL,
+		IDPortenClientID:     in.GetStatus().GetClientID(),
+		IDPortenRedirectURI:  in.Spec.RedirectURI,
+	}, nil
 }
 
 func (in *IDPortenClient) IsHashUnchanged() (bool, error) {
@@ -15,6 +34,14 @@ func (in *IDPortenClient) IsHashUnchanged() (bool, error) {
 
 func (in *IDPortenClient) GetIntegrationType() types.IntegrationType {
 	return types.IntegrationTypeIDPorten
+}
+
+func (in *IDPortenClient) GetInstanceType() string {
+	return reflect.TypeOf(in).String()
+}
+
+func (in *IDPortenClient) GetSecretMapKey() string {
+	return IDPortenJwkKey
 }
 
 func (in *IDPortenClient) GetSecretName() string {

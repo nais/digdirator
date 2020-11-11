@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/zapr"
-	"github.com/nais/digdirator/controllers/common/reconciler"
+	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/controllers/maskinportenclient"
 	"github.com/nais/digdirator/pkg/config"
@@ -83,7 +83,7 @@ func run() error {
 		return fmt.Errorf("unable to setup signer: %w", err)
 	}
 
-	commonReconciler := reconciler.NewReconciler(
+	commonReconciler := common.NewReconciler(
 		mgr.GetClient(),
 		mgr.GetAPIReader(),
 		mgr.GetScheme(),
