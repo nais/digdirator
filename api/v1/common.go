@@ -9,12 +9,14 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // +kubebuilder:object:generate=false
 type Instance interface {
 	metav1.Object
 	runtime.Object
+	schema.ObjectKind
 	CalculateHash() (string, error)
 	CreateSecretData(jose.JSONWebKey) (map[string]string, error)
 	HasFinalizer(string) bool

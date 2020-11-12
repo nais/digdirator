@@ -45,7 +45,7 @@ func (c Client) ClientExists(desired v1.Instance, ctx context.Context) (*types.C
 	clients := make([]types.ClientRegistration, 0)
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &clients); err != nil {
-		return nil, fmt.Errorf("updating ID-porten client: %w", err)
+		return nil, fmt.Errorf("fetching list of clients from Digdir: %w", err)
 	}
 
 	for _, actual := range clients {

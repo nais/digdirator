@@ -19,8 +19,9 @@ type Config struct {
 }
 
 type DigDir struct {
-	Auth         Auth         `json:"auth"`
-	IDPorten     IDPorten     `json:"idporten"`
+	Auth     Auth     `json:"auth"`
+	IDPorten IDPorten `json:"idporten"`
+	// TODO: unneeded?
 	Maskinporten Maskinporten `json:"maskinporten"`
 }
 
