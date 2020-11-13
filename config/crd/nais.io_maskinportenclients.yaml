@@ -27,8 +27,7 @@ spec:
     - maskinportenclient
     singular: maskinportenclient
   scope: Namespaced
-  subresources:
-    status: {}
+  subresources: {}
   validation:
     openAPIV3Schema:
       description: MaskinportenClient is the Schema for the MaskinportenClient API

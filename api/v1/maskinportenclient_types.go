@@ -8,7 +8,6 @@ import (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=maskinportenclient
-// +kubebuilder:subresource:status
 
 // MaskinportenClient is the Schema for the MaskinportenClient API
 // +kubebuilder:printcolumn:name="Secret",type=string,JSONPath=`.spec.secretName`

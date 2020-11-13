@@ -8,7 +8,6 @@ import (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=idportenclient
-// +kubebuilder:subresource:status
 
 // IDPortenClient is the Schema for the IDPortenClients API
 // +kubebuilder:printcolumn:name="Secret",type=string,JSONPath=`.spec.secretName`

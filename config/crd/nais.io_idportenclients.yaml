@@ -27,8 +27,7 @@ spec:
     - idportenclient
     singular: idportenclient
   scope: Namespaced
-  subresources:
-    status: {}
+  subresources: {}
   validation:
     openAPIV3Schema:
       description: IDPortenClient is the Schema for the IDPortenClients API
