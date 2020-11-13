@@ -13,10 +13,10 @@ const FinalizerName string = "finalizer.digdirator.nais.io"
 // Finalizers allow the controller to implement an asynchronous pre-delete hook
 type finalizer struct {
 	Reconciler
-	Transaction
+	*Transaction
 }
 
-func (r Reconciler) finalizer(transaction Transaction) finalizer {
+func (r Reconciler) finalizer(transaction *Transaction) finalizer {
 	return finalizer{Reconciler: r, Transaction: transaction}
 }
 

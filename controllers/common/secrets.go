@@ -1,12 +1,9 @@
 package common
 
 import (
-	"context"
 	"fmt"
-	"github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/pods"
 	"github.com/nais/digdirator/pkg/secrets"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -18,43 +15,41 @@ import (
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch
 
 type secretsClient struct {
-	ctx      context.Context
-	instance v1.Instance
-	logger   *log.Entry
+	*Transaction
 	Reconciler
 }
 
-func (r Reconciler) secrets(ctx context.Context, instance v1.Instance, logger *log.Entry) secretsClient {
-	return secretsClient{ctx: ctx, instance: instance, logger: logger, Reconciler: r}
+func (r Reconciler) secrets(transaction *Transaction) secretsClient {
+	return secretsClient{Transaction: transaction, Reconciler: r}
 }
 
 func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
-	s.logger.Infof("processing secret with name '%s'...", s.instance.GetSecretName())
-	spec, err := secrets.OpaqueSecret(s.instance, jwk)
+	s.Logger.Infof("processing secret with name '%s'...", s.Instance.GetSecretName())
+	spec, err := secrets.OpaqueSecret(s.Instance, jwk)
 	if err != nil {
 		return fmt.Errorf("creating secret spec: %w", err)
 	}
-	if err := ctrl.SetControllerReference(s.instance, spec, s.Scheme); err != nil {
+	if err := ctrl.SetControllerReference(s.Instance, spec, s.Scheme); err != nil {
 		return fmt.Errorf("setting controller reference: %w", err)
 	}
 
-	err = s.Client.Create(s.ctx, spec)
+	err = s.Client.Create(s.Ctx, spec)
 	res := controllerutil.OperationResultCreated
 
 	if errors.IsAlreadyExists(err) {
-		err = s.Client.Update(s.ctx, spec)
+		err = s.Client.Update(s.Ctx, spec)
 		res = controllerutil.OperationResultUpdated
 	}
 	if err != nil {
 		return fmt.Errorf("applying secretSpec: %w", err)
 	}
-	s.logger.Infof("secret '%s' %s", s.instance.GetSecretName(), res)
+	s.Logger.Infof("secret '%s' %s", s.Instance.GetSecretName(), res)
 	return nil
 }
 
 func (s secretsClient) GetManaged() (*secrets.Lists, error) {
 	// fetch all application pods for this app
-	podList, err := pods.GetForApplication(s.ctx, s.instance, s.Reader)
+	podList, err := pods.GetForApplication(s.Ctx, s.Instance, s.Reader)
 	if err != nil {
 		return nil, err
 	}
@@ -62,10 +57,10 @@ func (s secretsClient) GetManaged() (*secrets.Lists, error) {
 	// fetch all managed secrets
 	var allSecrets corev1.SecretList
 	opts := []client.ListOption{
-		client.InNamespace(s.instance.GetNamespace()),
-		client.MatchingLabels(s.instance.MakeLabels()),
+		client.InNamespace(s.Instance.GetNamespace()),
+		client.MatchingLabels(s.Instance.MakeLabels()),
 	}
-	if err := s.Reader.List(s.ctx, &allSecrets, opts...); err != nil {
+	if err := s.Reader.List(s.Ctx, &allSecrets, opts...); err != nil {
 		return nil, err
 	}
 
@@ -76,11 +71,11 @@ func (s secretsClient) GetManaged() (*secrets.Lists, error) {
 
 func (s secretsClient) DeleteUnused(unused corev1.SecretList) error {
 	for _, oldSecret := range unused.Items {
-		if oldSecret.Name == s.instance.GetSecretName() {
+		if oldSecret.Name == s.Instance.GetSecretName() {
 			continue
 		}
-		s.logger.Infof("deleting unused secret '%s'...", oldSecret.Name)
-		if err := s.Client.Delete(s.ctx, &oldSecret); err != nil {
+		s.Logger.Infof("deleting unused secret '%s'...", oldSecret.Name)
+		if err := s.Client.Delete(s.Ctx, &oldSecret); err != nil {
 			return fmt.Errorf("deleting unused secret: %w", err)
 		}
 	}
