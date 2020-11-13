@@ -33,14 +33,14 @@ func TestMain(m *testing.M) {
 
 func TestIDPortenController(t *testing.T) {
 	cfg := fixtures.Config{
-		DigidirClientName: "test-client",
-		NamespaceName:     "test-namespace",
-		SecretName:        "test-secret",
-		UnusedSecretName:  "test-unused-secret",
+		DigdirClientName: "test-client",
+		NamespaceName:    "test-namespace",
+		SecretName:       "test-secret",
+		UnusedSecretName: "test-unused-secret",
 	}
 
 	// set up preconditions for cluster
-	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithIDPortenClient().WithPod().WithUnusedSecret(labels.IDPortenTypeLabelValue)
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithIDPortenClient().WithPods().WithUnusedSecret(labels.IDPortenTypeLabelValue)
 
 	// create IDPortenClient
 	if err := clusterFixtures.Setup(); err != nil {

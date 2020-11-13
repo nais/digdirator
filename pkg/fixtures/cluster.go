@@ -22,17 +22,18 @@ type ClusterFixtures struct {
 	maskinportenClient *v1.MaskinportenClient
 	namespace          *corev1.Namespace
 	pod                *corev1.Pod
+	podEnvFrom         *corev1.Pod
 	unusedSecret       *corev1.Secret
 }
 
 type Config struct {
-	DigidirClientName string
-	NamespaceName     string
-	SecretName        string
-	UnusedSecretName  string
+	DigdirClientName string
+	NamespaceName    string
+	SecretName       string
+	UnusedSecretName string
 }
 
-type Resource struct {
+type resource struct {
 	client.ObjectKey
 	runtime.Object
 }
@@ -61,7 +62,7 @@ func (c ClusterFixtures) WithNamespace() ClusterFixtures {
 func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 	key := types.NamespacedName{
 		Namespace: c.NamespaceName,
-		Name:      c.DigidirClientName,
+		Name:      c.DigdirClientName,
 	}
 
 	spec := v1.IDPortenClientSpec{
@@ -86,7 +87,7 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 	key := types.NamespacedName{
 		Namespace: c.NamespaceName,
-		Name:      c.DigidirClientName,
+		Name:      c.DigdirClientName,
 	}
 
 	spec := v1.MaskinportenClientSpec{
@@ -106,10 +107,10 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 	return c
 }
 
-func (c ClusterFixtures) WithPod() ClusterFixtures {
+func (c ClusterFixtures) WithPods() ClusterFixtures {
 	key := types.NamespacedName{
 		Namespace: c.NamespaceName,
-		Name:      c.DigidirClientName,
+		Name:      c.DigdirClientName,
 	}
 	c.pod = &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -142,6 +143,36 @@ func (c ClusterFixtures) WithPod() ClusterFixtures {
 			},
 		},
 	}
+	c.podEnvFrom = &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-envfrom", key.Name),
+			Namespace: c.NamespaceName,
+			Labels: map[string]string{
+				labels.AppLabelKey: key.Name,
+			},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "main",
+					Image: "foo",
+					EnvFrom: []corev1.EnvFromSource{
+						{
+							SecretRef: &corev1.SecretEnvSource{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: c.SecretName,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 	return c
 }
 
@@ -155,7 +186,7 @@ func (c ClusterFixtures) WithUnusedSecret(label string) ClusterFixtures {
 			Name:      c.UnusedSecretName,
 			Namespace: c.NamespaceName,
 			Labels: map[string]string{
-				labels.AppLabelKey:  c.DigidirClientName,
+				labels.AppLabelKey:  c.DigdirClientName,
 				labels.TypeLabelKey: label,
 			},
 		},
@@ -185,6 +216,11 @@ func (c ClusterFixtures) Setup() error {
 			return err
 		}
 	}
+	if c.podEnvFrom != nil {
+		if err := c.Create(ctx, c.podEnvFrom); err != nil {
+			return err
+		}
+	}
 	if c.unusedSecret != nil {
 		if err := c.Create(ctx, c.unusedSecret); err != nil {
 			return err
@@ -194,21 +230,48 @@ func (c ClusterFixtures) Setup() error {
 }
 
 func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
-	resources := make([]Resource, 0)
-	if c.idPortenClient != nil {
-		resources = append(resources, Resource{
+	resources := make([]resource, 0)
+	if c.unusedSecret != nil {
+		resources = append(resources, resource{
 			ObjectKey: client.ObjectKey{
 				Namespace: c.NamespaceName,
-				Name:      c.DigidirClientName,
+				Name:      c.UnusedSecretName,
+			},
+			Object: &corev1.Secret{},
+		})
+	}
+	if c.pod != nil {
+		resources = append(resources, resource{
+			ObjectKey: client.ObjectKey{
+				Namespace: c.NamespaceName,
+				Name:      c.DigdirClientName,
+			},
+			Object: &corev1.Pod{},
+		})
+	}
+	if c.podEnvFrom != nil {
+		resources = append(resources, resource{
+			ObjectKey: client.ObjectKey{
+				Namespace: c.NamespaceName,
+				Name:      fmt.Sprintf("%s-envfrom", c.DigdirClientName),
+			},
+			Object: &corev1.Pod{},
+		})
+	}
+	if c.idPortenClient != nil {
+		resources = append(resources, resource{
+			ObjectKey: client.ObjectKey{
+				Namespace: c.NamespaceName,
+				Name:      c.DigdirClientName,
 			},
 			Object: &v1.IDPortenClient{},
 		})
 	}
 	if c.maskinportenClient != nil {
-		resources = append(resources, Resource{
+		resources = append(resources, resource{
 			ObjectKey: client.ObjectKey{
 				Namespace: c.NamespaceName,
-				Name:      c.DigidirClientName,
+				Name:      c.DigdirClientName,
 			},
 			Object: &v1.MaskinportenClient{},
 		})
@@ -233,7 +296,7 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 	}
 }
 
-func allExists(ctx context.Context, cli client.Client, resources []Resource) (bool, error) {
+func allExists(ctx context.Context, cli client.Client, resources []resource) (bool, error) {
 	for _, resource := range resources {
 		err := cli.Get(ctx, resource.ObjectKey, resource.Object)
 		if err == nil {

@@ -33,14 +33,14 @@ func TestMain(m *testing.M) {
 
 func TestMaskinportenController(t *testing.T) {
 	cfg := fixtures.Config{
-		DigidirClientName: "test-client",
-		NamespaceName:     "test-namespace",
-		SecretName:        "test-secret",
-		UnusedSecretName:  "test-unused-secret",
+		DigdirClientName: "test-client",
+		NamespaceName:    "test-namespace",
+		SecretName:       "test-secret",
+		UnusedSecretName: "test-unused-secret",
 	}
 
 	// set up preconditions for cluster
-	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithMaskinportenClient().WithPod().WithUnusedSecret(labels.MaskinportenTypeLabelValue)
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithMaskinportenClient().WithPods().WithUnusedSecret(labels.MaskinportenTypeLabelValue)
 
 	// create MaskinportenClient
 	if err := clusterFixtures.Setup(); err != nil {
