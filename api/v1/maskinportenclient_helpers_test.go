@@ -33,16 +33,16 @@ func TestMaskinportenClient_MakeLabels(t *testing.T) {
 	assert.Equal(t, app.MakeLabels(), expected)
 }
 
-func TestMaskinportenClient_IsHashUnchanged(t *testing.T) {
-	t.Run("Minimal Application should have unchanged hash value", func(t *testing.T) {
-		actual, err := minimalMaskinportenClient().IsHashUnchanged()
+func TestMaskinportenClient_IsUpToDate(t *testing.T) {
+	t.Run("Minimal Application should be up-to-date", func(t *testing.T) {
+		actual, err := minimalMaskinportenClient().IsUpToDate()
 		assert.NoError(t, err)
 		assert.True(t, actual)
 	})
-	t.Run("Application with changed value should have changed hash value", func(t *testing.T) {
+	t.Run("Application with changed value should not be up-to-date", func(t *testing.T) {
 		app := minimalMaskinportenClient()
 		app.Spec.SecretName = "changed"
-		actual, err := app.IsHashUnchanged()
+		actual, err := app.IsUpToDate()
 		assert.NoError(t, err)
 		assert.False(t, actual)
 	})
@@ -57,7 +57,7 @@ func TestMaskinportenClient_SetHash(t *testing.T) {
 	hash, err := app.CalculateHash()
 	assert.NoError(t, err)
 	app.GetStatus().SetHash(hash)
-	assert.Equal(t, "71be23172e3367b5", app.GetStatus().GetHash())
+	assert.Equal(t, "71be23172e3367b5", app.GetStatus().GetSynchronizationHash())
 }
 
 func TestMaskinportenClient_GetIntegrationType(t *testing.T) {
@@ -113,7 +113,8 @@ func minimalMaskinportenClient() *v1.MaskinportenClient {
 			Scopes: nil,
 		},
 		Status: v1.ClientStatus{
-			ProvisionHash: expectedMaskinportenClientHash,
+			SynchronizationHash:  expectedMaskinportenClientHash,
+			SynchronizationState: v1.EventSynchronized,
 		},
 	}
 }

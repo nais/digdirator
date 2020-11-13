@@ -21,7 +21,7 @@ type Instance interface {
 	CreateSecretData(jose.JSONWebKey) (map[string]string, error)
 	HasFinalizer(string) bool
 	IsBeingDeleted() bool
-	IsHashUnchanged() (bool, error)
+	IsUpToDate() (bool, error)
 	GetIntegrationType() types.IntegrationType
 	GetInstanceType() string
 	GetSecretMapKey() string
@@ -34,25 +34,36 @@ type Instance interface {
 
 // ClientStatus defines the observed state of Current Client
 type ClientStatus struct {
-	// ClientID is the current Client ID
-	ClientID string `json:"clientID"`
-	// Timestamp is the last time the Status subresource was updated
-	Timestamp metav1.Time `json:"timestamp,omitempty"`
-	// ProvisionHash is the hash of the Current Client object
-	ProvisionHash string `json:"provisionHash,omitempty"`
+	// SynchronizationState denotes the last known state of the Instance during synchronization
+	SynchronizationState string `json:"synchronizationState,omitempty"`
+	// SynchronizationTime is the last time the Status subresource was updated
+	SynchronizationTime *metav1.Time `json:"synchronizationTime,omitempty"`
+	// SynchronizationHash is the hash of the Instance object
+	SynchronizationHash string `json:"synchronizationHash,omitempty"`
+	// ClientID is the corresponding client ID for this client at Digdir
+	ClientID string `json:"clientID,omitempty"`
 	// CorrelationID is the ID referencing the processing transaction last performed on this resource
-	CorrelationID string `json:"correlationID"`
+	CorrelationID string `json:"correlationID,omitempty"`
 	// KeyIDs is the list of key IDs for valid JWKs registered for the client at Digdir
-	KeyIDs []string `json:"keyIDs"`
+	KeyIDs []string `json:"keyIDs,omitempty"`
 }
 
-func (in *ClientStatus) GetHash() string {
-	return in.ProvisionHash
+func (in *ClientStatus) GetSynchronizationHash() string {
+	return in.SynchronizationHash
 }
 
 func (in *ClientStatus) SetHash(hash string) {
-	in.Timestamp = metav1.Now()
-	in.ProvisionHash = hash
+	in.SynchronizationHash = hash
+}
+
+func (in *ClientStatus) SetStateSynchronized() {
+	now := metav1.Now()
+	in.SynchronizationTime = &now
+	in.SynchronizationState = EventSynchronized
+}
+
+func (in *ClientStatus) GetSynchronizationState() string {
+	return in.SynchronizationState
 }
 
 func (in *ClientStatus) GetClientID() string {
@@ -73,6 +84,10 @@ func (in *ClientStatus) GetKeyIDs() []string {
 
 func (in *ClientStatus) SetKeyIDs(keyIDs []string) {
 	in.KeyIDs = keyIDs
+}
+
+func (in *ClientStatus) SetSynchronizationState(state string) {
+	in.SynchronizationState = state
 }
 
 func isBeingDeleted(instance Instance) bool {
@@ -98,10 +113,19 @@ func calculateHash(in interface{}) (string, error) {
 }
 
 func isHashUnchanged(instance Instance) (bool, error) {
-	previousHash := instance.GetStatus().GetHash()
+	previousHash := instance.GetStatus().GetSynchronizationHash()
 	currentHash, err := instance.CalculateHash()
 	if err != nil {
 		return false, fmt.Errorf("calculating hash while comparing hashes: %w", err)
 	}
 	return previousHash == currentHash, nil
+}
+
+func isUpToDate(instance Instance) (bool, error) {
+	hashUnchanged, err := isHashUnchanged(instance)
+	if err != nil {
+		return false, err
+	}
+	isSynchronized := instance.GetStatus().GetSynchronizationState() == EventSynchronized
+	return hashUnchanged && isSynchronized, nil
 }

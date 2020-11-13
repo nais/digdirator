@@ -57,8 +57,8 @@ func (in *MaskinportenClient) IsBeingDeleted() bool {
 	return isBeingDeleted(in)
 }
 
-func (in *MaskinportenClient) IsHashUnchanged() (bool, error) {
-	return isHashUnchanged(in)
+func (in *MaskinportenClient) IsUpToDate() (bool, error) {
+	return isUpToDate(in)
 }
 
 func (in *MaskinportenClient) MakeLabels() map[string]string {

@@ -70,7 +70,8 @@ spec:
           description: ClientStatus defines the observed state of Current Client
           properties:
             clientID:
-              description: ClientID is the current Client ID
+              description: ClientID is the corresponding client ID for this client
+                at Digdir
               type: string
             correlationID:
               description: CorrelationID is the ID referencing the processing transaction
@@ -82,17 +83,18 @@ spec:
               items:
                 type: string
               type: array
-            provisionHash:
-              description: ProvisionHash is the hash of the Current Client object
+            synchronizationHash:
+              description: SynchronizationHash is the hash of the Instance object
               type: string
-            timestamp:
-              description: Timestamp is the last time the Status subresource was updated
+            synchronizationState:
+              description: SynchronizationState denotes the last known state of the
+                Instance during synchronization
+              type: string
+            synchronizationTime:
+              description: SynchronizationTime is the last time the Status subresource
+                was updated
               format: date-time
               type: string
-          required:
-          - clientID
-          - correlationID
-          - keyIDs
           type: object
       type: object
   version: v1

@@ -33,16 +33,16 @@ func TestIDPortenClient_MakeLabels(t *testing.T) {
 	assert.Equal(t, app.MakeLabels(), expected)
 }
 
-func TestIDPortenClient_IsHashUnchanged(t *testing.T) {
-	t.Run("Minimal Application should have unchanged hash value", func(t *testing.T) {
-		actual, err := minimalIDPortenClient().IsHashUnchanged()
+func TestIDPortenClient_IsUpToDate(t *testing.T) {
+	t.Run("Minimal Application should be up-to-date", func(t *testing.T) {
+		actual, err := minimalIDPortenClient().IsUpToDate()
 		assert.NoError(t, err)
 		assert.True(t, actual)
 	})
-	t.Run("Application with changed value should have changed hash value", func(t *testing.T) {
+	t.Run("Application with changed value should not be up-to-date", func(t *testing.T) {
 		app := minimalIDPortenClient()
 		app.Spec.ClientURI = "changed"
-		actual, err := app.IsHashUnchanged()
+		actual, err := app.IsUpToDate()
 		assert.NoError(t, err)
 		assert.False(t, actual)
 	})
@@ -55,7 +55,7 @@ func TestIDPortenClient_SetHash(t *testing.T) {
 	hash, err := app.CalculateHash()
 	assert.NoError(t, err)
 	app.GetStatus().SetHash(hash)
-	assert.Equal(t, "f409103c18d3017b", app.GetStatus().GetHash())
+	assert.Equal(t, "f409103c18d3017b", app.GetStatus().GetSynchronizationHash())
 }
 
 func TestIDPortenClient_IntegrationType(t *testing.T) {
@@ -112,7 +112,8 @@ func minimalIDPortenClient() *v1.IDPortenClient {
 			RefreshTokenLifetime:   3600,
 		},
 		Status: v1.ClientStatus{
-			ProvisionHash: expectedIDPortenClientHash,
+			SynchronizationHash:  expectedIDPortenClientHash,
+			SynchronizationState: v1.EventSynchronized,
 		},
 	}
 }

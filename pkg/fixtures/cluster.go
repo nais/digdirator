@@ -277,7 +277,7 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 		})
 	}
 
-	timeout := time.NewTimer(5 * time.Second)
+	timeout := time.NewTimer(10 * time.Second)
 	ticker := time.NewTicker(100 * time.Millisecond)
 
 	for {

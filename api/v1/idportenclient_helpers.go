@@ -56,8 +56,8 @@ func (in *IDPortenClient) IsBeingDeleted() bool {
 	return isBeingDeleted(in)
 }
 
-func (in *IDPortenClient) IsHashUnchanged() (bool, error) {
-	return isHashUnchanged(in)
+func (in *IDPortenClient) IsUpToDate() (bool, error) {
+	return isUpToDate(in)
 }
 
 func (in *IDPortenClient) MakeLabels() map[string]string {

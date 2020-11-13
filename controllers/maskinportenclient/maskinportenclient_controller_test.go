@@ -56,15 +56,16 @@ func TestMaskinportenController(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		assert.NoError(t, err)
-		b, err := instance.IsHashUnchanged()
+		b, err := instance.IsUpToDate()
 		assert.NoError(t, err)
 		return b
 	}, test.Timeout, test.Interval, "MaskinportenClient should be synchronized")
 	assert.NotEmpty(t, instance.Status.ClientID)
 	assert.NotEmpty(t, instance.Status.KeyIDs)
-	assert.NotEmpty(t, instance.Status.ProvisionHash)
 	assert.NotEmpty(t, instance.Status.CorrelationID)
-	assert.NotEmpty(t, instance.Status.Timestamp)
+	assert.NotEmpty(t, instance.Status.SynchronizationHash)
+	assert.NotEmpty(t, instance.Status.SynchronizationTime)
+	assert.Equal(t, v1.EventSynchronized, instance.Status.SynchronizationState)
 
 	assert.Equal(t, clientID, instance.Status.ClientID)
 	assert.Contains(t, instance.Status.KeyIDs, "some-keyid")
@@ -80,7 +81,7 @@ func TestMaskinportenController(t *testing.T) {
 
 	// update MaskinportenClient
 	previousSecretName := cfg.SecretName
-	previousHash := instance.Status.ProvisionHash
+	previousHash := instance.Status.SynchronizationHash
 	previousCorrelationID := instance.Status.CorrelationID
 
 	// set new secretname in spec -> trigger update
@@ -92,7 +93,7 @@ func TestMaskinportenController(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		assert.NoError(t, err)
-		return previousHash != instance.Status.ProvisionHash
+		return previousHash != instance.Status.SynchronizationHash
 	}, test.Timeout, test.Interval, "new hash should be set")
 
 	assert.Equal(t, clientID, instance.Status.ClientID, "client ID should still match")
@@ -100,6 +101,9 @@ func TestMaskinportenController(t *testing.T) {
 	assert.Contains(t, instance.Status.KeyIDs, "some-keyid", "previous key should still be valid")
 	assert.Contains(t, instance.Status.KeyIDs, "some-new-keyid", "new key should be valid")
 	assert.NotEqual(t, previousCorrelationID, instance.Status.CorrelationID, "should generate new correlation ID")
+	assert.NotEmpty(t, instance.Status.SynchronizationHash)
+	assert.NotEmpty(t, instance.Status.SynchronizationTime)
+	assert.Equal(t, v1.EventSynchronized, instance.Status.SynchronizationState)
 
 	// new secret should exist
 	test.AssertSecretExists(t, cli, instance.Spec.SecretName, cfg.NamespaceName, instance, secretAssertions)

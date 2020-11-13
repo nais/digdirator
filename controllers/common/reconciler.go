@@ -75,7 +75,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance v1.Instance) (ctrl.Res
 		return finalizer.Register()
 	}
 
-	if hashUnchanged, err := tx.Instance.IsHashUnchanged(); hashUnchanged {
+	if isUpToDate, err := tx.Instance.IsUpToDate(); isUpToDate {
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -129,9 +129,11 @@ func (r *Reconciler) process(tx *Transaction) error {
 	registrationPayload := tx.Instance.ToClientRegistration()
 	if instanceClient != nil {
 		instanceClient, err = r.updateClient(tx, registrationPayload, instanceClient.ClientID)
+		r.reportEvent(tx, corev1.EventTypeNormal, v1.EventUpdatedInDigDir, "Client is updated")
 		metrics.IncClientsUpdated(tx.Instance)
 	} else {
 		instanceClient, err = r.createClient(tx, registrationPayload)
+		r.reportEvent(tx, corev1.EventTypeNormal, v1.EventCreatedInDigDir, "Client is registered")
 		metrics.IncClientsCreated(tx.Instance)
 	}
 	if err != nil {
@@ -156,6 +158,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 	if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
 		return err
 	}
+	r.reportEvent(tx, corev1.EventTypeNormal, v1.EventRotatedInDigDir, "Client credentials is rotated")
 	metrics.IncClientsRotated(tx.Instance)
 
 	if err := secretsClient.CreateOrUpdate(*jwk); err != nil {
@@ -218,9 +221,10 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 
 func (r *Reconciler) handleError(tx *Transaction, err error) (ctrl.Result, error) {
 	tx.Logger.Error(fmt.Errorf("processing client: %w", err))
-	r.Recorder.Event(tx.Instance, corev1.EventTypeWarning, "Failed", fmt.Sprintf("Failed to synchronize client, retrying in %s", RequeueInterval))
-	metrics.IncClientsFailedProcessing(tx.Instance)
+	r.reportEvent(tx, corev1.EventTypeWarning, v1.EventFailedSynchronization, "Failed to synchronize client")
 
+	metrics.IncClientsFailedProcessing(tx.Instance)
+	r.reportEvent(tx, corev1.EventTypeNormal, v1.EventRetrying, "Retrying synchronization")
 	return ctrl.Result{RequeueAfter: RequeueInterval}, nil
 }
 
@@ -232,16 +236,23 @@ func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 	tx.Instance.GetStatus().SetHash(hash)
+	tx.Instance.GetStatus().SetStateSynchronized()
 
-	if err := r.Client.Status().Update(tx.Ctx, tx.Instance); err != nil {
+	if err := r.Client.Update(tx.Ctx, tx.Instance); err != nil {
+		r.reportEvent(tx, corev1.EventTypeWarning, v1.EventFailedStatusUpdate, "Failed to update status")
 		return ctrl.Result{}, fmt.Errorf("updating status subresource: %w", err)
 	}
 
 	tx.Logger.Info("status subresource successfully updated")
 
-	r.Recorder.Event(tx.Instance, corev1.EventTypeNormal, "Synchronized", "client is up-to-date")
+	r.reportEvent(tx, corev1.EventTypeNormal, v1.EventSynchronized, "Client is up-to-date")
 	tx.Logger.Info("successfully reconciled")
 	metrics.IncClientsProcessed(tx.Instance)
 
 	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) reportEvent(tx *Transaction, eventType, event, message string) {
+	tx.Instance.GetStatus().SetSynchronizationState(event)
+	r.Recorder.Event(tx.Instance, eventType, event, message)
 }

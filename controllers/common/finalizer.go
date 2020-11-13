@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -27,7 +28,7 @@ func (f finalizer) Register() (ctrl.Result, error) {
 		if err := f.Client.Update(f.Ctx, f.Instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("registering finalizer: %w", err)
 		}
-		f.Recorder.Event(f.Instance, corev1.EventTypeNormal, "Added", "Object finalizer is added")
+		f.reportEvent(f.Transaction, corev1.EventTypeNormal, v1.EventAddedFinalizer, "Object finalizer is added")
 	}
 	return ctrl.Result{}, nil
 }
@@ -52,11 +53,13 @@ func (f finalizer) Process() (ctrl.Result, error) {
 	if err := f.DigdirClient.Delete(f.Ctx, f.Instance.GetStatus().GetClientID()); err != nil {
 		return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
 	}
+	f.reportEvent(f.Transaction, corev1.EventTypeNormal, v1.EventDeletedInDigDir, "Client deleted in Digdir")
 
 	controllerutil.RemoveFinalizer(f.Instance, FinalizerName)
 	if err := f.Client.Update(f.Ctx, f.Instance); err != nil {
 		return ctrl.Result{}, fmt.Errorf("removing finalizer from list: %w", err)
 	}
+	f.reportEvent(f.Transaction, corev1.EventTypeNormal, v1.EventDeletedFinalizer, "Object finalizer is removed")
 	metrics.IncClientsDeleted(f.Instance)
 
 	f.Logger.Info("finalizer processing completed")
