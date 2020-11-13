@@ -137,10 +137,10 @@ func (r *Reconciler) process(tx *Transaction) error {
 	registrationPayload := tx.Instance.ToClientRegistration()
 	if instanceClient != nil {
 		instanceClient, err = r.updateClient(tx, registrationPayload, instanceClient.ClientID)
-		metrics.IncWithNamespaceLabel(metrics.IDPortenClientsUpdatedCount, tx.Instance.GetNamespace())
+		metrics.IncClientsUpdated(tx.Instance)
 	} else {
 		instanceClient, err = r.createClient(tx, registrationPayload)
-		metrics.IncWithNamespaceLabel(metrics.IDPortenClientsCreatedCount, tx.Instance.GetNamespace())
+		metrics.IncClientsCreated(tx.Instance)
 	}
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 	if err := r.registerJwk(tx, *jwk, instanceClient.ClientID); err != nil {
 		return err
 	}
-	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsRotatedCount, tx.Instance.GetNamespace())
+	metrics.IncClientsRotated(tx.Instance)
 
 	if err := tx.SecretsClient.CreateOrUpdate(*jwk); err != nil {
 		return fmt.Errorf("creating or updating secret: %w", err)
@@ -220,7 +220,7 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, clientID 
 func (r *Reconciler) handleError(tx *Transaction, err error) (ctrl.Result, error) {
 	tx.Logger.Error(fmt.Errorf("processing client: %w", err))
 	r.Recorder.Event(tx.Instance, corev1.EventTypeWarning, "Failed", fmt.Sprintf("Failed to synchronize client, retrying in %s", RequeueInterval))
-	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsFailedProcessingCount, tx.Instance.GetNamespace())
+	metrics.IncClientsFailedProcessing(tx.Instance)
 
 	return ctrl.Result{RequeueAfter: RequeueInterval}, nil
 }
@@ -242,7 +242,7 @@ func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
 
 	r.Recorder.Event(tx.Instance, corev1.EventTypeNormal, "Synchronized", "client is up-to-date")
 	tx.Logger.Info("successfully reconciled")
-	metrics.IncWithNamespaceLabel(metrics.IDPortenClientsProcessedCount, tx.Instance.GetNamespace())
+	metrics.IncClientsProcessed(tx.Instance)
 
 	return ctrl.Result{}, nil
 }

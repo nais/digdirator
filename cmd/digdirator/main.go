@@ -77,7 +77,6 @@ func run() error {
 	}
 
 	// TODO Signer for maskinporten clients
-	// TODO Metrics for maskinporten?
 	signer, err := setupSigner(cfg)
 	if err != nil {
 		return fmt.Errorf("unable to setup signer: %w", err)

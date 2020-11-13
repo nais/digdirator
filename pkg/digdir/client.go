@@ -25,7 +25,7 @@ type Client struct {
 }
 
 func (c Client) Register(ctx context.Context, payload types.ClientRegistration) (*types.ClientRegistration, error) {
-	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.IDPorten.BaseURL)
+	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.Admin.BaseURL)
 	registration := &types.ClientRegistration{}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -41,7 +41,7 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 }
 
 func (c Client) ClientExists(desired v1.Instance, ctx context.Context) (*types.ClientRegistration, error) {
-	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.IDPorten.BaseURL)
+	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.Admin.BaseURL)
 	clients := make([]types.ClientRegistration, 0)
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &clients); err != nil {
@@ -57,7 +57,7 @@ func (c Client) ClientExists(desired v1.Instance, ctx context.Context) (*types.C
 }
 
 func (c Client) Update(ctx context.Context, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {
-	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.IDPorten.BaseURL, clientID)
+	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.Admin.BaseURL, clientID)
 	registration := &types.ClientRegistration{}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -72,7 +72,7 @@ func (c Client) Update(ctx context.Context, payload types.ClientRegistration, cl
 }
 
 func (c Client) Delete(ctx context.Context, clientID string) error {
-	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.IDPorten.BaseURL, clientID)
+	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.Admin.BaseURL, clientID)
 	if err := c.request(ctx, http.MethodDelete, endpoint, nil, nil); err != nil {
 		return fmt.Errorf("deleting ID-porten client: %w", err)
 	}
@@ -80,7 +80,7 @@ func (c Client) Delete(ctx context.Context, clientID string) error {
 }
 
 func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose.JSONWebKeySet) (*types.JwksResponse, error) {
-	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.IDPorten.BaseURL, clientID)
+	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.Admin.BaseURL, clientID)
 	response := &types.JwksResponse{}
 
 	jsonPayload, err := json.Marshal(payload)

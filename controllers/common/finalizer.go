@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/nais/digdirator/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -49,6 +50,7 @@ func (f finalizer) Process() (ctrl.Result, error) {
 	if err := f.Client.Update(f.Ctx, f.Instance); err != nil {
 		return ctrl.Result{}, fmt.Errorf("removing finalizer from list: %w", err)
 	}
+	metrics.IncClientsDeleted(f.Instance)
 
 	f.Logger.Info("finalizer processing completed")
 	return ctrl.Result{}, nil
