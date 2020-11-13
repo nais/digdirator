@@ -201,13 +201,8 @@ func (c ClusterFixtures) Setup() error {
 			return err
 		}
 	}
-	if c.idPortenClient != nil {
-		if err := c.Create(ctx, c.idPortenClient); err != nil {
-			return err
-		}
-	}
-	if c.maskinportenClient != nil {
-		if err := c.Create(ctx, c.maskinportenClient); err != nil {
+	if c.unusedSecret != nil {
+		if err := c.Create(ctx, c.unusedSecret); err != nil {
 			return err
 		}
 	}
@@ -221,8 +216,13 @@ func (c ClusterFixtures) Setup() error {
 			return err
 		}
 	}
-	if c.unusedSecret != nil {
-		if err := c.Create(ctx, c.unusedSecret); err != nil {
+	if c.idPortenClient != nil {
+		if err := c.Create(ctx, c.idPortenClient); err != nil {
+			return err
+		}
+	}
+	if c.maskinportenClient != nil {
+		if err := c.Create(ctx, c.maskinportenClient); err != nil {
 			return err
 		}
 	}
@@ -277,7 +277,7 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 		})
 	}
 
-	timeout := time.NewTimer(10 * time.Second)
+	timeout := time.NewTimer(5 * time.Second)
 	ticker := time.NewTicker(100 * time.Millisecond)
 
 	for {
