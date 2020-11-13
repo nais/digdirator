@@ -77,7 +77,7 @@ func SetupTestEnv(clientID string, handlerType HandlerType) (*envtest.Environmen
 	testServer := httptest.NewServer(DigdirHandler(clientID, handlerType))
 	httpClient := testServer.Client()
 	digdiratorConfig.ClusterName = "test-cluster"
-	digdiratorConfig.DigDir.Auth.BaseURL = testServer.URL
+	digdiratorConfig.DigDir.Admin.BaseURL = testServer.URL
 	digdiratorConfig.DigDir.IDPorten.BaseURL = testServer.URL
 
 	commonReconciler := common.NewReconciler(

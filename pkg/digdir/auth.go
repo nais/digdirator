@@ -35,7 +35,7 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 		return nil, fmt.Errorf("generating JWT for ID-porten auth: %w", err)
 	}
 
-	endpoint := c.Config.DigDir.Auth.BaseURL + "/idporten-oidc-provider/token"
+	endpoint := c.Config.DigDir.IDPorten.BaseURL + "/idporten-oidc-provider/token"
 
 	req, err := authRequest(ctx, endpoint, token)
 	if err != nil {

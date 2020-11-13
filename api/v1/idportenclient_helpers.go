@@ -15,7 +15,7 @@ func (in *IDPortenClient) CalculateHash() (string, error) {
 }
 
 func (in *IDPortenClient) CreateSecretData(jwk jose.JSONWebKey) (map[string]string, error) {
-	wellKnownURL := viper.GetString(config.DigDirAuthBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
+	wellKnownURL := viper.GetString(config.DigDirIDPortenBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
 	jwkJson, err := jwk.MarshalJSON()
 	if err != nil {
 		return nil, fmt.Errorf("marshalling JWK: %w", err)

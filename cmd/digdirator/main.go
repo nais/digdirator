@@ -167,11 +167,11 @@ func setupConfig() (*config.Config, error) {
 
 	if err = cfg.Validate([]string{
 		config.ClusterName,
+		config.DigDirAdminBaseURL,
 		config.DigDirAuthAudience,
 		config.DigDirAuthClientID,
 		config.DigDirAuthCertChainPath,
 		config.DigDirAuthScopes,
-		config.DigDirAuthBaseURL,
 		config.DigDirIDPortenBaseURL,
 		config.DigDirMaskinportenBaseURL,
 		config.DigDirAuthKmsKeyPath,

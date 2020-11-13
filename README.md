@@ -35,17 +35,18 @@ Set up the required environment variables as per the [config](./pkg/config/confi
 # ./digdirator.yaml
 
 digdir:
+  admin:
+    base-url: "base URL for digdir admin API"
   auth:
     audience: "audience for JWT assertion"
     client-id: "client ID / issuer for JWT assertion"
     cert-chain-path: "Path to PEM file containing certificate chain for authenticating to DigDir."
     scopes: "space separated list of scopes for JWT assertion"
-    base-url: "base URL endpoint for idporten idp"
     kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
   idporten:
-    base-url: "base URL endpoint for idporten oidc admin api"
+    base-url: "base URL endpoint for idporten API"
   maskinporten:
-    base-url: "base URL endpoint for maskinporten api"
+    base-url: "base URL endpoint for maskinporten API"
 cluster-name: local
 development-mode: true
 ```

@@ -79,7 +79,7 @@ func TestIDPortenClient_CreateSecretData(t *testing.T) {
 			assert.Equal(t, string(expected), stringData[v1.IDPortenJwkKey])
 		})
 		t.Run("Secret Data should contain "+v1.IDPortenWellKnownURL, func(t *testing.T) {
-			expected := viper.GetString(config.DigDirAuthBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
+			expected := viper.GetString(config.DigDirIDPortenBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
 			assert.Equal(t, expected, stringData[v1.IDPortenWellKnownURL])
 		})
 		t.Run("Secret Data should contain "+v1.IDPortenClientID, func(t *testing.T) {
