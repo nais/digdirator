@@ -91,7 +91,9 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 
 	spec := v1.MaskinportenClientSpec{
 		SecretName: c.SecretName,
-		Scopes:     []string{"scopes"},
+		Scopes: []v1.MaskinportenScope{
+			{Scope: "scopes"},
+		},
 	}
 	c.maskinportenClient = &v1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{

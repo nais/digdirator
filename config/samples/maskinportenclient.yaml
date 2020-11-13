@@ -7,4 +7,4 @@ metadata:
 spec:
   secretName: my-secret
   scopes:
-    - "nav:test/api"
+    - scope: "nav:test/api"

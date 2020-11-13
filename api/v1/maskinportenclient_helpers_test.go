@@ -50,12 +50,14 @@ func TestMaskinportenClient_IsHashUnchanged(t *testing.T) {
 
 func TestMaskinportenClient_SetHash(t *testing.T) {
 	app := minimalMaskinportenClient()
-	app.Spec.Scopes = []string{"some:another/scope"}
+	app.Spec.Scopes = []v1.MaskinportenScope{
+		{Scope: "some:another/scope"},
+	}
 
 	hash, err := app.CalculateHash()
 	assert.NoError(t, err)
 	app.GetStatus().SetHash(hash)
-	assert.Equal(t, "ddbcd7f2b2711184", app.GetStatus().GetHash())
+	assert.Equal(t, "71be23172e3367b5", app.GetStatus().GetHash())
 }
 
 func TestMaskinportenClient_GetIntegrationType(t *testing.T) {
@@ -65,7 +67,10 @@ func TestMaskinportenClient_GetIntegrationType(t *testing.T) {
 
 func TestMaskinporten_CreateSecretData(t *testing.T) {
 	client := minimalMaskinportenClient()
-	client.Spec.Scopes = []string{"scope:one", "scope:two"}
+	client.Spec.Scopes = []v1.MaskinportenScope{
+		{Scope: "scope:one"},
+		{Scope: "scope:two"},
+	}
 
 	jwk, err := crypto.GenerateJwk()
 	assert.NoError(t, err)

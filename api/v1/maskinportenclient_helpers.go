@@ -25,7 +25,7 @@ func (in *MaskinportenClient) CreateSecretData(jwk jose.JSONWebKey) (map[string]
 		MaskinportenJwkKey:       string(jwkJson),
 		MaskinportenWellKnownURL: wellKnownURL,
 		MaskinportenClientID:     in.GetStatus().GetClientID(),
-		MaskinportenScopes:       strings.Join(in.Spec.Scopes, " "),
+		MaskinportenScopes:       strings.Join(in.GetScopes(), " "),
 	}, nil
 }
 
@@ -87,7 +87,15 @@ func (in MaskinportenClient) ToClientRegistration() types.ClientRegistration {
 		RedirectURIs:            nil,
 		RefreshTokenLifetime:    0,
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
-		Scopes:                  in.Spec.Scopes,
+		Scopes:                  in.GetScopes(),
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
+}
+
+func (in *MaskinportenClient) GetScopes() []string {
+	scopes := make([]string, 0)
+	for _, scope := range in.Spec.Scopes {
+		scopes = append(scopes, scope.Scope)
+	}
+	return scopes
 }
