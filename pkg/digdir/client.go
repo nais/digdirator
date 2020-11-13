@@ -50,6 +50,7 @@ func (c Client) ClientExists(desired v1.Instance, ctx context.Context) (*types.C
 
 	for _, actual := range clients {
 		if clientMatches(actual, desired) {
+			desired.GetStatus().SetClientID(actual.ClientID)
 			return &actual, nil
 		}
 	}
@@ -141,12 +142,8 @@ func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Confi
 }
 
 func clientMatches(actual types.ClientRegistration, desired v1.Instance) bool {
-	clientID := desired.GetStatus().GetClientID()
-
-	idExists := len(clientID) > 0
-	idMatches := actual.ClientID == clientID
 	descriptionMatches := actual.Description == desired.MakeDescription()
 	integrationTypeMatches := actual.IntegrationType == desired.GetIntegrationType()
 
-	return (descriptionMatches || (idExists && idMatches)) && integrationTypeMatches
+	return descriptionMatches && integrationTypeMatches
 }

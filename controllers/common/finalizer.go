@@ -39,10 +39,17 @@ func (f finalizer) Process() (ctrl.Result, error) {
 
 	f.Logger.Info("finalizer triggered, deleting resources...")
 
-	if len(f.Instance.GetStatus().GetClientID()) == 0 {
+	clientRegistration, err := f.DigdirClient.ClientExists(f.Instance, f.Ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if clientRegistration == nil {
+		f.Logger.Info("client does not exist, skipping deletion...")
 		return ctrl.Result{}, nil
 	}
-	if err := f.Client.Delete(f.Ctx, f.Instance); err != nil {
+
+	if err := f.DigdirClient.Delete(f.Ctx, f.Instance.GetStatus().GetClientID()); err != nil {
 		return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
 	}
 
