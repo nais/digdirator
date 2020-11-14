@@ -30,33 +30,37 @@ type Admin struct {
 }
 
 type Auth struct {
-	ClientID      string `json:"client-id"`
-	CertChainPath string `json:"cert-chain-path"`
-	Audience      string `json:"audience"`
-	Scopes        string `json:"scopes"`
-	KmsKeyPath    string `json:"kms-key-path"`
+	ClientID string `json:"client-id"`
+	Audience string `json:"audience"`
+	Scopes   string `json:"scopes"`
 }
 
 type IDPorten struct {
-	BaseURL string `json:"base-url"`
+	BaseURL       string `json:"base-url"`
+	CertChainPath string `json:"cert-chain-path"`
+	KmsKeyPath    string `json:"kms-key-path"`
 }
 
 type Maskinporten struct {
-	BaseURL string `json:"base-url"`
+	BaseURL       string `json:"base-url"`
+	CertChainPath string `json:"cert-chain-path"`
+	KmsKeyPath    string `json:"kms-key-path"`
 }
 
 const (
-	MetricsAddress            = "metrics-address"
-	ClusterName               = "cluster-name"
-	DevelopmentMode           = "development-mode"
-	DigDirAdminBaseURL        = "digdir.admin.base-url"
-	DigDirAuthAudience        = "digdir.auth.audience"
-	DigDirAuthClientID        = "digdir.auth.client-id"
-	DigDirAuthCertChainPath   = "digdir.auth.cert-chain-path"
-	DigDirAuthScopes          = "digdir.auth.scopes"
-	DigDirAuthKmsKeyPath      = "digdir.auth.kms-key-path"
-	DigDirIDPortenBaseURL     = "digdir.idporten.base-url"
-	DigDirMaskinportenBaseURL = "digdir.maskinporten.base-url"
+	MetricsAddress                  = "metrics-address"
+	ClusterName                     = "cluster-name"
+	DevelopmentMode                 = "development-mode"
+	DigDirAdminBaseURL              = "digdir.admin.base-url"
+	DigDirAuthAudience              = "digdir.auth.audience"
+	DigDirAuthClientID              = "digdir.auth.client-id"
+	DigDirIDportenCertChainPath     = "digdir.idporten.cert-chain-path"
+	DigDirMaskinportenCertChainPath = "digdir.maskinporten.cert-chain-path"
+	DigDirAuthScopes                = "digdir.auth.scopes"
+	DigDirIDportenKmsKeyPath        = "digdir.idporten.kms-key-path"
+	DigDirMaskinportenKmsKeyPath    = "digdir.maskinporten.kms-key-path"
+	DigDirIDPortenBaseURL           = "digdir.idporten.base-url"
+	DigDirMaskinportenBaseURL       = "digdir.maskinporten.base-url"
 )
 
 func init() {
@@ -78,8 +82,10 @@ func init() {
 	flag.String(DigDirAdminBaseURL, "", "Base URL endpoint for interacting with Digdir Client Registration API")
 	flag.String(DigDirAuthAudience, "", "Audience for JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirAuthClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirAuthCertChainPath, "", "Path to PEM file containing certificate chain for authenticating to DigDir.")
-	flag.String(DigDirAuthKmsKeyPath, "", "Full path to key including version in Google Cloud KMS.")
+	flag.String(DigDirIDportenCertChainPath, "", "Path to PEM file containing certificate chain for authenticating to DigDir.")
+	flag.String(DigDirIDportenKmsKeyPath, "", "Full path to key including version in Google Cloud KMS.")
+	flag.String(DigDirMaskinportenCertChainPath, "", "Path to PEM file containing certificate chain for authenticating to DigDir.")
+	flag.String(DigDirMaskinportenKmsKeyPath, "", "Full path to key including version in Google Cloud KMS.")
 	flag.String(DigDirAuthScopes, "", "List of scopes for JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirMaskinportenBaseURL, "", "Base URL endpoint for interacting with Maskinporten API.")
 	flag.String(DigDirIDPortenBaseURL, "", "Base URL endpoint for interacting with IDPorten API.")
