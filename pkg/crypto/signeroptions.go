@@ -4,16 +4,14 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"github.com/nais/digdirator/pkg/config"
 	"gopkg.in/square/go-jose.v2"
 	"io/ioutil"
 )
 
-func SetupSignerOptions(cfg *config.Config) (*jose.SignerOptions, error) {
-	path := cfg.DigDir.Auth.CertChainPath
-	certPEMBlock, err := ioutil.ReadFile(path)
+func SetupSignerOptions(certChainPath string) (*jose.SignerOptions, error) {
+	certPEMBlock, err := ioutil.ReadFile(certChainPath)
 	if err != nil {
-		return nil, fmt.Errorf("loading PEM cert chain from path %s: %w", path, err)
+		return nil, fmt.Errorf("loading PEM cert chain from path %s: %w", certChainPath, err)
 	}
 	certs, err := ConvertPEMBlockToX509Chain(certPEMBlock)
 	if err != nil {

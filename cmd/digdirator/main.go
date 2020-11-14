@@ -76,29 +76,46 @@ func run() error {
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
 
-	// TODO Signer for maskinporten clients
-	signer, err := setupSigner(cfg)
+	idportenSigner, err := setupSigner(
+		cfg.DigDir.IDPorten.CertChainPath,
+		cfg.DigDir.IDPorten.KmsKeyPath,
+	)
 	if err != nil {
 		return fmt.Errorf("unable to setup signer: %w", err)
 	}
 
-	commonReconciler := common.NewReconciler(
+	maskinportenSigner, err := setupSigner(
+		cfg.DigDir.Maskinporten.CertChainPath,
+		cfg.DigDir.Maskinporten.KmsKeyPath,
+	)
+	if err != nil {
+		return fmt.Errorf("unable to setup signer: %w", err)
+	}
+
+	idportenReconciler := idportenclient.NewReconciler(common.NewReconciler(
 		mgr.GetClient(),
 		mgr.GetAPIReader(),
 		mgr.GetScheme(),
 		mgr.GetEventRecorderFor("digdirator"),
 		cfg,
-		signer,
+		idportenSigner,
 		http.DefaultClient,
-	)
-
-	idportenReconciler := idportenclient.NewReconciler(commonReconciler)
+	))
 	if err = idportenReconciler.SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
 	// +kubebuilder:scaffold:builder
 
-	maskinportenReconciler := maskinportenclient.NewReconciler(commonReconciler)
+	maskinportenReconciler := maskinportenclient.NewReconciler(
+		common.NewReconciler(
+			mgr.GetClient(),
+			mgr.GetAPIReader(),
+			mgr.GetScheme(),
+			mgr.GetEventRecorderFor("digdirator"),
+			cfg,
+			maskinportenSigner,
+			http.DefaultClient,
+		))
 	if err = maskinportenReconciler.SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
@@ -116,13 +133,13 @@ func run() error {
 	return nil
 }
 
-func setupSigner(cfg *config.Config) (jose.Signer, error) {
-	signerOpts, err := crypto.SetupSignerOptions(cfg)
+func setupSigner(certChainPath string, kmsKeyPath string) (jose.Signer, error) {
+	signerOpts, err := crypto.SetupSignerOptions(certChainPath)
 	if err != nil {
 		return nil, fmt.Errorf("setting up signer options: %v", err)
 	}
 
-	kmsPath := crypto.KmsKeyPath(cfg.DigDir.Auth.KmsKeyPath)
+	kmsPath := crypto.KmsKeyPath(kmsKeyPath)
 	kmsCtx := context.Background()
 	kmsClient, err := kms.NewKeyManagementClient(kmsCtx)
 	if err != nil {
@@ -169,11 +186,13 @@ func setupConfig() (*config.Config, error) {
 		config.DigDirAdminBaseURL,
 		config.DigDirAuthAudience,
 		config.DigDirAuthClientID,
-		config.DigDirAuthCertChainPath,
+		config.DigDirIDportenCertChainPath,
+		config.DigDirMaskinportenCertChainPath,
 		config.DigDirAuthScopes,
 		config.DigDirIDPortenBaseURL,
 		config.DigDirMaskinportenBaseURL,
-		config.DigDirAuthKmsKeyPath,
+		config.DigDirIDportenKmsKeyPath,
+		config.DigDirMaskinportenKmsKeyPath,
 	}); err != nil {
 		return nil, err
 	}
