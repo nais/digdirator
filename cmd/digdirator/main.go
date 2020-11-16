@@ -84,14 +84,6 @@ func run() error {
 		return fmt.Errorf("unable to setup signer: %w", err)
 	}
 
-	maskinportenSigner, err := setupSigner(
-		cfg.DigDir.Maskinporten.CertChainPath,
-		cfg.DigDir.Maskinporten.KmsKeyPath,
-	)
-	if err != nil {
-		return fmt.Errorf("unable to setup signer: %w", err)
-	}
-
 	idportenReconciler := idportenclient.NewReconciler(common.NewReconciler(
 		mgr.GetClient(),
 		mgr.GetAPIReader(),
@@ -106,18 +98,27 @@ func run() error {
 	}
 	// +kubebuilder:scaffold:builder
 
-	maskinportenReconciler := maskinportenclient.NewReconciler(
-		common.NewReconciler(
-			mgr.GetClient(),
-			mgr.GetAPIReader(),
-			mgr.GetScheme(),
-			mgr.GetEventRecorderFor("digdirator"),
-			cfg,
-			maskinportenSigner,
-			http.DefaultClient,
-		))
-	if err = maskinportenReconciler.SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("unable to create controller: %w", err)
+	if cfg.Features.Maskinporten {
+		maskinportenSigner, err := setupSigner(
+			cfg.DigDir.Maskinporten.CertChainPath,
+			cfg.DigDir.Maskinporten.KmsKeyPath,
+		)
+		if err != nil {
+			return fmt.Errorf("unable to setup signer: %w", err)
+		}
+		maskinportenReconciler := maskinportenclient.NewReconciler(
+			common.NewReconciler(
+				mgr.GetClient(),
+				mgr.GetAPIReader(),
+				mgr.GetScheme(),
+				mgr.GetEventRecorderFor("digdirator"),
+				cfg,
+				maskinportenSigner,
+				http.DefaultClient,
+			))
+		if err = maskinportenReconciler.SetupWithManager(mgr); err != nil {
+			return fmt.Errorf("unable to create controller: %w", err)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 

@@ -12,10 +12,11 @@ import (
 )
 
 type Config struct {
-	MetricsAddr     string `json:"metrics-address"`
-	ClusterName     string `json:"cluster-name"`
-	DevelopmentMode bool   `json:"development-mode"`
-	DigDir          DigDir `json:"digdir"`
+	MetricsAddr     string   `json:"metrics-address"`
+	ClusterName     string   `json:"cluster-name"`
+	DevelopmentMode bool     `json:"development-mode"`
+	DigDir          DigDir   `json:"digdir"`
+	Features        Features `json:"features"`
 }
 
 type DigDir struct {
@@ -47,6 +48,10 @@ type Maskinporten struct {
 	KmsKeyPath    string `json:"kms-key-path"`
 }
 
+type Features struct {
+	Maskinporten bool `json:"maskinporten"`
+}
+
 const (
 	MetricsAddress                  = "metrics-address"
 	ClusterName                     = "cluster-name"
@@ -61,6 +66,7 @@ const (
 	DigDirMaskinportenKmsKeyPath    = "digdir.maskinporten.kms-key-path"
 	DigDirIDPortenBaseURL           = "digdir.idporten.base-url"
 	DigDirMaskinportenBaseURL       = "digdir.maskinporten.base-url"
+	FeaturesMaskinporten            = "features.maskinporten"
 )
 
 func init() {
@@ -89,6 +95,7 @@ func init() {
 	flag.String(DigDirAuthScopes, "", "List of scopes for JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirMaskinportenBaseURL, "", "Base URL endpoint for interacting with Maskinporten API.")
 	flag.String(DigDirIDPortenBaseURL, "", "Base URL endpoint for interacting with IDPorten API.")
+	flag.Bool(FeaturesMaskinporten, false, "Feature toggle for maskinporten")
 }
 
 // Print out all configuration options except secret stuff.
