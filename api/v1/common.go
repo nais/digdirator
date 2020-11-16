@@ -62,10 +62,6 @@ func (in *ClientStatus) SetStateSynchronized() {
 	in.SynchronizationState = EventSynchronized
 }
 
-func (in *ClientStatus) GetSynchronizationState() string {
-	return in.SynchronizationState
-}
-
 func (in *ClientStatus) GetClientID() string {
 	return in.ClientID
 }
@@ -126,6 +122,5 @@ func isUpToDate(instance Instance) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	isSynchronized := instance.GetStatus().GetSynchronizationState() == EventSynchronized
-	return hashUnchanged && isSynchronized, nil
+	return hashUnchanged, nil
 }
