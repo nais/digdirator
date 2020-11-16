@@ -72,7 +72,7 @@ func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
 	return types.ClientRegistration{
 		AccessTokenLifetime:               AccessTokenLifetimeSeconds,
 		ApplicationType:                   types.ApplicationTypeWeb,
-		AuthorizationLifeTime:             in.Spec.RefreshTokenLifetime + AuthorizationLifeTimeLeewaySeconds, // should be at minimum be equal to RefreshTokenLifetime
+		AuthorizationLifeTime:             in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
 		ClientName:                        types.DefaultClientName,
 		ClientURI:                         in.Spec.ClientURI,
 		Description:                       in.MakeDescription(),
@@ -87,7 +87,7 @@ func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
 		RedirectURIs: []string{
 			in.Spec.RedirectURI,
 		},
-		RefreshTokenLifetime: in.Spec.RefreshTokenLifetime,
+		RefreshTokenLifetime: in.Spec.SessionLifetime,
 		RefreshTokenUsage:    types.RefreshTokenUsageOneTime,
 		Scopes: []string{
 			"openid", "profile",

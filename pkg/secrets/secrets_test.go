@@ -81,7 +81,7 @@ func minimalIDPortenClient() *v1.IDPortenClient {
 			SecretName:             "test",
 			FrontchannelLogoutURI:  "test",
 			PostLogoutRedirectURIs: nil,
-			RefreshTokenLifetime:   3600,
+			SessionLifetime:        3600,
 		},
 	}
 }

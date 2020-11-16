@@ -66,20 +66,22 @@ spec:
               description: RedirectURI is the redirect URI to be registered at DigDir
               pattern: ^https:\/\/
               type: string
-            refreshTokenLifetime:
-              description: RefreshTokenLifetime is the lifetime in seconds for the
-                issued refresh token from ID-porten
-              type: integer
             secretName:
               description: SecretName is the name of the resulting Secret resource
                 to be created
               type: string
+            sessionLifetime:
+              description: SessionLifetime is the maximum session lifetime in seconds
+                for a logged in end-user for this client.
+              maximum: 43200
+              minimum: 3600
+              type: integer
           required:
           - clientURI
           - postLogoutRedirectURIs
           - redirectURI
-          - refreshTokenLifetime
           - secretName
+          - sessionLifetime
           type: object
         status:
           description: ClientStatus defines the observed state of Current Client

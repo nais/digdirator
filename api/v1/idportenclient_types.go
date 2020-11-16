@@ -43,8 +43,10 @@ type IDPortenClientSpec struct {
 	FrontchannelLogoutURI string `json:"frontchannelLogoutURI,omitempty"`
 	// PostLogoutRedirectURI is a list of valid URIs that ID-porten may redirect to after logout
 	PostLogoutRedirectURIs []string `json:"postLogoutRedirectURIs"`
-	// RefreshTokenLifetime is the lifetime in seconds for the issued refresh token from ID-porten
-	RefreshTokenLifetime int `json:"refreshTokenLifetime"`
+	// SessionLifetime is the maximum session lifetime in seconds for a logged in end-user for this client.
+	// +kubebuilder:validation:Minimum=3600
+	// +kubebuilder:validation:Maximum=43200
+	SessionLifetime int `json:"sessionLifetime"`
 }
 
 func init() {

@@ -1,7 +1,7 @@
 package v1
 
-// Keys for outputting data to secrets
 const (
+	// Keys for outputting data to secrets
 	IDPortenJwkKey           = "IDPORTEN_CLIENT_JWK"
 	IDPortenClientID         = "IDPORTEN_CLIENT_ID"
 	IDPortenWellKnownURL     = "IDPORTEN_WELL_KNOWN_URL"
@@ -23,6 +23,5 @@ const (
 	EventDeletedInDigDir       = "DeletedInDigDir"
 	EventRetrying              = "Retrying"
 
-	AccessTokenLifetimeSeconds         = 3600
-	AuthorizationLifeTimeLeewaySeconds = 30
+	AccessTokenLifetimeSeconds = 3600
 )

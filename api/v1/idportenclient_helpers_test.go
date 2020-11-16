@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const expectedIDPortenClientHash = "3f89fee23d842a44"
+const expectedIDPortenClientHash = "ffff3ee3df1eda68"
 
 func TestIDPortenClient_MakeDescription(t *testing.T) {
 	expected := "test-cluster:test-namespace:test-app"
@@ -55,7 +55,7 @@ func TestIDPortenClient_SetHash(t *testing.T) {
 	hash, err := app.CalculateHash()
 	assert.NoError(t, err)
 	app.GetStatus().SetHash(hash)
-	assert.Equal(t, "f409103c18d3017b", app.GetStatus().GetSynchronizationHash())
+	assert.Equal(t, "cf3964f10eb7786e", app.GetStatus().GetSynchronizationHash())
 }
 
 func TestIDPortenClient_IntegrationType(t *testing.T) {
@@ -109,7 +109,7 @@ func minimalIDPortenClient() *v1.IDPortenClient {
 			SecretName:             "test",
 			FrontchannelLogoutURI:  "test",
 			PostLogoutRedirectURIs: nil,
-			RefreshTokenLifetime:   3600,
+			SessionLifetime:        3600,
 		},
 		Status: v1.ClientStatus{
 			SynchronizationHash:  expectedIDPortenClientHash,
