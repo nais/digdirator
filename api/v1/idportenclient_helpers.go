@@ -69,10 +69,18 @@ func (in *IDPortenClient) MakeDescription() string {
 }
 
 func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
+	if in.Spec.AccessTokenLifetime == nil {
+		lifetime := AccessTokenLifetimeSeconds
+		in.Spec.AccessTokenLifetime = &lifetime
+	}
+	if in.Spec.SessionLifetime == nil {
+		lifetime := SessionLifetimeSeconds
+		in.Spec.SessionLifetime = &lifetime
+	}
 	return types.ClientRegistration{
-		AccessTokenLifetime:               AccessTokenLifetimeSeconds,
+		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
-		AuthorizationLifeTime:             in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
+		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
 		ClientName:                        types.DefaultClientName,
 		ClientURI:                         in.Spec.ClientURI,
 		Description:                       in.MakeDescription(),
@@ -87,7 +95,7 @@ func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
 		RedirectURIs: []string{
 			in.Spec.RedirectURI,
 		},
-		RefreshTokenLifetime: in.Spec.SessionLifetime,
+		RefreshTokenLifetime: *in.Spec.SessionLifetime,
 		RefreshTokenUsage:    types.RefreshTokenUsageOneTime,
 		Scopes: []string{
 			"openid", "profile",

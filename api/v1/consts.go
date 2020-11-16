@@ -24,4 +24,5 @@ const (
 	EventRetrying              = "Retrying"
 
 	AccessTokenLifetimeSeconds = 3600
+	SessionLifetimeSeconds     = 7200
 )

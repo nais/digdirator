@@ -11,4 +11,5 @@ spec:
   frontchannelLogoutURI: "https://min-app.nav.no/oauth2/logout"
   postLogoutRedirectURIs:
     - "https://nav.no"
-  refreshTokenLifetime: 3601
+  accessTokenLifetime: 3600
+  sessionLifetime: 3600

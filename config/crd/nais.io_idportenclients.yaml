@@ -47,6 +47,12 @@ spec:
         spec:
           description: IDPortenClientSpec defines the desired state of IDPortenClient
           properties:
+            accessTokenLifetime:
+              description: AccessTokenLifetime is the maximum lifetime in seconds
+                for the returned access_token from ID-porten.
+              maximum: 3600
+              minimum: 1
+              type: integer
             clientURI:
               description: ClientURI is the URL to the client to be used at DigDir
                 when displaying a 'back' button or on errors
@@ -73,7 +79,7 @@ spec:
             sessionLifetime:
               description: SessionLifetime is the maximum session lifetime in seconds
                 for a logged in end-user for this client.
-              maximum: 43200
+              maximum: 7200
               minimum: 3600
               type: integer
           required:
@@ -81,7 +87,6 @@ spec:
           - postLogoutRedirectURIs
           - redirectURI
           - secretName
-          - sessionLifetime
           type: object
         status:
           description: ClientStatus defines the observed state of Current Client

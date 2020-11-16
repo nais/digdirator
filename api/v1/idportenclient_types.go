@@ -45,8 +45,12 @@ type IDPortenClientSpec struct {
 	PostLogoutRedirectURIs []string `json:"postLogoutRedirectURIs"`
 	// SessionLifetime is the maximum session lifetime in seconds for a logged in end-user for this client.
 	// +kubebuilder:validation:Minimum=3600
-	// +kubebuilder:validation:Maximum=43200
-	SessionLifetime int `json:"sessionLifetime"`
+	// +kubebuilder:validation:Maximum=7200
+	SessionLifetime *int `json:"sessionLifetime,omitempty"`
+	// AccessTokenLifetime is the maximum lifetime in seconds for the returned access_token from ID-porten.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=3600
+	AccessTokenLifetime *int `json:"accessTokenLifetime,omitempty"`
 }
 
 func init() {

@@ -71,7 +71,6 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 		SecretName:             c.SecretName,
 		FrontchannelLogoutURI:  "frontChannelLogoutURI",
 		PostLogoutRedirectURIs: []string{"postLogoutRedirectURI"},
-		SessionLifetime:        3600,
 	}
 	c.idPortenClient = &v1.IDPortenClient{
 		ObjectMeta: metav1.ObjectMeta{
