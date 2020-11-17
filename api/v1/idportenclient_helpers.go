@@ -68,14 +68,20 @@ func (in *IDPortenClient) MakeDescription() string {
 	return makeDescription(in)
 }
 
-func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
+func (in *IDPortenClient) ToClientRegistration() types.ClientRegistration {
 	if in.Spec.AccessTokenLifetime == nil {
-		lifetime := AccessTokenLifetimeSeconds
+		lifetime := IDPortenDefaultAccessTokenLifetimeSeconds
 		in.Spec.AccessTokenLifetime = &lifetime
 	}
 	if in.Spec.SessionLifetime == nil {
-		lifetime := SessionLifetimeSeconds
+		lifetime := IDPortenDefaultSessionLifetimeSeconds
 		in.Spec.SessionLifetime = &lifetime
+	}
+	if len(in.Spec.ClientURI) == 0 {
+		in.Spec.ClientURI = IDPortenDefaultClientURI
+	}
+	if in.Spec.PostLogoutRedirectURIs == nil || len(in.Spec.PostLogoutRedirectURIs) == 0 {
+		in.Spec.PostLogoutRedirectURIs = []string{IDPortenDefaultPostLogoutRedirectURI}
 	}
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,

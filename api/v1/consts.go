@@ -23,6 +23,9 @@ const (
 	EventDeletedInDigDir       = "DeletedInDigDir"
 	EventRetrying              = "Retrying"
 
-	AccessTokenLifetimeSeconds = 3600
-	SessionLifetimeSeconds     = 7200
+	// Default values
+	IDPortenDefaultClientURI                  = "https://www.nav.no"
+	IDPortenDefaultPostLogoutRedirectURI      = "https://www.nav.no"
+	IDPortenDefaultAccessTokenLifetimeSeconds = 3600
+	IDPortenDefaultSessionLifetimeSeconds     = 7200
 )
