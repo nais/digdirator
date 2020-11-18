@@ -83,8 +83,6 @@ spec:
               minimum: 3600
               type: integer
           required:
-          - clientURI
-          - postLogoutRedirectURIs
           - redirectURI
           - secretName
           type: object

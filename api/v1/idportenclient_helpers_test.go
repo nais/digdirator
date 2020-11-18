@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const expectedIDPortenClientHash = "19ae47cd93ee5047"
+const expectedIDPortenClientHash = "8b5ebee90b513411"
 
 func TestIDPortenClient_MakeDescription(t *testing.T) {
 	expected := "test-cluster:test-namespace:test-app"
@@ -55,7 +55,7 @@ func TestIDPortenClient_SetHash(t *testing.T) {
 	hash, err := app.CalculateHash()
 	assert.NoError(t, err)
 	app.GetStatus().SetHash(hash)
-	assert.Equal(t, "45ad3be797a8d791", app.GetStatus().GetSynchronizationHash())
+	assert.Equal(t, "5060de695ee8504d", app.GetStatus().GetSynchronizationHash())
 }
 
 func TestIDPortenClient_IntegrationType(t *testing.T) {
