@@ -102,7 +102,7 @@ func (in *IDPortenClient) ToClientRegistration() types.ClientRegistration {
 			in.Spec.RedirectURI,
 		},
 		RefreshTokenLifetime: *in.Spec.SessionLifetime,
-		RefreshTokenUsage:    types.RefreshTokenUsageOneTime,
+		RefreshTokenUsage:    types.RefreshTokenUsageReuse,
 		Scopes: []string{
 			"openid", "profile",
 		},
