@@ -9,7 +9,7 @@ type Lists struct {
 	Unused corev1.SecretList
 }
 
-func podSecretLists(secrets corev1.SecretList, pods corev1.PodList) Lists {
+func PodSecretLists(secrets corev1.SecretList, pods corev1.PodList) Lists {
 	lists := Lists{
 		Used: corev1.SecretList{
 			Items: make([]corev1.Secret, 0),
@@ -33,6 +33,13 @@ func secretInPod(secret corev1.Secret, pod corev1.Pod) bool {
 	for _, volume := range pod.Spec.Volumes {
 		if volume.Secret != nil && volume.Secret.SecretName == secret.Name {
 			return true
+		}
+	}
+	for _, container := range pod.Spec.Containers {
+		for _, envFrom := range container.EnvFrom {
+			if envFrom.SecretRef != nil && envFrom.SecretRef.Name == secret.Name {
+				return true
+			}
 		}
 	}
 	return false

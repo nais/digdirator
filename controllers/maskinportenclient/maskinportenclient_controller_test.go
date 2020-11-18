@@ -1,4 +1,4 @@
-package idportenclient_test
+package maskinportenclient_test
 
 import (
 	"context"
@@ -21,7 +21,7 @@ const (
 var cli client.Client
 
 func TestMain(m *testing.M) {
-	testEnv, testEnvClient, err := test.SetupTestEnv(clientID, test.IDPortenHandlerType)
+	testEnv, testEnvClient, err := test.SetupTestEnv(clientID, test.MaskinportenHandlerType)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestIDPortenController(t *testing.T) {
+func TestMaskinportenController(t *testing.T) {
 	cfg := fixtures.Config{
 		DigdirClientName: "test-client",
 		NamespaceName:    "test-namespace",
@@ -40,26 +40,26 @@ func TestIDPortenController(t *testing.T) {
 	}
 
 	// set up preconditions for cluster
-	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithIDPortenClient().WithPods().WithUnusedSecret(labels.IDPortenTypeLabelValue)
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithMaskinportenClient().WithPods().WithUnusedSecret(labels.MaskinportenTypeLabelValue)
 
-	// create IDPortenClient
+	// create MaskinportenClient
 	if err := clusterFixtures.Setup(); err != nil {
 		t.Fatalf("failed to set up cluster fixtures: %v", err)
 	}
 
-	instance := &v1.IDPortenClient{}
+	instance := &v1.MaskinportenClient{}
 	key := client.ObjectKey{
 		Name:      "test-client",
 		Namespace: "test-namespace",
 	}
-	assert.Eventually(t, test.ResourceExists(cli, key, instance), test.Timeout, test.Interval, "IDPortenClient should exist")
+	assert.Eventually(t, test.ResourceExists(cli, key, instance), test.Timeout, test.Interval, "MaskinportenClient should exist")
 	assert.Eventually(t, func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		assert.NoError(t, err)
 		b, err := instance.IsUpToDate()
 		assert.NoError(t, err)
 		return b
-	}, test.Timeout, test.Interval, "IDPortenClient should be synchronized")
+	}, test.Timeout, test.Interval, "MaskinportenClient should be synchronized")
 	assert.NotEmpty(t, instance.Status.ClientID)
 	assert.NotEmpty(t, instance.Status.KeyIDs)
 	assert.NotEmpty(t, instance.Status.CorrelationID)
@@ -79,7 +79,7 @@ func TestIDPortenController(t *testing.T) {
 		Name:      cfg.UnusedSecretName,
 	}, &corev1.Secret{}), test.Timeout, test.Interval, "unused Secret should not exist")
 
-	// update IDPortenClient
+	// update MaskinportenClient
 	previousSecretName := cfg.SecretName
 	previousHash := instance.Status.SynchronizationHash
 	previousCorrelationID := instance.Status.CorrelationID
@@ -111,12 +111,12 @@ func TestIDPortenController(t *testing.T) {
 	// old secret should still exist
 	test.AssertSecretExists(t, cli, previousSecretName, cfg.NamespaceName, instance, secretAssertions)
 
-	// delete IDPortenClient
+	// delete MaskinportenClient
 	err = cli.Delete(context.Background(), instance)
 
-	assert.NoError(t, err, "deleting IDPortenClient")
+	assert.NoError(t, err, "deleting MaskinportenClient")
 
-	assert.Eventually(t, test.ResourceDoesNotExist(cli, key, instance), test.Timeout, test.Interval, "IDPortenClient should not exist")
+	assert.Eventually(t, test.ResourceDoesNotExist(cli, key, instance), test.Timeout, test.Interval, "MaskinportenClient should not exist")
 }
 
 func secretAssertions(t *testing.T) func(*corev1.Secret, v1.Instance) {
@@ -124,20 +124,20 @@ func secretAssertions(t *testing.T) func(*corev1.Secret, v1.Instance) {
 		actualLabels := actual.GetLabels()
 		expectedLabels := map[string]string{
 			labels.AppLabelKey:  instance.GetName(),
-			labels.TypeLabelKey: labels.IDPortenTypeLabelValue,
+			labels.TypeLabelKey: labels.MaskinportenTypeLabelValue,
 		}
 		assert.NotEmpty(t, actualLabels, "Labels should not be empty")
 		assert.Equal(t, expectedLabels, actualLabels, "Labels should be set")
 
 		assert.Equal(t, corev1.SecretTypeOpaque, actual.Type, "Secret type should be Opaque")
-		assert.NotEmpty(t, actual.Data[v1.IDPortenClientID])
-		assert.NotEmpty(t, actual.Data[v1.IDPortenJwkKey])
-		assert.NotEmpty(t, actual.Data[v1.IDPortenRedirectURI])
-		assert.NotEmpty(t, actual.Data[v1.IDPortenWellKnownURL])
+		assert.NotEmpty(t, actual.Data[v1.MaskinportenJwkKey])
+		assert.NotEmpty(t, actual.Data[v1.MaskinportenClientID])
+		assert.NotEmpty(t, actual.Data[v1.MaskinportenScopes])
+		assert.NotEmpty(t, actual.Data[v1.MaskinportenWellKnownURL])
 
-		assert.Empty(t, actual.Data[v1.MaskinportenJwkKey])
-		assert.Empty(t, actual.Data[v1.MaskinportenClientID])
-		assert.Empty(t, actual.Data[v1.MaskinportenScopes])
-		assert.Empty(t, actual.Data[v1.MaskinportenWellKnownURL])
+		assert.Empty(t, actual.Data[v1.IDPortenClientID])
+		assert.Empty(t, actual.Data[v1.IDPortenJwkKey])
+		assert.Empty(t, actual.Data[v1.IDPortenRedirectURI])
+		assert.Empty(t, actual.Data[v1.IDPortenWellKnownURL])
 	}
 }

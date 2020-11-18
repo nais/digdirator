@@ -54,10 +54,10 @@ type ClientRegistration struct {
 	ClientID                          string                  `json:"client_id,omitempty"`
 	ClientName                        string                  `json:"client_name"`
 	ClientOrgno                       string                  `json:"client_orgno,omitempty"`
-	ClientURI                         string                  `json:"client_uri"`
+	ClientURI                         string                  `json:"client_uri,omitempty"`
 	Description                       string                  `json:"description"`
 	FrontchannelLogoutSessionRequired bool                    `json:"frontchannel_logout_session_required"`
-	FrontchannelLogoutURI             string                  `json:"frontchannel_logout_uri"`
+	FrontchannelLogoutURI             string                  `json:"frontchannel_logout_uri,omitempty"`
 	GrantTypes                        []GrantType             `json:"grant_types"`
 	IntegrationType                   IntegrationType         `json:"integration_type"`
 	PostLogoutRedirectURIs            []string                `json:"post_logout_redirect_uris"`

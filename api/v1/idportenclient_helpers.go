@@ -1,73 +1,95 @@
 package v1
 
 import (
-	"encoding/json"
 	"fmt"
-	hash "github.com/mitchellh/hashstructure"
-	"github.com/nais/digdirator/pkg/idporten/types"
-	"github.com/nais/digdirator/pkg/util"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/digdir/types"
+	"github.com/nais/digdirator/pkg/labels"
+	"github.com/spf13/viper"
+	"gopkg.in/square/go-jose.v2"
+	"reflect"
 )
 
-func (in *IDPortenClient) IsBeingDeleted() bool {
-	return !in.ObjectMeta.DeletionTimestamp.IsZero()
+func (in *IDPortenClient) CalculateHash() (string, error) {
+	return calculateHash(in.Spec)
+}
+
+func (in *IDPortenClient) CreateSecretData(jwk jose.JSONWebKey) (map[string]string, error) {
+	wellKnownURL := viper.GetString(config.DigDirIDPortenBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
+	jwkJson, err := jwk.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("marshalling JWK: %w", err)
+	}
+	return map[string]string{
+		IDPortenJwkKey:       string(jwkJson),
+		IDPortenWellKnownURL: wellKnownURL,
+		IDPortenClientID:     in.GetStatus().GetClientID(),
+		IDPortenRedirectURI:  in.Spec.RedirectURI,
+	}, nil
+}
+
+func (in *IDPortenClient) GetIntegrationType() types.IntegrationType {
+	return types.IntegrationTypeIDPorten
+}
+
+func (in *IDPortenClient) GetInstanceType() string {
+	return reflect.TypeOf(in).String()
+}
+
+func (in *IDPortenClient) GetSecretMapKey() string {
+	return IDPortenJwkKey
+}
+
+func (in *IDPortenClient) GetSecretName() string {
+	return in.Spec.SecretName
+}
+
+func (in *IDPortenClient) GetStatus() *ClientStatus {
+	return &in.Status
 }
 
 func (in *IDPortenClient) HasFinalizer(finalizerName string) bool {
-	return util.ContainsString(in.ObjectMeta.Finalizers, finalizerName)
+	return hasFinalizer(in, finalizerName)
 }
 
-func (in *IDPortenClient) AddFinalizer(finalizerName string) {
-	in.ObjectMeta.Finalizers = append(in.ObjectMeta.Finalizers, finalizerName)
+func (in *IDPortenClient) IsBeingDeleted() bool {
+	return isBeingDeleted(in)
 }
 
-func (in *IDPortenClient) RemoveFinalizer(finalizerName string) {
-	in.ObjectMeta.Finalizers = util.RemoveString(in.ObjectMeta.Finalizers, finalizerName)
+func (in *IDPortenClient) IsUpToDate() (bool, error) {
+	return isUpToDate(in)
 }
 
-func (in *IDPortenClient) UpdateHash() error {
-	in.Status.Timestamp = metav1.Now()
-	newHash, err := in.Hash()
-	if err != nil {
-		return fmt.Errorf("calculating application hash: %w", err)
+func (in *IDPortenClient) MakeLabels() map[string]string {
+	return labels.IDPortenLabels(in)
+}
+
+func (in *IDPortenClient) MakeDescription() string {
+	return makeDescription(in)
+}
+
+func (in *IDPortenClient) ToClientRegistration() types.ClientRegistration {
+	if in.Spec.AccessTokenLifetime == nil {
+		lifetime := IDPortenDefaultAccessTokenLifetimeSeconds
+		in.Spec.AccessTokenLifetime = &lifetime
 	}
-	in.Status.ProvisionHash = newHash
-	return nil
-}
-
-func (in *IDPortenClient) ClientDescription() string {
-	return fmt.Sprintf("%s:%s:%s", in.ClusterName, in.Namespace, in.Name)
-}
-
-func (in *IDPortenClient) HashUnchanged() (bool, error) {
-	newHash, err := in.Hash()
-	if err != nil {
-		return false, fmt.Errorf("checking if hash is unchanged: %w", err)
+	if in.Spec.SessionLifetime == nil {
+		lifetime := IDPortenDefaultSessionLifetimeSeconds
+		in.Spec.SessionLifetime = &lifetime
 	}
-	return in.Status.ProvisionHash == newHash, nil
-}
-
-func (in IDPortenClient) Hash() (string, error) {
-	marshalled, err := json.Marshal(in.Spec)
-	if err != nil {
-		return "", err
+	if len(in.Spec.ClientURI) == 0 {
+		in.Spec.ClientURI = IDPortenDefaultClientURI
 	}
-	h, err := hash.Hash(marshalled, nil)
-	return fmt.Sprintf("%x", h), err
-}
-
-func (in IDPortenClient) GetUniqueName() string {
-	return fmt.Sprintf("%s:%s:%s", in.ClusterName, in.Namespace, in.Name)
-}
-
-func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
+	if in.Spec.PostLogoutRedirectURIs == nil || len(in.Spec.PostLogoutRedirectURIs) == 0 {
+		in.Spec.PostLogoutRedirectURIs = []string{IDPortenDefaultPostLogoutRedirectURI}
+	}
 	return types.ClientRegistration{
-		AccessTokenLifetime:               3600,
+		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
-		AuthorizationLifeTime:             in.Spec.RefreshTokenLifetime,
+		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
 		ClientName:                        types.DefaultClientName,
 		ClientURI:                         in.Spec.ClientURI,
-		Description:                       in.GetUniqueName(),
+		Description:                       in.MakeDescription(),
 		FrontchannelLogoutSessionRequired: false,
 		FrontchannelLogoutURI:             in.Spec.FrontchannelLogoutURI,
 		GrantTypes: []types.GrantType{
@@ -79,8 +101,8 @@ func (in IDPortenClient) ToClientRegistration() types.ClientRegistration {
 		RedirectURIs: []string{
 			in.Spec.RedirectURI,
 		},
-		RefreshTokenLifetime: in.Spec.RefreshTokenLifetime,
-		RefreshTokenUsage:    types.RefreshTokenUsageReuse,
+		RefreshTokenLifetime: *in.Spec.SessionLifetime,
+		RefreshTokenUsage:    types.RefreshTokenUsageOneTime,
 		Scopes: []string{
 			"openid", "profile",
 		},

@@ -1,11 +1,11 @@
 package crypto_test
 
 import (
+	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/crypto"
-	"github.com/nais/digdirator/pkg/secrets"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/square/go-jose.v2"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )
@@ -27,22 +27,25 @@ func TestMergeJwks(t *testing.T) {
     "n": "oDXiukopqeTly9XGmK40cnknXhME-5xwXasYI-Tr-qev7TRMAXtxFqYjH13pxoROe1hYCM1e_AG5IAZPwqfitqlDLum_9qtEfeL1P3b436GZDPeMRr1Sx_8_QIlDPp3_MnQ3C6EW9mAypF5WSL0TrkUQHlypURdBLhVmZGVQhzpp46YObOjpfyfv_kKRXrVaX4FP4VpL0scSvsJIADw9BBeat7BaM6F9GX8wiDVwT0zsyFq_91nkpMKtyHQFqyz4ANrUFIdmnLhMYA_nexPa_tzuA3QBvxZvjpjqKWlkFGrrcCE5jvl3pEu_PtNE5IaW8caUmUlRDZ1I6G9uq9gHLw"
 }
 `
-	secretsInUse := v1.SecretList{
+	secretsInUse := corev1.SecretList{
 		TypeMeta: metav1.TypeMeta{},
 		ListMeta: metav1.ListMeta{},
-		Items: []v1.Secret{
+		Items: []corev1.Secret{
 			{
-				Data: map[string][]byte{secrets.JwkKey: []byte(jwkString)},
+				Data: map[string][]byte{v1.IDPortenJwkKey: []byte(jwkString)},
 			},
 			{
-				Data: map[string][]byte{secrets.JwkKey: []byte(jwkString)},
+				Data: map[string][]byte{v1.IDPortenJwkKey: []byte(jwkString)},
+			},
+			{
+				Data: map[string][]byte{v1.MaskinportenJwkKey: []byte(jwkString)},
 			},
 		},
 	}
 	newJwk, err := crypto.GenerateJwk()
 	assert.NoError(t, err)
 
-	jwks, err := crypto.MergeJwks(*newJwk, secretsInUse)
+	jwks, err := crypto.MergeJwks(*newJwk, secretsInUse, v1.IDPortenJwkKey)
 	assert.NoError(t, err)
 
 	assert.Len(t, jwks.Keys, 2, "should merge new JWK with JWKs in use without duplicates")

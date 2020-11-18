@@ -13,7 +13,7 @@
     "frontchannel_logout_session_required": true,
     "frontchannel_logout_uri": "string",
     "grant_types": ["authorization_code", "refresh_token"],
-    "integration_type": "api_klient, idporten, krr, maskinporten",
+    "integration_type": "maskinporten",
     "last_updated": "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
     "onbehalfof": [
       {

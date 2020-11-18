@@ -1,0 +1,10 @@
+---
+apiVersion: nais.io/v1
+kind: MaskinportenClient
+metadata:
+  name: my-app
+  namespace: default
+spec:
+  secretName: my-secret
+  scopes:
+    - scope: "nav:test/api"

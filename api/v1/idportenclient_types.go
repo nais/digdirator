@@ -8,7 +8,6 @@ import (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=idportenclient
-// +kubebuilder:subresource:status
 
 // IDPortenClient is the Schema for the IDPortenClients API
 // +kubebuilder:printcolumn:name="Secret",type=string,JSONPath=`.spec.secretName`
@@ -18,8 +17,8 @@ type IDPortenClient struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   IDPortenClientSpec   `json:"spec,omitempty"`
-	Status IDPortenClientStatus `json:"status,omitempty"`
+	Spec   IDPortenClientSpec `json:"spec,omitempty"`
+	Status ClientStatus       `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -34,7 +33,7 @@ type IDPortenClientList struct {
 // IDPortenClientSpec defines the desired state of IDPortenClient
 type IDPortenClientSpec struct {
 	// ClientURI is the URL to the client to be used at DigDir when displaying a 'back' button or on errors
-	ClientURI string `json:"clientURI"`
+	ClientURI string `json:"clientURI,omitempty"`
 	// RedirectURI is the redirect URI to be registered at DigDir
 	// +kubebuilder:validation:Pattern=`^https:\/\/`
 	RedirectURI string `json:"redirectURI"`
@@ -43,23 +42,15 @@ type IDPortenClientSpec struct {
 	// FrontchannelLogoutURI is the URL that ID-porten sends a requests to whenever a logout is triggered by another application using the same session
 	FrontchannelLogoutURI string `json:"frontchannelLogoutURI,omitempty"`
 	// PostLogoutRedirectURI is a list of valid URIs that ID-porten may redirect to after logout
-	PostLogoutRedirectURIs []string `json:"postLogoutRedirectURIs"`
-	// RefreshTokenLifetime is the lifetime in seconds for the issued refresh token from ID-porten
-	RefreshTokenLifetime int `json:"refreshTokenLifetime"`
-}
-
-// IDPortenClientStatus defines the observed state of IDPortenClient
-type IDPortenClientStatus struct {
-	// ClientID is the ID-porten client ID
-	ClientID string `json:"clientID"`
-	// Timestamp is the last time the Status subresource was updated
-	Timestamp metav1.Time `json:"timestamp,omitempty"`
-	// ProvisionHash is the hash of the IDPortenClient object
-	ProvisionHash string `json:"provisionHash,omitempty"`
-	// CorrelationID is the ID referencing the processing transaction last performed on this resource
-	CorrelationID string `json:"correlationID"`
-	// KeyIDs is the list of key IDs for valid JWKs registered for the client at ID-porten
-	KeyIDs []string `json:"keyIDs"`
+	PostLogoutRedirectURIs []string `json:"postLogoutRedirectURIs,omitempty"`
+	// SessionLifetime is the maximum session lifetime in seconds for a logged in end-user for this client.
+	// +kubebuilder:validation:Minimum=3600
+	// +kubebuilder:validation:Maximum=7200
+	SessionLifetime *int `json:"sessionLifetime,omitempty"`
+	// AccessTokenLifetime is the maximum lifetime in seconds for the returned access_token from ID-porten.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=3600
+	AccessTokenLifetime *int `json:"accessTokenLifetime,omitempty"`
 }
 
 func init() {

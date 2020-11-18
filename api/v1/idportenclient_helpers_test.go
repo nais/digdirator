@@ -1,115 +1,133 @@
-package v1
+package v1_test
 
 import (
+	"encoding/json"
+	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/crypto"
+	"github.com/nais/digdirator/pkg/digdir/types"
+	"github.com/nais/digdirator/pkg/labels"
+	"github.com/spf13/viper"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var finalizerName = "test-finalizer"
+const expectedIDPortenClientHash = "8b5ebee90b513411"
 
-const expectedHash = "3f89fee23d842a44"
-
-func TestIDPortenClient_GetUniqueName(t *testing.T) {
+func TestIDPortenClient_MakeDescription(t *testing.T) {
 	expected := "test-cluster:test-namespace:test-app"
-	assert.Equal(t, expected, minimalClient().GetUniqueName())
+	assert.Equal(t, expected, minimalIDPortenClient().MakeDescription())
 }
 
-func TestIDPortenClient_HasFinalizer(t *testing.T) {
-	t.Run("Minimal Application should not have finalizer", func(t *testing.T) {
-		assert.False(t, minimalClient().HasFinalizer(finalizerName))
-	})
-	t.Run("Application with finalizer should have finalizer", func(t *testing.T) {
-		app := minimalClient()
-		app.ObjectMeta.Finalizers = []string{finalizerName}
-		assert.True(t, app.HasFinalizer(finalizerName))
-	})
-}
-
-func TestIDPortenClient_AddFinalizer(t *testing.T) {
-	app := minimalClient()
-	t.Run("Minimal Application should not have finalizer", func(t *testing.T) {
-		assert.False(t, app.HasFinalizer(finalizerName))
-	})
-	t.Run("Application should have finalizer after add", func(t *testing.T) {
-		app.AddFinalizer(finalizerName)
-		assert.True(t, app.HasFinalizer(finalizerName))
-	})
-}
-
-func TestIDPortenClient_RemoveFinalizer(t *testing.T) {
-	app := minimalClient()
-	app.ObjectMeta.Finalizers = []string{finalizerName}
-	t.Run("Minimal Application should have finalizer", func(t *testing.T) {
-		assert.True(t, app.HasFinalizer(finalizerName))
-	})
-	t.Run("Application should not have finalizer after remove", func(t *testing.T) {
-		app.RemoveFinalizer(finalizerName)
-		actual := app.HasFinalizer(finalizerName)
-		assert.False(t, actual)
-	})
-}
-
-func TestIDPortenClient_IsBeingDeleted(t *testing.T) {
-	t.Run("Minimal Application without deletion marker should not be marked for deletion", func(t *testing.T) {
-		assert.False(t, minimalClient().IsBeingDeleted())
-	})
-	t.Run("Application with deletion marker should be marked for deletion", func(t *testing.T) {
-		app := minimalClient()
-		now := metav1.Now()
-		app.ObjectMeta.DeletionTimestamp = &now
-		assert.True(t, app.IsBeingDeleted())
-	})
-}
-
-func TestIDPortenClient_Hash(t *testing.T) {
-	actual, err := minimalClient().Hash()
+func TestIDPortenClient_CalculateHash(t *testing.T) {
+	actual, err := minimalIDPortenClient().CalculateHash()
 	assert.NoError(t, err)
-	assert.Equal(t, expectedHash, actual)
+	assert.Equal(t, expectedIDPortenClientHash, actual)
 }
 
-func TestIDPortenClient_HashUnchanged(t *testing.T) {
-	t.Run("Minimal Application should have unchanged hash value", func(t *testing.T) {
-		actual, err := minimalClient().HashUnchanged()
+func TestIDPortenClient_MakeLabels(t *testing.T) {
+	app := minimalIDPortenClient()
+	expected := labels.IDPortenLabels(app)
+	assert.Equal(t, app.MakeLabels(), expected)
+}
+
+func TestIDPortenClient_IsUpToDate(t *testing.T) {
+	t.Run("Minimal Application should be up-to-date", func(t *testing.T) {
+		actual, err := minimalIDPortenClient().IsUpToDate()
 		assert.NoError(t, err)
 		assert.True(t, actual)
 	})
-	t.Run("Application with changed value should have changed hash value", func(t *testing.T) {
-		app := minimalClient()
+	t.Run("Application with changed value should not be up-to-date", func(t *testing.T) {
+		app := minimalIDPortenClient()
 		app.Spec.ClientURI = "changed"
-		actual, err := app.HashUnchanged()
+		actual, err := app.IsUpToDate()
 		assert.NoError(t, err)
 		assert.False(t, actual)
 	})
 }
 
-func TestIDPortenClient_UpdateHash(t *testing.T) {
-	app := minimalClient()
+func TestIDPortenClient_SetHash(t *testing.T) {
+	app := minimalIDPortenClient()
 	app.Spec.ClientURI = "changed"
 
-	err := app.UpdateHash()
+	hash, err := app.CalculateHash()
 	assert.NoError(t, err)
-	assert.Equal(t, "f409103c18d3017b", app.Status.ProvisionHash)
+	app.GetStatus().SetHash(hash)
+	assert.Equal(t, "5060de695ee8504d", app.GetStatus().GetSynchronizationHash())
 }
 
-func minimalClient() *IDPortenClient {
-	return &IDPortenClient{
+func TestIDPortenClient_IntegrationType(t *testing.T) {
+	app := minimalIDPortenClient()
+	assert.Equal(t, types.IntegrationTypeIDPorten, app.GetIntegrationType())
+}
+
+func TestIDPortenClient_CreateSecretData(t *testing.T) {
+	client := minimalIDPortenClient()
+
+	jwk, err := crypto.GenerateJwk()
+	assert.NoError(t, err)
+
+	stringData, err := client.CreateSecretData(*jwk)
+	assert.NoError(t, err, "should not error")
+
+	t.Run("StringData should contain expected fields and values", func(t *testing.T) {
+		t.Run("Secret Data should contain "+v1.IDPortenJwkKey, func(t *testing.T) {
+			expected, err := json.Marshal(jwk)
+			assert.NoError(t, err)
+			assert.Equal(t, string(expected), stringData[v1.IDPortenJwkKey])
+		})
+		t.Run("Secret Data should contain "+v1.IDPortenWellKnownURL, func(t *testing.T) {
+			expected := viper.GetString(config.DigDirIDPortenBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
+			assert.Equal(t, expected, stringData[v1.IDPortenWellKnownURL])
+		})
+		t.Run("Secret Data should contain "+v1.IDPortenClientID, func(t *testing.T) {
+			assert.Equal(t, client.Status.ClientID, stringData[v1.IDPortenClientID])
+		})
+		t.Run("Secret Data should contain "+v1.IDPortenRedirectURI, func(t *testing.T) {
+			assert.Equal(t, client.Spec.RedirectURI, stringData[v1.IDPortenRedirectURI])
+		})
+	})
+}
+
+func TestIDPortenClient_GetSecretMapKey(t *testing.T) {
+	client := minimalIDPortenClient()
+	assert.Equal(t, v1.IDPortenJwkKey, client.GetSecretMapKey())
+}
+
+func TestIDPortenClient_ToClientRegistration(t *testing.T) {
+	client := minimalIDPortenClient()
+	registration := client.ToClientRegistration()
+
+	assert.Equal(t, v1.IDPortenDefaultClientURI, client.Spec.ClientURI)
+	assert.Contains(t, client.Spec.PostLogoutRedirectURIs, v1.IDPortenDefaultPostLogoutRedirectURI)
+	assert.Len(t, client.Spec.PostLogoutRedirectURIs, 1)
+	assert.Equal(t, v1.IDPortenDefaultAccessTokenLifetimeSeconds, *client.Spec.AccessTokenLifetime)
+	assert.Equal(t, v1.IDPortenDefaultSessionLifetimeSeconds, *client.Spec.SessionLifetime)
+
+	assert.Equal(t, v1.IDPortenDefaultClientURI, registration.ClientURI)
+	assert.Contains(t, registration.PostLogoutRedirectURIs, v1.IDPortenDefaultPostLogoutRedirectURI)
+	assert.Len(t, registration.PostLogoutRedirectURIs, 1)
+	assert.Equal(t, v1.IDPortenDefaultAccessTokenLifetimeSeconds, registration.AccessTokenLifetime)
+	assert.Equal(t, v1.IDPortenDefaultSessionLifetimeSeconds, registration.AuthorizationLifeTime)
+}
+
+func minimalIDPortenClient() *v1.IDPortenClient {
+	return &v1.IDPortenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "test-app",
 			Namespace:   "test-namespace",
 			ClusterName: "test-cluster",
 		},
-		Spec: IDPortenClientSpec{
-			ClientURI:              "test",
-			RedirectURI:            "https://test.com",
-			SecretName:             "test",
-			FrontchannelLogoutURI:  "test",
-			PostLogoutRedirectURIs: nil,
-			RefreshTokenLifetime:   3600,
+		Spec: v1.IDPortenClientSpec{
+			ClientURI:   "",
+			RedirectURI: "https://test.com",
+			SecretName:  "test",
 		},
-		Status: IDPortenClientStatus{
-			ProvisionHash: expectedHash,
+		Status: v1.ClientStatus{
+			SynchronizationHash:  expectedIDPortenClientHash,
+			SynchronizationState: v1.EventSynchronized,
 		},
 	}
 }

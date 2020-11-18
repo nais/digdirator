@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/zapr"
+	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/idportenclient"
+	"github.com/nais/digdirator/controllers/maskinportenclient"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/metrics"
@@ -74,21 +76,49 @@ func run() error {
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
 
-	signer, err := setupSigner(cfg)
+	idportenSigner, err := setupSigner(
+		cfg.DigDir.IDPorten.CertChainPath,
+		cfg.DigDir.IDPorten.KmsKeyPath,
+	)
 	if err != nil {
 		return fmt.Errorf("unable to setup signer: %w", err)
 	}
 
-	if err = (&idportenclient.Reconciler{
-		Client:     mgr.GetClient(),
-		Reader:     mgr.GetAPIReader(),
-		Scheme:     mgr.GetScheme(),
-		Recorder:   mgr.GetEventRecorderFor("digdirator"),
-		Config:     cfg,
-		Signer:     signer,
-		HttpClient: http.DefaultClient,
-	}).SetupWithManager(mgr); err != nil {
+	idportenReconciler := idportenclient.NewReconciler(common.NewReconciler(
+		mgr.GetClient(),
+		mgr.GetAPIReader(),
+		mgr.GetScheme(),
+		mgr.GetEventRecorderFor("digdirator"),
+		cfg,
+		idportenSigner,
+		http.DefaultClient,
+	))
+	if err = idportenReconciler.SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
+	}
+	// +kubebuilder:scaffold:builder
+
+	if cfg.Features.Maskinporten {
+		maskinportenSigner, err := setupSigner(
+			cfg.DigDir.Maskinporten.CertChainPath,
+			cfg.DigDir.Maskinporten.KmsKeyPath,
+		)
+		if err != nil {
+			return fmt.Errorf("unable to setup signer: %w", err)
+		}
+		maskinportenReconciler := maskinportenclient.NewReconciler(
+			common.NewReconciler(
+				mgr.GetClient(),
+				mgr.GetAPIReader(),
+				mgr.GetScheme(),
+				mgr.GetEventRecorderFor("digdirator"),
+				cfg,
+				maskinportenSigner,
+				http.DefaultClient,
+			))
+		if err = maskinportenReconciler.SetupWithManager(mgr); err != nil {
+			return fmt.Errorf("unable to create controller: %w", err)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 
@@ -104,13 +134,13 @@ func run() error {
 	return nil
 }
 
-func setupSigner(cfg *config.Config) (jose.Signer, error) {
-	signerOpts, err := crypto.SetupSignerOptions(cfg)
+func setupSigner(certChainPath string, kmsKeyPath string) (jose.Signer, error) {
+	signerOpts, err := crypto.SetupSignerOptions(certChainPath)
 	if err != nil {
 		return nil, fmt.Errorf("setting up signer options: %v", err)
 	}
 
-	kmsPath := crypto.KmsKeyPath(cfg.DigDir.Auth.KmsKeyPath)
+	kmsPath := crypto.KmsKeyPath(kmsKeyPath)
 	kmsCtx := context.Background()
 	kmsClient, err := kms.NewKeyManagementClient(kmsCtx)
 	if err != nil {
@@ -154,13 +184,16 @@ func setupConfig() (*config.Config, error) {
 
 	if err = cfg.Validate([]string{
 		config.ClusterName,
+		config.DigDirAdminBaseURL,
 		config.DigDirAuthAudience,
 		config.DigDirAuthClientID,
-		config.DigDirAuthCertChainPath,
+		config.DigDirIDportenCertChainPath,
+		config.DigDirMaskinportenCertChainPath,
 		config.DigDirAuthScopes,
-		config.DigDirAuthBaseURL,
 		config.DigDirIDPortenBaseURL,
-		config.DigDirAuthKmsKeyPath,
+		config.DigDirMaskinportenBaseURL,
+		config.DigDirIDportenKmsKeyPath,
+		config.DigDirMaskinportenKmsKeyPath,
 	}); err != nil {
 		return nil, err
 	}

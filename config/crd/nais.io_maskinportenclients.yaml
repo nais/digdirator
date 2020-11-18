@@ -6,7 +6,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: idportenclients.nais.io
+  name: maskinportenclients.nais.io
 spec:
   additionalPrinterColumns:
   - JSONPath: .spec.secretName
@@ -20,17 +20,17 @@ spec:
     type: date
   group: nais.io
   names:
-    kind: IDPortenClient
-    listKind: IDPortenClientList
-    plural: idportenclients
+    kind: MaskinportenClient
+    listKind: MaskinportenClientList
+    plural: maskinportenclients
     shortNames:
-    - idportenclient
-    singular: idportenclient
+    - maskinportenclient
+    singular: maskinportenclient
   scope: Namespaced
   subresources: {}
   validation:
     openAPIV3Schema:
-      description: IDPortenClient is the Schema for the IDPortenClients API
+      description: MaskinportenClient is the Schema for the MaskinportenClient API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -45,45 +45,25 @@ spec:
         metadata:
           type: object
         spec:
-          description: IDPortenClientSpec defines the desired state of IDPortenClient
+          description: MaskinportenClientSpec defines the desired state of MaskinportenClient
           properties:
-            accessTokenLifetime:
-              description: AccessTokenLifetime is the maximum lifetime in seconds
-                for the returned access_token from ID-porten.
-              maximum: 3600
-              minimum: 1
-              type: integer
-            clientURI:
-              description: ClientURI is the URL to the client to be used at DigDir
-                when displaying a 'back' button or on errors
-              type: string
-            frontchannelLogoutURI:
-              description: FrontchannelLogoutURI is the URL that ID-porten sends a
-                requests to whenever a logout is triggered by another application
-                using the same session
-              type: string
-            postLogoutRedirectURIs:
-              description: PostLogoutRedirectURI is a list of valid URIs that ID-porten
-                may redirect to after logout
+            scopes:
+              description: Scopes is a list of valid scopes that the client can request
+                tokens for
               items:
-                type: string
+                properties:
+                  scope:
+                    type: string
+                required:
+                - scope
+                type: object
               type: array
-            redirectURI:
-              description: RedirectURI is the redirect URI to be registered at DigDir
-              pattern: ^https:\/\/
-              type: string
             secretName:
               description: SecretName is the name of the resulting Secret resource
                 to be created
               type: string
-            sessionLifetime:
-              description: SessionLifetime is the maximum session lifetime in seconds
-                for a logged in end-user for this client.
-              maximum: 7200
-              minimum: 3600
-              type: integer
           required:
-          - redirectURI
+          - scopes
           - secretName
           type: object
         status:

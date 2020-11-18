@@ -1,13 +1,13 @@
-package idporten
+package digdir
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/config"
-	"github.com/nais/digdirator/pkg/idporten/types"
+	"github.com/nais/digdirator/pkg/digdir/types"
 	"gopkg.in/square/go-jose.v2"
 	"io/ioutil"
 	"net/http"
@@ -25,7 +25,7 @@ type Client struct {
 }
 
 func (c Client) Register(ctx context.Context, payload types.ClientRegistration) (*types.ClientRegistration, error) {
-	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.IDPorten.BaseURL)
+	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.Admin.BaseURL)
 	registration := &types.ClientRegistration{}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -40,16 +40,17 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 	return registration, nil
 }
 
-func (c Client) ClientExists(desired *v1.IDPortenClient, ctx context.Context) (*types.ClientRegistration, error) {
-	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.IDPorten.BaseURL)
+func (c Client) ClientExists(desired v1.Instance, ctx context.Context) (*types.ClientRegistration, error) {
+	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.Admin.BaseURL)
 	clients := make([]types.ClientRegistration, 0)
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &clients); err != nil {
-		return nil, fmt.Errorf("updating ID-porten client: %w", err)
+		return nil, fmt.Errorf("fetching list of clients from Digdir: %w", err)
 	}
 
 	for _, actual := range clients {
 		if clientMatches(actual, desired) {
+			desired.GetStatus().SetClientID(actual.ClientID)
 			return &actual, nil
 		}
 	}
@@ -57,7 +58,7 @@ func (c Client) ClientExists(desired *v1.IDPortenClient, ctx context.Context) (*
 }
 
 func (c Client) Update(ctx context.Context, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {
-	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.IDPorten.BaseURL, clientID)
+	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.Admin.BaseURL, clientID)
 	registration := &types.ClientRegistration{}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -72,7 +73,7 @@ func (c Client) Update(ctx context.Context, payload types.ClientRegistration, cl
 }
 
 func (c Client) Delete(ctx context.Context, clientID string) error {
-	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.IDPorten.BaseURL, clientID)
+	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.Admin.BaseURL, clientID)
 	if err := c.request(ctx, http.MethodDelete, endpoint, nil, nil); err != nil {
 		return fmt.Errorf("deleting ID-porten client: %w", err)
 	}
@@ -80,7 +81,7 @@ func (c Client) Delete(ctx context.Context, clientID string) error {
 }
 
 func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose.JSONWebKeySet) (*types.JwksResponse, error) {
-	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.IDPorten.BaseURL, clientID)
+	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.Admin.BaseURL, clientID)
 	response := &types.JwksResponse{}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -140,10 +141,9 @@ func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Confi
 	}
 }
 
-func clientMatches(actual types.ClientRegistration, desired *v1.IDPortenClient) bool {
-	idExists := len(desired.Status.ClientID) > 0
-	idMatches := actual.ClientID == desired.Status.ClientID
-	descriptionMatches := actual.Description == desired.ClientDescription()
+func clientMatches(actual types.ClientRegistration, desired v1.Instance) bool {
+	descriptionMatches := actual.Description == desired.MakeDescription()
+	integrationTypeMatches := actual.IntegrationType == desired.GetIntegrationType()
 
-	return (idExists && idMatches) || descriptionMatches
+	return descriptionMatches && integrationTypeMatches
 }

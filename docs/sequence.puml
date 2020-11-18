@@ -7,19 +7,20 @@ actor developer as "Developer"
 control digdirator as "Digdirator"
 
 box "Cluster resources"
-participant IDPortenClient
+participant DigdirClient
 participant Secret
 participant Application
 end box
 
 participant digdir as "DigDir"
 actor enduser as "End User"
+participant External as "External Application"
 
 ==On create / update==
-developer -> IDPortenClient: Apply config
+developer -> DigdirClient: Apply config
 
 loop forever
-	digdirator -> IDPortenClient: watch for updates
+	digdirator -> DigdirClient: watch for updates
 end
 
 digdirator -> digdir: check if client exists
@@ -35,10 +36,10 @@ group client already exists in ID-Porten
     digdirator -> digdir: register JWKS (new and existing JWK)
 end
 
-digdirator -> IDPortenClient: update status subresource
+digdirator -> DigdirClient: update status subresource
 digdirator -> Secret: inject JWK and metadata
 
-== Usage ==
+== Usage IDporten ==
 
 Secret -> Application: mount
 enduser -> Application: log in
@@ -50,8 +51,19 @@ Application -> digdir: signed JWT, auth code, state
 digdir -> Application: id_token, access_token, (refresh_token)
 Application -> enduser: signed in
 
+== Usage Maskinporten ==
+
+Secret -> Application: mount
+Application -> Application: start create and sign JWT
+Application -> digdir: signed JWT
+digdir -> Application: access_token
+Application -> External: request data with access_token
+External -> digdir: check signature
+External -> External: authenticate and authorize
+External -> Application: data
+
 ==On deletion==
-    developer -> IDPortenClient: delete
+    developer -> DigdirClient: delete
     digdirator -> Secret: delete
     digdirator -> digdir: delete
 
