@@ -22,6 +22,9 @@ test: generate fmt vet manifests
 verify: generate fmt vet manifests
 	go test ./... -coverprofile cover.out
 
+pem2jwk: fmt vet
+	go build -o bin/pem2jwk cmd/pem2jwk/main.go
+
 # Build manager binary
 manager: generate fmt vet
 	go build -o bin/digdirator cmd/digdirator/main.go
