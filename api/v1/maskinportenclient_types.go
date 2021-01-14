@@ -39,7 +39,7 @@ type MaskinportenClientSpec struct {
 }
 
 type MaskinportenScope struct {
-	Scope string `json:"scope"`
+	Name string `json:"name"`
 }
 
 func init() {

@@ -92,7 +92,7 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 	spec := v1.MaskinportenClientSpec{
 		SecretName: c.SecretName,
 		Scopes: []v1.MaskinportenScope{
-			{Scope: "scopes"},
+			{Name: "scopes"},
 		},
 	}
 	c.maskinportenClient = &v1.MaskinportenClient{

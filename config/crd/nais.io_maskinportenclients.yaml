@@ -52,10 +52,10 @@ spec:
                 tokens for
               items:
                 properties:
-                  scope:
+                  name:
                     type: string
                 required:
-                - scope
+                - name
                 type: object
               type: array
             secretName:

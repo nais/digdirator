@@ -95,7 +95,7 @@ func (in MaskinportenClient) ToClientRegistration() types.ClientRegistration {
 func (in *MaskinportenClient) GetScopes() []string {
 	scopes := make([]string, 0)
 	for _, scope := range in.Spec.Scopes {
-		scopes = append(scopes, scope.Scope)
+		scopes = append(scopes, scope.Name)
 	}
 	return scopes
 }

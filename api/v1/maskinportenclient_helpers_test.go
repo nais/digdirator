@@ -51,13 +51,13 @@ func TestMaskinportenClient_IsUpToDate(t *testing.T) {
 func TestMaskinportenClient_SetHash(t *testing.T) {
 	app := minimalMaskinportenClient()
 	app.Spec.Scopes = []v1.MaskinportenScope{
-		{Scope: "some:another/scope"},
+		{Name: "some:another/scope"},
 	}
 
 	hash, err := app.CalculateHash()
 	assert.NoError(t, err)
 	app.GetStatus().SetHash(hash)
-	assert.Equal(t, "71be23172e3367b5", app.GetStatus().GetSynchronizationHash())
+	assert.Equal(t, "7a8e489f74dda6d7", app.GetStatus().GetSynchronizationHash())
 }
 
 func TestMaskinportenClient_GetIntegrationType(t *testing.T) {
@@ -68,8 +68,8 @@ func TestMaskinportenClient_GetIntegrationType(t *testing.T) {
 func TestMaskinporten_CreateSecretData(t *testing.T) {
 	client := minimalMaskinportenClient()
 	client.Spec.Scopes = []v1.MaskinportenScope{
-		{Scope: "scope:one"},
-		{Scope: "scope:two"},
+		{Name: "scope:one"},
+		{Name: "scope:two"},
 	}
 
 	jwk, err := crypto.GenerateJwk()
