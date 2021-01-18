@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/crypto"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"io"
@@ -65,9 +66,18 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 }
 
 func (c Client) claims() customClaims {
+	var clientID string
+
+	switch c.instance.(type) {
+	case *v1.IDPortenClient:
+		clientID = c.Config.DigDir.IDPorten.ClientID
+	case *v1.MaskinportenClient:
+		clientID = c.Config.DigDir.Maskinporten.ClientID
+	}
+
 	return customClaims{
 		Claims: jwt.Claims{
-			Issuer:    c.Config.DigDir.Auth.ClientID,
+			Issuer:    clientID,
 			Audience:  []string{c.Config.DigDir.Auth.Audience},
 			Expiry:    jwt.NewNumericDate(time.Now().Add(2 * time.Minute)),
 			NotBefore: jwt.NewNumericDate(time.Now()),

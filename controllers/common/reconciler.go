@@ -107,7 +107,7 @@ func (r *Reconciler) prepare(req ctrl.Request, instance v1.Instance) (*Transacti
 	instance.SetClusterName(r.Config.ClusterName)
 	instance.GetStatus().SetCorrelationID(correlationID)
 
-	digdirClient := digdir.NewClient(r.HttpClient, r.Signer, r.Config)
+	digdirClient := digdir.NewClient(r.HttpClient, r.Signer, r.Config, instance)
 
 	logger.Infof("processing %s...", instanceType)
 

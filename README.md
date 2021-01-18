@@ -39,14 +39,15 @@ digdir:
     base-url: "base URL for digdir admin API"
   auth:
     audience: "audience for JWT assertion"
-    client-id: "client ID / issuer for JWT assertion"
     scopes: "space separated list of scopes for JWT assertion"
   idporten:
     base-url: "base URL endpoint for idporten API"
+    client-id: "client ID / issuer for JWT assertion"
     cert-chain-path: "Path to PEM file containing certificate chain for authenticating to DigDir."
     kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
   maskinporten:
     base-url: "base URL endpoint for maskinporten API"
+    client-id: "client ID / issuer for JWT assertion"
     cert-chain-path: "Path to PEM file containing certificate chain for authenticating to DigDir."
     kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
 cluster-name: local

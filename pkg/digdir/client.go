@@ -22,6 +22,7 @@ type Client struct {
 	HttpClient *http.Client
 	Signer     jose.Signer
 	Config     *config.Config
+	instance   v1.Instance
 }
 
 func (c Client) Register(ctx context.Context, payload types.ClientRegistration) (*types.ClientRegistration, error) {
@@ -133,11 +134,12 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 	return nil
 }
 
-func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config) Client {
+func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance v1.Instance) Client {
 	return Client{
 		httpClient,
 		signer,
 		config,
+		instance,
 	}
 }
 
