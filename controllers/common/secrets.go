@@ -70,12 +70,12 @@ func (s secretsClient) GetManaged() (*secrets.Lists, error) {
 }
 
 func (s secretsClient) DeleteUnused(unused corev1.SecretList) error {
-	for _, oldSecret := range unused.Items {
+	for i, oldSecret := range unused.Items {
 		if oldSecret.Name == s.Instance.GetSecretName() {
 			continue
 		}
 		s.Logger.Infof("deleting unused secret '%s'...", oldSecret.Name)
-		if err := s.Client.Delete(s.Ctx, &oldSecret); err != nil {
+		if err := s.Client.Delete(s.Ctx, &unused.Items[i]); err != nil {
 			return fmt.Errorf("deleting unused secret: %w", err)
 		}
 	}
