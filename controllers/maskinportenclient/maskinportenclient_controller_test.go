@@ -2,10 +2,12 @@ package maskinportenclient_test
 
 import (
 	"context"
-	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/common/test"
+	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/fixtures"
-	"github.com/nais/digdirator/pkg/labels"
+	"github.com/nais/digdirator/pkg/secrets"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"os"
@@ -40,14 +42,14 @@ func TestMaskinportenController(t *testing.T) {
 	}
 
 	// set up preconditions for cluster
-	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithMaskinportenClient().WithPods().WithUnusedSecret(labels.MaskinportenTypeLabelValue)
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithMaskinportenClient().WithPods().WithUnusedSecret(clients.MaskinportenTypeLabelValue)
 
 	// create MaskinportenClient
 	if err := clusterFixtures.Setup(); err != nil {
 		t.Fatalf("failed to set up cluster fixtures: %v", err)
 	}
 
-	instance := &v1.MaskinportenClient{}
+	instance := &nais_io_v1.MaskinportenClient{}
 	key := client.ObjectKey{
 		Name:      "test-client",
 		Namespace: "test-namespace",
@@ -56,7 +58,7 @@ func TestMaskinportenController(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		assert.NoError(t, err)
-		b, err := instance.IsUpToDate()
+		b, err := clients.IsUpToDate(instance)
 		assert.NoError(t, err)
 		return b
 	}, test.Timeout, test.Interval, "MaskinportenClient should be synchronized")
@@ -65,7 +67,7 @@ func TestMaskinportenController(t *testing.T) {
 	assert.NotEmpty(t, instance.Status.CorrelationID)
 	assert.NotEmpty(t, instance.Status.SynchronizationHash)
 	assert.NotEmpty(t, instance.Status.SynchronizationTime)
-	assert.Equal(t, v1.EventSynchronized, instance.Status.SynchronizationState)
+	assert.Equal(t, common.EventSynchronized, instance.Status.SynchronizationState)
 
 	assert.Equal(t, clientID, instance.Status.ClientID)
 	assert.Contains(t, instance.Status.KeyIDs, "some-keyid")
@@ -103,7 +105,7 @@ func TestMaskinportenController(t *testing.T) {
 	assert.NotEqual(t, previousCorrelationID, instance.Status.CorrelationID, "should generate new correlation ID")
 	assert.NotEmpty(t, instance.Status.SynchronizationHash)
 	assert.NotEmpty(t, instance.Status.SynchronizationTime)
-	assert.Equal(t, v1.EventSynchronized, instance.Status.SynchronizationState)
+	assert.Equal(t, common.EventSynchronized, instance.Status.SynchronizationState)
 
 	// new secret should exist
 	test.AssertSecretExists(t, cli, instance.Spec.SecretName, cfg.NamespaceName, instance, secretAssertions)
@@ -119,25 +121,25 @@ func TestMaskinportenController(t *testing.T) {
 	assert.Eventually(t, test.ResourceDoesNotExist(cli, key, instance), test.Timeout, test.Interval, "MaskinportenClient should not exist")
 }
 
-func secretAssertions(t *testing.T) func(*corev1.Secret, v1.Instance) {
-	return func(actual *corev1.Secret, instance v1.Instance) {
+func secretAssertions(t *testing.T) func(*corev1.Secret, clients.Instance) {
+	return func(actual *corev1.Secret, instance clients.Instance) {
 		actualLabels := actual.GetLabels()
 		expectedLabels := map[string]string{
-			labels.AppLabelKey:  instance.GetName(),
-			labels.TypeLabelKey: labels.MaskinportenTypeLabelValue,
+			clients.AppLabelKey:  instance.GetName(),
+			clients.TypeLabelKey: clients.MaskinportenTypeLabelValue,
 		}
 		assert.NotEmpty(t, actualLabels, "Labels should not be empty")
 		assert.Equal(t, expectedLabels, actualLabels, "Labels should be set")
 
 		assert.Equal(t, corev1.SecretTypeOpaque, actual.Type, "Secret type should be Opaque")
-		assert.NotEmpty(t, actual.Data[v1.MaskinportenJwkKey])
-		assert.NotEmpty(t, actual.Data[v1.MaskinportenClientID])
-		assert.NotEmpty(t, actual.Data[v1.MaskinportenScopes])
-		assert.NotEmpty(t, actual.Data[v1.MaskinportenWellKnownURL])
+		assert.NotEmpty(t, actual.Data[secrets.MaskinportenJwkKey])
+		assert.NotEmpty(t, actual.Data[secrets.MaskinportenClientIDKey])
+		assert.NotEmpty(t, actual.Data[secrets.MaskinportenScopesKey])
+		assert.NotEmpty(t, actual.Data[secrets.MaskinportenWellKnownURLKey])
 
-		assert.Empty(t, actual.Data[v1.IDPortenClientID])
-		assert.Empty(t, actual.Data[v1.IDPortenJwkKey])
-		assert.Empty(t, actual.Data[v1.IDPortenRedirectURI])
-		assert.Empty(t, actual.Data[v1.IDPortenWellKnownURL])
+		assert.Empty(t, actual.Data[secrets.IDPortenClientIDKey])
+		assert.Empty(t, actual.Data[secrets.IDPortenJwkKey])
+		assert.Empty(t, actual.Data[secrets.IDPortenRedirectURIKey])
+		assert.Empty(t, actual.Data[secrets.IDPortenWellKnownURLKey])
 	}
 }

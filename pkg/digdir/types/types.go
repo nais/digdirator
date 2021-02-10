@@ -29,6 +29,7 @@ const (
 	IntegrationTypeApiKlient    IntegrationType = "api_klient"
 	IntegrationTypeIDPorten     IntegrationType = "idporten"
 	IntegrationTypeMaskinporten IntegrationType = "maskinporten"
+	IntegrationTypeUnknown      IntegrationType = "unknown"
 )
 
 type RefreshTokenUsage string

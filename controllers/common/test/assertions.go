@@ -2,7 +2,7 @@ package test
 
 import (
 	"context"
-	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/pkg/clients"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -26,7 +26,7 @@ func ResourceDoesNotExist(cli client.Client, key client.ObjectKey, instance runt
 	}
 }
 
-func ContainsOwnerRef(refs []metav1.OwnerReference, owner v1.Instance) bool {
+func ContainsOwnerRef(refs []metav1.OwnerReference, owner clients.Instance) bool {
 	expected := metav1.OwnerReference{
 		APIVersion: owner.GroupVersionKind().GroupVersion().String(),
 		Kind:       owner.GroupVersionKind().Kind,
@@ -45,7 +45,7 @@ func ContainsOwnerRef(refs []metav1.OwnerReference, owner v1.Instance) bool {
 	return false
 }
 
-func AssertSecretExists(t *testing.T, cli client.Client, name string, namespace string, instance v1.Instance, assertions func(*corev1.Secret, v1.Instance)) {
+func AssertSecretExists(t *testing.T, cli client.Client, name string, namespace string, instance clients.Instance, assertions func(*corev1.Secret, clients.Instance)) {
 	key := client.ObjectKey{
 		Namespace: namespace,
 		Name:      name,

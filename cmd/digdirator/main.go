@@ -11,6 +11,7 @@ import (
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/metrics"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -24,8 +25,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	"time"
-
-	naisiov1 "github.com/nais/digdirator/api/v1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -38,7 +37,7 @@ func init() {
 	ctrlMetrics.Registry.MustRegister(metrics.AllMetrics...)
 
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = naisiov1.AddToScheme(scheme)
+	_ = nais_io_v1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 
 	log.SetLevel(log.DebugLevel)

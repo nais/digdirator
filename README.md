@@ -4,12 +4,13 @@ Digdirator is a Kubernetes cluster operator for automated registration and lifec
 
 ## CRD
 
-The operator introduces two new Kind´s:  
-`IDPortenClient` (shortname `idportenclient`) and `MaskinportenClient` (shortname `maskinportenclient`), and acts upon changes to resources of its kind.
+The operator introduces two new Kinds:  
+`IDPortenClient` (shortname `idportenclient`) and `MaskinportenClient` (shortname `maskinportenclient`), and acts upon changes to these.
 
-See the specs:
-[config/crd/nais.io_idportenclients.yaml](config/crd/nais.io_idportenclients.yaml) and
-[config/crd/nais.io_maskinportenclients.yaml](config/crd/nais.io_maskinportenclients.yaml) for details.
+See the specs in [liberator](https://github.com/nais/liberator) for details:
+
+- [config/crd/nais.io_idportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_idportenclients.yaml) and
+- [config/crd/nais.io_maskinportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_maskinportenclients.yaml) for details.
 
 An example of resources is available in [config/samples/idportenclient.yaml](config/samples/idportenclient.yaml) and [config/samples/maskinportenclient.yaml](config/samples/maskinportenclient.yaml).
 
@@ -24,7 +25,7 @@ An example of resources is available in [config/samples/idportenclient.yaml](con
 ### Installation
 
 ```shell script
-make install
+kubectl apply -f <path to CRDs from liberator>
 ```
 
 ### Configuration
@@ -43,12 +44,12 @@ digdir:
   idporten:
     base-url: "base URL endpoint for idporten API"
     client-id: "client ID / issuer for JWT assertion"
-    cert-chain-path: "Path to PEM file containing certificate chain for authenticating to DigDir."
+    cert-chain-path: "Path to PEM file containing public certificate chain for authenticating to DigDir."
     kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
   maskinporten:
     base-url: "base URL endpoint for maskinporten API"
     client-id: "client ID / issuer for JWT assertion"
-    cert-chain-path: "Path to PEM file containing certificate chain for authenticating to DigDir."
+    cert-chain-path: "Path to PEM file containing public certificate chain for authenticating to DigDir."
     kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
 cluster-name: local
 development-mode: true

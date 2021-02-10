@@ -1,8 +1,8 @@
 package idportenclient
 
 import (
-	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/controllers/common"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -19,11 +19,11 @@ func NewReconciler(reconciler common.Reconciler) *IDPortenReconciler {
 // +kubebuilder:rbac:groups=*,resources=events,verbs=get;list;watch;create;update
 
 func (r *IDPortenReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	return r.Reconciler.Reconcile(req, &v1.IDPortenClient{})
+	return r.Reconciler.Reconcile(req, &nais_io_v1.IDPortenClient{})
 }
 
 func (r *IDPortenReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1.IDPortenClient{}).
+		For(&nais_io_v1.IDPortenClient{}).
 		Complete(r)
 }

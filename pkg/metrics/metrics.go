@@ -2,9 +2,9 @@ package metrics
 
 import (
 	"context"
-	v1 "github.com/nais/digdirator/api/v1"
-	"github.com/nais/digdirator/pkg/labels"
-	"github.com/nais/digdirator/pkg/namespaces"
+	"github.com/nais/digdirator/pkg/clients"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"github.com/nais/liberator/pkg/kubernetes"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -161,56 +161,56 @@ func incWithNamespaceLabel(metric *prometheus.CounterVec, namespace string) {
 	metric.WithLabelValues(namespace).Inc()
 }
 
-func IncClientsProcessed(instance v1.Instance) {
+func IncClientsProcessed(instance clients.Instance) {
 	switch instance.(type) {
-	case *v1.IDPortenClient:
+	case *nais_io_v1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsProcessedCount, instance.GetNamespace())
-	case *v1.MaskinportenClient:
+	case *nais_io_v1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsProcessedCount, instance.GetNamespace())
 	}
 }
 
-func IncClientsFailedProcessing(instance v1.Instance) {
+func IncClientsFailedProcessing(instance clients.Instance) {
 	switch instance.(type) {
-	case *v1.IDPortenClient:
+	case *nais_io_v1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsFailedProcessingCount, instance.GetNamespace())
-	case *v1.MaskinportenClient:
+	case *nais_io_v1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsFailedProcessingCount, instance.GetNamespace())
 	}
 }
 
-func IncClientsCreated(instance v1.Instance) {
+func IncClientsCreated(instance clients.Instance) {
 	switch instance.(type) {
-	case *v1.IDPortenClient:
+	case *nais_io_v1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsCreatedCount, instance.GetNamespace())
-	case *v1.MaskinportenClient:
+	case *nais_io_v1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsCreatedCount, instance.GetNamespace())
 	}
 }
 
-func IncClientsUpdated(instance v1.Instance) {
+func IncClientsUpdated(instance clients.Instance) {
 	switch instance.(type) {
-	case *v1.IDPortenClient:
+	case *nais_io_v1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsUpdatedCount, instance.GetNamespace())
-	case *v1.MaskinportenClient:
+	case *nais_io_v1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsUpdatedCount, instance.GetNamespace())
 	}
 }
 
-func IncClientsRotated(instance v1.Instance) {
+func IncClientsRotated(instance clients.Instance) {
 	switch instance.(type) {
-	case *v1.IDPortenClient:
+	case *nais_io_v1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsRotatedCount, instance.GetNamespace())
-	case *v1.MaskinportenClient:
+	case *nais_io_v1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsRotatedCount, instance.GetNamespace())
 	}
 }
 
-func IncClientsDeleted(instance v1.Instance) {
+func IncClientsDeleted(instance clients.Instance) {
 	switch instance.(type) {
-	case *v1.IDPortenClient:
+	case *nais_io_v1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsDeletedCount, instance.GetNamespace())
-	case *v1.MaskinportenClient:
+	case *nais_io_v1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsDeletedCount, instance.GetNamespace())
 	}
 }
@@ -230,7 +230,7 @@ func New(reader client.Reader) Metrics {
 }
 
 func (m metrics) InitWithNamespaceLabels() {
-	ns, err := namespaces.GetAll(context.Background(), m.reader)
+	ns, err := kubernetes.ListNamespaces(context.Background(), m.reader)
 	if err != nil {
 		log.Errorf("failed to list namespaces: %v", err)
 	}
@@ -246,10 +246,10 @@ func (m metrics) Refresh(ctx context.Context) {
 	exp := 10 * time.Second
 
 	var idportenSecretList corev1.SecretList
-	var idportenClientsList v1.IDPortenClientList
+	var idportenClientsList nais_io_v1.IDPortenClientList
 
 	var maskinportenSecretList corev1.SecretList
-	var maskinportenClientsList v1.MaskinportenClientList
+	var maskinportenClientsList nais_io_v1.MaskinportenClientList
 
 	m.InitWithNamespaceLabels()
 
@@ -257,14 +257,14 @@ func (m metrics) Refresh(ctx context.Context) {
 	for range t.C {
 		log.Debug("Refreshing metrics from cluster")
 		if err = m.reader.List(ctx, &idportenSecretList, client.MatchingLabels{
-			labels.TypeLabelKey: labels.IDPortenTypeLabelValue,
+			clients.TypeLabelKey: clients.IDPortenTypeLabelValue,
 		}); err != nil {
 			log.Errorf("failed to list secrets: %v", err)
 		}
 		IDPortenSecretsTotal.Set(float64(len(idportenSecretList.Items)))
 
 		if err = m.reader.List(ctx, &maskinportenSecretList, client.MatchingLabels{
-			labels.TypeLabelKey: labels.MaskinportenTypeLabelValue,
+			clients.TypeLabelKey: clients.MaskinportenTypeLabelValue,
 		}); err != nil {
 			log.Errorf("failed to list secrets: %v", err)
 		}

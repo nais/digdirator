@@ -1,8 +1,8 @@
 package crypto_test
 
 import (
-	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/crypto"
+	"github.com/nais/digdirator/pkg/secrets"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -32,20 +32,20 @@ func TestMergeJwks(t *testing.T) {
 		ListMeta: metav1.ListMeta{},
 		Items: []corev1.Secret{
 			{
-				Data: map[string][]byte{v1.IDPortenJwkKey: []byte(jwkString)},
+				Data: map[string][]byte{secrets.IDPortenJwkKey: []byte(jwkString)},
 			},
 			{
-				Data: map[string][]byte{v1.IDPortenJwkKey: []byte(jwkString)},
+				Data: map[string][]byte{secrets.IDPortenJwkKey: []byte(jwkString)},
 			},
 			{
-				Data: map[string][]byte{v1.MaskinportenJwkKey: []byte(jwkString)},
+				Data: map[string][]byte{secrets.MaskinportenJwkKey: []byte(jwkString)},
 			},
 		},
 	}
 	newJwk, err := crypto.GenerateJwk()
 	assert.NoError(t, err)
 
-	jwks, err := crypto.MergeJwks(*newJwk, secretsInUse, v1.IDPortenJwkKey)
+	jwks, err := crypto.MergeJwks(*newJwk, secretsInUse, secrets.IDPortenJwkKey)
 	assert.NoError(t, err)
 
 	assert.Len(t, jwks.Keys, 2, "should merge new JWK with JWKs in use without duplicates")

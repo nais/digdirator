@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	v1 "github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/digdir"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/metrics"
-	"github.com/nais/digdirator/pkg/secrets"
+	finalizer2 "github.com/nais/liberator/pkg/finalizer"
+	"github.com/nais/liberator/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -55,7 +56,7 @@ func NewReconciler(
 	}
 }
 
-func (r *Reconciler) Reconcile(req ctrl.Request, instance v1.Instance) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(req ctrl.Request, instance clients.Instance) (ctrl.Result, error) {
 	tx, err := r.prepare(req, instance)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -67,15 +68,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance v1.Instance) (ctrl.Res
 
 	finalizer := r.finalizer(tx)
 
-	if tx.Instance.IsBeingDeleted() {
+	if finalizer2.IsBeingDeleted(tx.Instance) {
 		return finalizer.Process()
 	}
 
-	if !tx.Instance.HasFinalizer(FinalizerName) {
+	if !finalizer2.HasFinalizer(tx.Instance, FinalizerName) {
 		return finalizer.Register()
 	}
 
-	if isUpToDate, err := tx.Instance.IsUpToDate(); isUpToDate {
+	if isUpToDate, err := clients.IsUpToDate(tx.Instance); isUpToDate {
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -90,8 +91,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance v1.Instance) (ctrl.Res
 	return r.complete(tx)
 }
 
-func (r *Reconciler) prepare(req ctrl.Request, instance v1.Instance) (*Transaction, error) {
-	instanceType := instance.GetInstanceType()
+func (r *Reconciler) prepare(req ctrl.Request, instance clients.Instance) (*Transaction, error) {
+	instanceType := clients.GetInstanceType(instance)
 	correlationID := uuid.New().String()
 
 	logger := *log.WithFields(log.Fields{
@@ -126,14 +127,14 @@ func (r *Reconciler) process(tx *Transaction) error {
 		return fmt.Errorf("checking if client exists: %w", err)
 	}
 
-	registrationPayload := tx.Instance.ToClientRegistration()
+	registrationPayload := clients.ToClientRegistration(tx.Instance)
 	if instanceClient != nil {
 		instanceClient, err = r.updateClient(tx, registrationPayload, instanceClient.ClientID)
-		r.reportEvent(tx, corev1.EventTypeNormal, v1.EventUpdatedInDigDir, "Client is updated")
+		r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedInDigDir, "Client is updated")
 		metrics.IncClientsUpdated(tx.Instance)
 	} else {
 		instanceClient, err = r.createClient(tx, registrationPayload)
-		r.reportEvent(tx, corev1.EventTypeNormal, v1.EventCreatedInDigDir, "Client is registered")
+		r.reportEvent(tx, corev1.EventTypeNormal, EventCreatedInDigDir, "Client is registered")
 		metrics.IncClientsCreated(tx.Instance)
 	}
 	if err != nil {
@@ -158,7 +159,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 	if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
 		return err
 	}
-	r.reportEvent(tx, corev1.EventTypeNormal, v1.EventRotatedInDigDir, "Client credentials is rotated")
+	r.reportEvent(tx, corev1.EventTypeNormal, EventRotatedInDigDir, "Client credentials is rotated")
 	metrics.IncClientsRotated(tx.Instance)
 
 	if err := secretsClient.CreateOrUpdate(*jwk); err != nil {
@@ -198,8 +199,8 @@ func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistrat
 	return registrationResponse, err
 }
 
-func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSecrets secrets.Lists, clientID string) error {
-	jwks, err := crypto.MergeJwks(jwk, managedSecrets.Used, tx.Instance.GetSecretMapKey())
+func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSecrets kubernetes.SecretLists, clientID string) error {
+	jwks, err := crypto.MergeJwks(jwk, managedSecrets.Used, clients.GetSecretJwkKey(tx.Instance))
 	if err != nil {
 		return fmt.Errorf("merging new JWK with JWKs in use: %w", err)
 	}
@@ -221,17 +222,17 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 
 func (r *Reconciler) handleError(tx *Transaction, err error) (ctrl.Result, error) {
 	tx.Logger.Error(fmt.Errorf("processing client: %w", err))
-	r.reportEvent(tx, corev1.EventTypeWarning, v1.EventFailedSynchronization, "Failed to synchronize client")
+	r.reportEvent(tx, corev1.EventTypeWarning, EventFailedSynchronization, "Failed to synchronize client")
 
 	metrics.IncClientsFailedProcessing(tx.Instance)
-	r.reportEvent(tx, corev1.EventTypeNormal, v1.EventRetrying, "Retrying synchronization")
+	r.reportEvent(tx, corev1.EventTypeNormal, EventRetrying, "Retrying synchronization")
 	return ctrl.Result{RequeueAfter: RequeueInterval}, nil
 }
 
 func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
-	tx.Logger.Debugf("updating status for %s", tx.Instance.GetInstanceType())
+	tx.Logger.Debugf("updating status for %s", clients.GetInstanceType(tx.Instance))
 
-	hash, err := tx.Instance.CalculateHash()
+	hash, err := tx.Instance.Hash()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -239,13 +240,13 @@ func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
 	tx.Instance.GetStatus().SetStateSynchronized()
 
 	if err := r.Client.Update(tx.Ctx, tx.Instance); err != nil {
-		r.reportEvent(tx, corev1.EventTypeWarning, v1.EventFailedStatusUpdate, "Failed to update status")
+		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedStatusUpdate, "Failed to update status")
 		return ctrl.Result{}, fmt.Errorf("updating status subresource: %w", err)
 	}
 
 	tx.Logger.Info("status subresource successfully updated")
 
-	r.reportEvent(tx, corev1.EventTypeNormal, v1.EventSynchronized, "Client is up-to-date")
+	r.reportEvent(tx, corev1.EventTypeNormal, EventSynchronized, "Client is up-to-date")
 	tx.Logger.Info("successfully reconciled")
 	metrics.IncClientsProcessed(tx.Instance)
 

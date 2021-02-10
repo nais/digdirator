@@ -2,8 +2,8 @@ package common
 
 import (
 	"fmt"
-	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/metrics"
+	finalizer2 "github.com/nais/liberator/pkg/finalizer"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -22,19 +22,19 @@ func (r Reconciler) finalizer(transaction *Transaction) finalizer {
 }
 
 func (f finalizer) Register() (ctrl.Result, error) {
-	if !f.Instance.HasFinalizer(FinalizerName) {
+	if !finalizer2.HasFinalizer(f.Instance, FinalizerName) {
 		f.Logger.Info("finalizer for object not found, registering...")
 		controllerutil.AddFinalizer(f.Instance, FinalizerName)
 		if err := f.Client.Update(f.Ctx, f.Instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("registering finalizer: %w", err)
 		}
-		f.reportEvent(f.Transaction, corev1.EventTypeNormal, v1.EventAddedFinalizer, "Object finalizer is added")
+		f.reportEvent(f.Transaction, corev1.EventTypeNormal, EventAddedFinalizer, "Object finalizer is added")
 	}
 	return ctrl.Result{}, nil
 }
 
 func (f finalizer) Process() (ctrl.Result, error) {
-	if !f.Instance.HasFinalizer(FinalizerName) {
+	if !finalizer2.HasFinalizer(f.Instance, FinalizerName) {
 		return ctrl.Result{}, nil
 	}
 
@@ -45,21 +45,20 @@ func (f finalizer) Process() (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	if clientRegistration == nil {
+	if clientRegistration != nil {
 		f.Logger.Info("client does not exist, skipping deletion...")
-		return ctrl.Result{}, nil
-	}
 
-	if err := f.DigdirClient.Delete(f.Ctx, f.Instance.GetStatus().GetClientID()); err != nil {
-		return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
+		if err := f.DigdirClient.Delete(f.Ctx, f.Instance.GetStatus().GetClientID()); err != nil {
+			return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
+		}
+		f.reportEvent(f.Transaction, corev1.EventTypeNormal, EventDeletedInDigDir, "Client deleted in Digdir")
 	}
-	f.reportEvent(f.Transaction, corev1.EventTypeNormal, v1.EventDeletedInDigDir, "Client deleted in Digdir")
 
 	controllerutil.RemoveFinalizer(f.Instance, FinalizerName)
 	if err := f.Client.Update(f.Ctx, f.Instance); err != nil {
 		return ctrl.Result{}, fmt.Errorf("removing finalizer from list: %w", err)
 	}
-	f.reportEvent(f.Transaction, corev1.EventTypeNormal, v1.EventDeletedFinalizer, "Object finalizer is removed")
+	f.reportEvent(f.Transaction, corev1.EventTypeNormal, EventDeletedFinalizer, "Object finalizer is removed")
 	metrics.IncClientsDeleted(f.Instance)
 
 	f.Logger.Info("finalizer processing completed")

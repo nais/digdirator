@@ -2,21 +2,21 @@ package common
 
 import (
 	"context"
-	"github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/digdir"
 	log "github.com/sirupsen/logrus"
 )
 
 type Transaction struct {
 	Ctx          context.Context
-	Instance     v1.Instance
+	Instance     clients.Instance
 	Logger       *log.Entry
 	DigdirClient *digdir.Client
 }
 
 func NewTransaction(
 	ctx context.Context,
-	instance v1.Instance,
+	instance clients.Instance,
 	logger *log.Entry,
 	digdirClient *digdir.Client,
 ) Transaction {

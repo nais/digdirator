@@ -3,17 +3,17 @@ package test
 import (
 	"encoding/base64"
 	"fmt"
-	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/controllers/maskinportenclient"
 	"github.com/nais/digdirator/pkg/config"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"github.com/nais/liberator/pkg/crd"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/square/go-jose.v2"
 	"io/ioutil"
 	"k8s.io/client-go/kubernetes/scheme"
 	"net/http/httptest"
-	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -31,8 +31,9 @@ func SetupTestEnv(clientID string, handlerType HandlerType) (*envtest.Environmen
 	ctrl.SetLogger(logger)
 	log.SetLevel(log.DebugLevel)
 
+	crdPath := crd.YamlDirectory()
 	testEnv := &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd")},
+		CRDDirectoryPaths: []string{crdPath},
 	}
 
 	cfg, err := testEnv.Start()
@@ -40,7 +41,7 @@ func SetupTestEnv(clientID string, handlerType HandlerType) (*envtest.Environmen
 		return nil, nil, err
 	}
 
-	err = v1.AddToScheme(scheme.Scheme)
+	err = nais_io_v1.AddToScheme(scheme.Scheme)
 	if err != nil {
 		return nil, nil, err
 	}

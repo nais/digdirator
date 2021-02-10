@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
-	v1 "github.com/nais/digdirator/api/v1"
 	"github.com/nais/digdirator/pkg/crypto"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"io"
 	"io/ioutil"
@@ -69,9 +69,9 @@ func (c Client) claims() customClaims {
 	var clientID string
 
 	switch c.instance.(type) {
-	case *v1.IDPortenClient:
+	case *nais_io_v1.IDPortenClient:
 		clientID = c.Config.DigDir.IDPorten.ClientID
-	case *v1.MaskinportenClient:
+	case *nais_io_v1.MaskinportenClient:
 		clientID = c.Config.DigDir.Maskinporten.ClientID
 	}
 

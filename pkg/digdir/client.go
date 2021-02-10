@@ -5,9 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nais/digdirator/api/v1"
+	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir/types"
+	"github.com/nais/liberator/pkg/kubernetes"
 	"gopkg.in/square/go-jose.v2"
 	"io/ioutil"
 	"net/http"
@@ -22,7 +23,7 @@ type Client struct {
 	HttpClient *http.Client
 	Signer     jose.Signer
 	Config     *config.Config
-	instance   v1.Instance
+	instance   clients.Instance
 }
 
 func (c Client) Register(ctx context.Context, payload types.ClientRegistration) (*types.ClientRegistration, error) {
@@ -35,13 +36,13 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 	}
 
 	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, registration); err != nil {
-		return nil, fmt.Errorf("updating ID-porten client: %w", err)
+		return nil, fmt.Errorf("registering ID-porten client: %w", err)
 	}
 
 	return registration, nil
 }
 
-func (c Client) ClientExists(desired v1.Instance, ctx context.Context) (*types.ClientRegistration, error) {
+func (c Client) ClientExists(desired clients.Instance, ctx context.Context) (*types.ClientRegistration, error) {
 	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.Admin.BaseURL)
 	clients := make([]types.ClientRegistration, 0)
 
@@ -134,7 +135,7 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 	return nil
 }
 
-func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance v1.Instance) Client {
+func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance clients.Instance) Client {
 	return Client{
 		httpClient,
 		signer,
@@ -143,9 +144,9 @@ func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Confi
 	}
 }
 
-func clientMatches(actual types.ClientRegistration, desired v1.Instance) bool {
-	descriptionMatches := actual.Description == desired.MakeDescription()
-	integrationTypeMatches := actual.IntegrationType == desired.GetIntegrationType()
+func clientMatches(actual types.ClientRegistration, desired clients.Instance) bool {
+	descriptionMatches := actual.Description == kubernetes.UniformResourceName(desired)
+	integrationTypeMatches := actual.IntegrationType == clients.GetIntegrationType(desired)
 
 	return descriptionMatches && integrationTypeMatches
 }

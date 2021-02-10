@@ -3,8 +3,8 @@ package fixtures
 import (
 	"context"
 	"fmt"
-	v1 "github.com/nais/digdirator/api/v1"
-	"github.com/nais/digdirator/pkg/labels"
+	"github.com/nais/digdirator/pkg/clients"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"time"
@@ -18,8 +18,8 @@ import (
 type ClusterFixtures struct {
 	client.Client
 	Config
-	idPortenClient     *v1.IDPortenClient
-	maskinportenClient *v1.MaskinportenClient
+	idPortenClient     *nais_io_v1.IDPortenClient
+	maskinportenClient *nais_io_v1.MaskinportenClient
 	namespace          *corev1.Namespace
 	pod                *corev1.Pod
 	podEnvFrom         *corev1.Pod
@@ -65,14 +65,14 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 		Name:      c.DigdirClientName,
 	}
 
-	spec := v1.IDPortenClientSpec{
+	spec := nais_io_v1.IDPortenClientSpec{
 		ClientURI:              "clienturi",
 		RedirectURI:            "https://my-app.nais.io",
 		SecretName:             c.SecretName,
 		FrontchannelLogoutURI:  "frontChannelLogoutURI",
 		PostLogoutRedirectURIs: []string{"postLogoutRedirectURI"},
 	}
-	c.idPortenClient = &v1.IDPortenClient{
+	c.idPortenClient = &nais_io_v1.IDPortenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        key.Name,
 			Namespace:   key.Namespace,
@@ -89,13 +89,13 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 		Name:      c.DigdirClientName,
 	}
 
-	spec := v1.MaskinportenClientSpec{
+	spec := nais_io_v1.MaskinportenClientSpec{
 		SecretName: c.SecretName,
-		Scopes: []v1.MaskinportenScope{
+		Scopes: []nais_io_v1.MaskinportenScope{
 			{Name: "scopes"},
 		},
 	}
-	c.maskinportenClient = &v1.MaskinportenClient{
+	c.maskinportenClient = &nais_io_v1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        key.Name,
 			Namespace:   key.Namespace,
@@ -120,7 +120,7 @@ func (c ClusterFixtures) WithPods() ClusterFixtures {
 			Name:      key.Name,
 			Namespace: key.Namespace,
 			Labels: map[string]string{
-				labels.AppLabelKey: key.Name,
+				clients.AppLabelKey: key.Name,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -151,7 +151,7 @@ func (c ClusterFixtures) WithPods() ClusterFixtures {
 			Name:      fmt.Sprintf("%s-envfrom", key.Name),
 			Namespace: c.NamespaceName,
 			Labels: map[string]string{
-				labels.AppLabelKey: key.Name,
+				clients.AppLabelKey: key.Name,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -185,8 +185,8 @@ func (c ClusterFixtures) WithUnusedSecret(label string) ClusterFixtures {
 			Name:      c.UnusedSecretName,
 			Namespace: c.NamespaceName,
 			Labels: map[string]string{
-				labels.AppLabelKey:  c.DigdirClientName,
-				labels.TypeLabelKey: label,
+				clients.AppLabelKey:  c.DigdirClientName,
+				clients.TypeLabelKey: label,
 			},
 		},
 	}
@@ -263,7 +263,7 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 				Namespace: c.NamespaceName,
 				Name:      c.DigdirClientName,
 			},
-			Object: &v1.IDPortenClient{},
+			Object: &nais_io_v1.IDPortenClient{},
 		})
 	}
 	if c.maskinportenClient != nil {
@@ -272,7 +272,7 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 				Namespace: c.NamespaceName,
 				Name:      c.DigdirClientName,
 			},
-			Object: &v1.MaskinportenClient{},
+			Object: &nais_io_v1.MaskinportenClient{},
 		})
 	}
 
