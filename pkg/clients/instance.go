@@ -81,6 +81,10 @@ func IsUpToDate(instance Instance) (bool, error) {
 	return instance.GetStatus().GetSynchronizationHash() == newHash, nil
 }
 
+func ShouldUpdateSecrets(instance Instance) bool {
+	return instance.GetStatus().GetSynchronizationSecretName() != GetSecretName(instance)
+}
+
 func toIDPortenClientRegistration(in *nais_io_v1.IDPortenClient) types.ClientRegistration {
 	if in.Spec.AccessTokenLifetime == nil {
 		lifetime := IDPortenDefaultAccessTokenLifetimeSeconds

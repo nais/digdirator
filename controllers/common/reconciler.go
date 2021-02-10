@@ -145,6 +145,10 @@ func (r *Reconciler) process(tx *Transaction) error {
 		tx.Instance.GetStatus().SetClientID(instanceClient.ClientID)
 	}
 
+	if !clients.ShouldUpdateSecrets(tx.Instance) {
+		return nil
+	}
+
 	jwk, err := crypto.GenerateJwk()
 	if err != nil {
 		return fmt.Errorf("generating new JWK for client: %w", err)
@@ -238,6 +242,7 @@ func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
 	}
 	tx.Instance.GetStatus().SetHash(hash)
 	tx.Instance.GetStatus().SetStateSynchronized()
+	tx.Instance.GetStatus().SetSynchronizationSecretName(clients.GetSecretName(tx.Instance))
 
 	if err := r.Client.Update(tx.Ctx, tx.Instance); err != nil {
 		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedStatusUpdate, "Failed to update status")
