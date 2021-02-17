@@ -88,7 +88,7 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 
 	assert.Equal(t, "test-cluster:test-namespace:test-app", registration.Description)
 
-	assert.False(t, registration.FrontchannelLogoutSessionRequired)
+	assert.True(t, registration.FrontchannelLogoutSessionRequired)
 	assert.Empty(t, registration.FrontchannelLogoutURI)
 
 	assert.Contains(t, registration.GrantTypes, types.GrantTypeAuthorizationCode)

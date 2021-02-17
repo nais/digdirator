@@ -108,7 +108,7 @@ func toIDPortenClientRegistration(in nais_io_v1.IDPortenClient) types.ClientRegi
 		ClientName:                        types.DefaultClientName,
 		ClientURI:                         in.Spec.ClientURI,
 		Description:                       kubernetes.UniformResourceName(&in),
-		FrontchannelLogoutSessionRequired: false,
+		FrontchannelLogoutSessionRequired: true,
 		FrontchannelLogoutURI:             in.Spec.FrontchannelLogoutURI,
 		GrantTypes: []types.GrantType{
 			types.GrantTypeAuthorizationCode,
