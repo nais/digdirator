@@ -27,14 +27,15 @@ type Instance interface {
 	schema.ObjectKind
 	Hash() (string, error)
 	GetStatus() *nais_io_v1.DigdiratorStatus
+	SetStatus(status nais_io_v1.DigdiratorStatus)
 }
 
 func ToClientRegistration(instance Instance) types.ClientRegistration {
 	switch instance.(type) {
 	case *nais_io_v1.IDPortenClient:
-		return toIDPortenClientRegistration(instance.(*nais_io_v1.IDPortenClient))
+		return toIDPortenClientRegistration(*instance.(*nais_io_v1.IDPortenClient))
 	case *nais_io_v1.MaskinportenClient:
-		return toMaskinPortenClientRegistration(instance.(*nais_io_v1.MaskinportenClient))
+		return toMaskinPortenClientRegistration(*instance.(*nais_io_v1.MaskinportenClient))
 	}
 	return types.ClientRegistration{}
 }
@@ -85,7 +86,7 @@ func ShouldUpdateSecrets(instance Instance) bool {
 	return instance.GetStatus().GetSynchronizationSecretName() != GetSecretName(instance)
 }
 
-func toIDPortenClientRegistration(in *nais_io_v1.IDPortenClient) types.ClientRegistration {
+func toIDPortenClientRegistration(in nais_io_v1.IDPortenClient) types.ClientRegistration {
 	if in.Spec.AccessTokenLifetime == nil {
 		lifetime := IDPortenDefaultAccessTokenLifetimeSeconds
 		in.Spec.AccessTokenLifetime = &lifetime
@@ -106,7 +107,7 @@ func toIDPortenClientRegistration(in *nais_io_v1.IDPortenClient) types.ClientReg
 		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
 		ClientName:                        types.DefaultClientName,
 		ClientURI:                         in.Spec.ClientURI,
-		Description:                       kubernetes.UniformResourceName(in),
+		Description:                       kubernetes.UniformResourceName(&in),
 		FrontchannelLogoutSessionRequired: false,
 		FrontchannelLogoutURI:             in.Spec.FrontchannelLogoutURI,
 		GrantTypes: []types.GrantType{
@@ -127,14 +128,14 @@ func toIDPortenClientRegistration(in *nais_io_v1.IDPortenClient) types.ClientReg
 	}
 }
 
-func toMaskinPortenClientRegistration(in *nais_io_v1.MaskinportenClient) types.ClientRegistration {
+func toMaskinPortenClientRegistration(in nais_io_v1.MaskinportenClient) types.ClientRegistration {
 	return types.ClientRegistration{
 		AccessTokenLifetime:               IDPortenDefaultAccessTokenLifetimeSeconds,
 		ApplicationType:                   types.ApplicationTypeWeb,
 		AuthorizationLifeTime:             IDPortenDefaultSessionLifetimeSeconds,
 		ClientName:                        types.DefaultClientName,
 		ClientURI:                         IDPortenDefaultClientURI,
-		Description:                       kubernetes.UniformResourceName(in),
+		Description:                       kubernetes.UniformResourceName(&in),
 		FrontchannelLogoutSessionRequired: false,
 		FrontchannelLogoutURI:             "",
 		GrantTypes: []types.GrantType{

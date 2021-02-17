@@ -4,7 +4,6 @@ import (
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/secrets"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -77,15 +76,6 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 	client := minimalIDPortenClient()
 	registration := clients.ToClientRegistration(client)
 
-	assert.Equal(t, clients.IDPortenDefaultClientURI, client.Spec.ClientURI)
-
-	assert.Contains(t, client.Spec.PostLogoutRedirectURIs, clients.IDPortenDefaultPostLogoutRedirectURI)
-	assert.Len(t, client.Spec.PostLogoutRedirectURIs, 1)
-
-	assert.Equal(t, clients.IDPortenDefaultAccessTokenLifetimeSeconds, *client.Spec.AccessTokenLifetime)
-
-	assert.Equal(t, clients.IDPortenDefaultSessionLifetimeSeconds, *client.Spec.SessionLifetime)
-
 	assert.Equal(t, clients.IDPortenDefaultAccessTokenLifetimeSeconds, registration.AccessTokenLifetime)
 
 	assert.Equal(t, types.ApplicationTypeWeb, registration.ApplicationType)
@@ -127,8 +117,6 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 	client := minimalMaskinportenClient()
 	registration := clients.ToClientRegistration(client)
-
-	assert.Contains(t, client.Spec.Scopes, nais_io_v1.MaskinportenScope{Name: "some-scope"})
 
 	assert.Equal(t, clients.IDPortenDefaultAccessTokenLifetimeSeconds, registration.AccessTokenLifetime)
 

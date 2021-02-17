@@ -10,6 +10,7 @@ import (
 	"github.com/nais/digdirator/pkg/digdir"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/metrics"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	finalizer2 "github.com/nais/liberator/pkg/finalizer"
 	"github.com/nais/liberator/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
@@ -20,6 +21,7 @@ import (
 	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sync"
 	"time"
 )
 
@@ -244,7 +246,10 @@ func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
 	tx.Instance.GetStatus().SetStateSynchronized()
 	tx.Instance.GetStatus().SetSynchronizationSecretName(clients.GetSecretName(tx.Instance))
 
-	if err := r.Client.Update(tx.Ctx, tx.Instance); err != nil {
+	if err := r.updateInstance(tx.Ctx, tx.Instance, func(existing clients.Instance) error {
+		existing.SetStatus(*tx.Instance.GetStatus())
+		return r.Client.Update(tx.Ctx, existing)
+	}); err != nil {
 		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedStatusUpdate, "Failed to update status")
 		return ctrl.Result{}, fmt.Errorf("updating status subresource: %w", err)
 	}
@@ -261,4 +266,28 @@ func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
 func (r *Reconciler) reportEvent(tx *Transaction, eventType, event, message string) {
 	tx.Instance.GetStatus().SetSynchronizationState(event)
 	r.Recorder.Event(tx.Instance, eventType, event, message)
+}
+
+var instancesync sync.Mutex
+
+func (r *Reconciler) updateInstance(ctx context.Context, instance clients.Instance, updateFunc func(existing clients.Instance) error) error {
+	instancesync.Lock()
+	defer instancesync.Unlock()
+
+	existing := func(instance clients.Instance) clients.Instance {
+		switch instance.(type) {
+		case *nais_io_v1.IDPortenClient:
+			return &nais_io_v1.IDPortenClient{}
+		case *nais_io_v1.MaskinportenClient:
+			return &nais_io_v1.MaskinportenClient{}
+		}
+		return nil
+	}(instance)
+
+	err := r.Reader.Get(ctx, client.ObjectKey{Namespace: instance.GetNamespace(), Name: instance.GetName()}, existing)
+	if err != nil {
+		return fmt.Errorf("get newest version of %s: %s", clients.GetInstanceType(instance), err)
+	}
+
+	return updateFunc(existing)
 }
