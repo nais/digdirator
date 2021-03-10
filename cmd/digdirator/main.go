@@ -1,17 +1,24 @@
 package main
 
 import (
-	kms "cloud.google.com/go/kms/apiv1"
 	"context"
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
+	kms "cloud.google.com/go/kms/apiv1"
 	"github.com/go-logr/zapr"
+
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/controllers/maskinportenclient"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/metrics"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -20,11 +27,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"net/http"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
-	"time"
+
+	"github.com/nais/digdirator/pkg/google"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -75,9 +81,27 @@ func run() error {
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
 
+	ctx := context.Background()
+
+	secretManagerClient, err := google.NewSecretManagerClient(ctx)
+	if err != nil {
+		log.Fatalf("getting secret manager client: %v", err)
+	}
+
+	idportenKeyChain, err := secretManagerClient.KeyChainMetadata(
+		ctx,
+		cfg.ProjectID,
+		cfg.DigDir.Maskinporten.CertChainSecretName,
+	)
+
+	if err != nil {
+		return fmt.Errorf("unable to fetch idporten cert chain: %w", err)
+	}
+
 	idportenSigner, err := setupSigner(
-		cfg.DigDir.IDPorten.CertChainPath,
+		idportenKeyChain,
 		cfg.DigDir.IDPorten.KmsKeyPath,
+		ctx,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to setup signer: %w", err)
@@ -97,10 +121,21 @@ func run() error {
 	}
 	// +kubebuilder:scaffold:builder
 
+	maskinportenKeyChain, err := secretManagerClient.KeyChainMetadata(
+		ctx,
+		cfg.ProjectID,
+		cfg.DigDir.Maskinporten.CertChainSecretName,
+	)
+
+	if err != nil {
+		return fmt.Errorf("unable to fetch maskinporten cert chain: %w", err)
+	}
+
 	if cfg.Features.Maskinporten {
 		maskinportenSigner, err := setupSigner(
-			cfg.DigDir.Maskinporten.CertChainPath,
+			maskinportenKeyChain,
 			cfg.DigDir.Maskinporten.KmsKeyPath,
+			ctx,
 		)
 		if err != nil {
 			return fmt.Errorf("unable to setup signer: %w", err)
@@ -123,7 +158,7 @@ func run() error {
 
 	setupLog.Info("starting metrics refresh goroutine")
 	clusterMetrics := metrics.New(mgr.GetAPIReader())
-	go clusterMetrics.Refresh(context.Background())
+	go clusterMetrics.Refresh(ctx)
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
@@ -133,14 +168,14 @@ func run() error {
 	return nil
 }
 
-func setupSigner(certChainPath string, kmsKeyPath string) (jose.Signer, error) {
-	signerOpts, err := crypto.SetupSignerOptions(certChainPath)
+func setupSigner(certChain []byte, kmsKeyPath string, ctx context.Context) (jose.Signer, error) {
+	signerOpts, err := crypto.SetupSignerOptions(certChain)
 	if err != nil {
 		return nil, fmt.Errorf("setting up signer options: %v", err)
 	}
 
 	kmsPath := crypto.KmsKeyPath(kmsKeyPath)
-	kmsCtx := context.Background()
+	kmsCtx := ctx
 	kmsClient, err := kms.NewKeyManagementClient(kmsCtx)
 	if err != nil {
 		return nil, fmt.Errorf("error creating key management client: %v", err)
@@ -186,9 +221,9 @@ func setupConfig() (*config.Config, error) {
 		config.DigDirAdminBaseURL,
 		config.DigDirAuthAudience,
 		config.DigDirIDportenClientID,
-		config.DigDirIDportenCertChainPath,
 		config.DigDirMaskinportenClientID,
-		config.DigDirMaskinportenCertChainPath,
+		config.DigDirIDportenCertChainSecretName,
+		config.DigDirMaskinportenCertChainSecretName,
 		config.DigDirAuthScopes,
 		config.DigDirIDPortenBaseURL,
 		config.DigDirMaskinportenBaseURL,
