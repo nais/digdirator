@@ -2,28 +2,29 @@ package idportenclient_test
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"testing"
+
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"github.com/nais/liberator/pkg/finalizer"
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/common/test"
+	"github.com/nais/digdirator/pkg/annotations"
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/fixtures"
 	"github.com/nais/digdirator/pkg/secrets"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
-	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 	// +kubebuilder:scaffold:imports
-)
-
-const (
-	clientID = "some-random-id"
 )
 
 var cli client.Client
 
 func TestMain(m *testing.M) {
-	testEnv, testEnvClient, err := test.SetupTestEnv(clientID, test.IDPortenHandlerType)
+	testEnv, testEnvClient, err := test.SetupTestEnv(test.ClientID, test.IDPortenHandlerType)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -42,7 +43,7 @@ func TestIDPortenController(t *testing.T) {
 	}
 
 	// set up preconditions for cluster
-	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithIDPortenClient().WithPods().WithUnusedSecret(clients.IDPortenTypeLabelValue)
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig(clients.IDPortenTypeLabelValue).WithNamespace()
 
 	// create IDPortenClient
 	if err := clusterFixtures.Setup(); err != nil {
@@ -69,7 +70,7 @@ func TestIDPortenController(t *testing.T) {
 	assert.NotEmpty(t, instance.Status.SynchronizationTime)
 	assert.Equal(t, common.EventSynchronized, instance.Status.SynchronizationState)
 
-	assert.Equal(t, clientID, instance.Status.ClientID)
+	assert.Equal(t, test.ClientID, instance.Status.ClientID)
 	assert.Contains(t, instance.Status.KeyIDs, "some-keyid")
 	assert.Len(t, instance.Status.KeyIDs, 1)
 
@@ -98,7 +99,7 @@ func TestIDPortenController(t *testing.T) {
 		return previousHash != instance.Status.SynchronizationHash
 	}, test.Timeout, test.Interval, "new hash should be set")
 
-	assert.Equal(t, clientID, instance.Status.ClientID, "client ID should still match")
+	assert.Equal(t, test.ClientID, instance.Status.ClientID, "client ID should still match")
 	assert.Len(t, instance.Status.KeyIDs, 2, "should contain two key IDs")
 	assert.Contains(t, instance.Status.KeyIDs, "some-keyid", "previous key should still be valid")
 	assert.Contains(t, instance.Status.KeyIDs, "some-new-keyid", "new key should be valid")
@@ -142,4 +143,30 @@ func secretAssertions(t *testing.T) func(*corev1.Secret, clients.Instance) {
 		assert.Empty(t, actual.Data[secrets.MaskinportenScopesKey])
 		assert.Empty(t, actual.Data[secrets.MaskinportenWellKnownURLKey])
 	}
+}
+
+func TestReconciler_CreateIDPortenClient_ShouldNotProcessInSharedNamespace(t *testing.T) {
+	appName := "shared-namespace-idporten"
+	sharedNamespace := "shared"
+	secretName := fmt.Sprintf("%s-%s", appName, test.AlreadyInUseSecret)
+	cfg := fixtures.Config{
+		DigdirClientName: appName,
+		SecretName:       secretName,
+		UnusedSecretName: test.UnusedSecret,
+		NamespaceName:    sharedNamespace,
+	}
+
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig(clients.IDPortenTypeLabelValue).WithSharedNamespace()
+
+	if err := clusterFixtures.Setup(); err != nil {
+		t.Fatalf("failed to set up cluster fixtures: %v", err)
+	}
+	key := client.ObjectKey{
+		Name:      appName,
+		Namespace: sharedNamespace,
+	}
+	instance := test.AssertApplicationShouldNotProcess(t, cli, "IDPortenClient in shared namespace should not be processed", key, &nais_io_v1.IDPortenClient{})
+	assert.True(t, finalizer.HasFinalizer(instance, common.FinalizerName), "IDPortenClient should contain a finalizer")
+	assert.Equal(t, common.EventSkipped, instance.GetStatus().SynchronizationState, "IDPortenClient should be skipped")
+	test.AssertAnnotationExists(t, instance, annotations.SkipKey, annotations.SkipValue)
 }

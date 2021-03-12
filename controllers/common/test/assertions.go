@@ -2,14 +2,17 @@ package test
 
 import (
 	"context"
-	"github.com/nais/digdirator/pkg/clients"
+	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
+
+	"github.com/nais/digdirator/pkg/clients"
 )
 
 func ResourceExists(cli client.Client, key client.ObjectKey, instance runtime.Object) func() bool {
@@ -57,4 +60,24 @@ func AssertSecretExists(t *testing.T, cli client.Client, name string, namespace 
 	assert.True(t, ContainsOwnerRef(a.GetOwnerReferences(), instance), "Secret should contain ownerReference")
 
 	assertions(a, instance)
+}
+
+func AssertAnnotationExists(t *testing.T, instance clients.Instance, annotationKey, annotationValue string) {
+	assert.Eventually(t, func() bool {
+		_, key := instance.GetAnnotations()[annotationKey]
+		return key
+	}, Timeout, Interval, fmt.Sprintf("Annotation '%s' should exist on resource", annotationKey))
+	assert.Equal(t, instance.GetAnnotations()[annotationKey], annotationValue, fmt.Sprintf("IDPortenClient should contain annotation %s", annotationKey))
+}
+
+func AssertApplicationShouldNotProcess(t *testing.T, cli client.Client, testName string, key client.ObjectKey, instance clients.Instance) clients.Instance {
+	t.Run(testName, func(t *testing.T) {
+		assert.Eventually(t, ResourceExists(cli, key, instance), Timeout, Interval, "Client should exist")
+		assert.NotEmpty(t, instance.GetStatus().CorrelationID)
+		assert.Empty(t, instance.GetStatus().ClientID)
+		assert.Empty(t, instance.GetStatus().KeyIDs)
+		assert.Empty(t, instance.GetStatus().SynchronizationHash)
+		assert.Empty(t, instance.GetStatus().SynchronizationTime)
+	})
+	return instance
 }

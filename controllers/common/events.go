@@ -11,5 +11,6 @@ const (
 	EventUpdatedInDigDir       = "UpdatedInDigDir"
 	EventRotatedInDigDir       = "RotatedInDigDir"
 	EventDeletedInDigDir       = "DeletedInDigDir"
+	EventSkipped               = "Skipped"
 	EventRetrying              = "Retrying"
 )

@@ -3,11 +3,13 @@ package fixtures
 import (
 	"context"
 	"fmt"
-	"github.com/nais/digdirator/pkg/clients"
+	"time"
+
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"time"
+
+	"github.com/nais/digdirator/pkg/clients"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,10 +22,10 @@ type ClusterFixtures struct {
 	Config
 	idPortenClient     *nais_io_v1.IDPortenClient
 	maskinportenClient *nais_io_v1.MaskinportenClient
-	namespace          *corev1.Namespace
 	pod                *corev1.Pod
 	podEnvFrom         *corev1.Pod
 	unusedSecret       *corev1.Secret
+	sharedNamespace    *corev1.Namespace
 }
 
 type Config struct {
@@ -42,12 +44,16 @@ func New(cli client.Client, config Config) ClusterFixtures {
 	return ClusterFixtures{Client: cli, Config: config}
 }
 
-func (c ClusterFixtures) MinimalConfig() ClusterFixtures {
-	return c.WithNamespace()
+func (c ClusterFixtures) MinimalConfig(clientType string) ClusterFixtures {
+	if clientType == clients.IDPortenTypeLabelValue {
+		return c.WithPods().WithIDPortenClient().WithUnusedSecret(clients.IDPortenTypeLabelValue)
+	} else {
+		return c.WithPods().WithMaskinportenClient().WithUnusedSecret(clients.MaskinportenTypeLabelValue)
+	}
 }
 
 func (c ClusterFixtures) WithNamespace() ClusterFixtures {
-	c.namespace = &corev1.Namespace{
+	c.sharedNamespace = &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Namespace",
 			APIVersion: "v1",
@@ -195,8 +201,8 @@ func (c ClusterFixtures) WithUnusedSecret(label string) ClusterFixtures {
 
 func (c ClusterFixtures) Setup() error {
 	ctx := context.Background()
-	if c.namespace != nil {
-		if err := c.Create(ctx, c.namespace); err != nil {
+	if c.sharedNamespace != nil {
+		if err := c.Create(ctx, c.sharedNamespace); err != nil {
 			return err
 		}
 	}
@@ -308,4 +314,20 @@ func allExists(ctx context.Context, cli client.Client, resources []resource) (bo
 		}
 	}
 	return true, nil
+}
+
+func (c ClusterFixtures) WithSharedNamespace() ClusterFixtures {
+	c.sharedNamespace = &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: c.NamespaceName,
+			Labels: map[string]string{
+				"shared": "true",
+			},
+		},
+	}
+	return c
 }

@@ -3,26 +3,31 @@ package common
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"sync"
+	"time"
+
 	"github.com/google/uuid"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	finalizer2 "github.com/nais/liberator/pkg/finalizer"
+	"github.com/nais/liberator/pkg/kubernetes"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/square/go-jose.v2"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/nais/digdirator/pkg/annotations"
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/digdir"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/metrics"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	finalizer2 "github.com/nais/liberator/pkg/finalizer"
-	"github.com/nais/liberator/pkg/kubernetes"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/square/go-jose.v2"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
-	"net/http"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sync"
-	"time"
 )
 
 const RequeueInterval = 10 * time.Second
@@ -68,6 +73,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance clients.Instance) (ctr
 		tx.Logger.Infof("finished processing request")
 	}()
 
+	if r.shouldSkip(tx) {
+		tx.Logger.Info("skipping processing of this resource")
+		return ctrl.Result{}, nil
+	}
+
 	finalizer := r.finalizer(tx)
 
 	if finalizer2.IsBeingDeleted(tx.Instance) {
@@ -78,6 +88,19 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance clients.Instance) (ctr
 		return finalizer.Register()
 	}
 
+	inSharedNamespace, err := r.inSharedNamespace(tx)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if inSharedNamespace {
+		if err := r.Client.Update(tx.Ctx, tx.Instance); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update resource with skip flag: %w", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
 	if isUpToDate, err := clients.IsUpToDate(tx.Instance); isUpToDate {
 		if err != nil {
 			return ctrl.Result{}, err
@@ -86,11 +109,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance clients.Instance) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.process(tx); err != nil {
+	application, err := r.process(tx)
+	if err != nil {
 		return r.handleError(tx, err)
 	}
 
-	return r.complete(tx)
+	return r.complete(tx, *application)
 }
 
 func (r *Reconciler) prepare(req ctrl.Request, instance clients.Instance) (*Transaction, error) {
@@ -123,10 +147,38 @@ func (r *Reconciler) prepare(req ctrl.Request, instance clients.Instance) (*Tran
 	return &transaction, nil
 }
 
-func (r *Reconciler) process(tx *Transaction) error {
+func (r *Reconciler) shouldSkip(tx *Transaction) bool {
+	if annotations.HasSkipFlag(tx.Instance) {
+		msg := fmt.Sprintf("Resource contains '%s' annotation. Skipping processing...", annotations.SkipKey)
+		tx.Logger.Debug(msg)
+		r.reportEvent(tx, corev1.EventTypeWarning, v1.EventSkipped, msg)
+		return true
+	}
+	return false
+}
+
+func (r *Reconciler) inSharedNamespace(tx *Transaction) (bool, error) {
+	sharedNs, err := kubernetes.ListSharedNamespaces(tx.Ctx, r.Reader)
+	if err != nil {
+		return false, err
+	}
+	for _, ns := range sharedNs.Items {
+		if ns.Name == tx.Instance.GetNamespace() {
+			msg := fmt.Sprintf("Resource should not exist in shared namespace '%s'. Skipping...", tx.Instance.GetNamespace())
+			tx.Logger.Debug(msg)
+			annotations.Set(tx.Instance, annotations.SkipKey, annotations.SkipValue)
+			r.reportEvent(tx, corev1.EventTypeWarning, v1.EventNotInTeamNamespace, msg)
+			r.reportEvent(tx, corev1.EventTypeWarning, v1.EventSkipped, msg)
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (r *Reconciler) process(tx *Transaction) (*types.ClientRegistration, error) {
 	instanceClient, err := tx.DigdirClient.ClientExists(tx.Instance, tx.Ctx)
 	if err != nil {
-		return fmt.Errorf("checking if client exists: %w", err)
+		return nil, fmt.Errorf("checking if client exists: %w", err)
 	}
 
 	registrationPayload := clients.ToClientRegistration(tx.Instance)
@@ -140,7 +192,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 		metrics.IncClientsCreated(tx.Instance)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(tx.Instance.GetStatus().GetClientID()) == 0 {
@@ -148,35 +200,35 @@ func (r *Reconciler) process(tx *Transaction) error {
 	}
 
 	if !clients.ShouldUpdateSecrets(tx.Instance) {
-		return nil
+		return nil, nil
 	}
 
 	jwk, err := crypto.GenerateJwk()
 	if err != nil {
-		return fmt.Errorf("generating new JWK for client: %w", err)
+		return nil, fmt.Errorf("generating new JWK for client: %w", err)
 	}
 
 	secretsClient := r.secrets(tx)
 	managedSecrets, err := secretsClient.GetManaged()
 	if err != nil {
-		return fmt.Errorf("getting managed secrets: %w", err)
+		return nil, fmt.Errorf("getting managed secrets: %w", err)
 	}
 
 	if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
-		return err
+		return nil, err
 	}
 	r.reportEvent(tx, corev1.EventTypeNormal, EventRotatedInDigDir, "Client credentials is rotated")
 	metrics.IncClientsRotated(tx.Instance)
 
 	if err := secretsClient.CreateOrUpdate(*jwk); err != nil {
-		return fmt.Errorf("creating or updating secret: %w", err)
+		return nil, fmt.Errorf("creating or updating secret: %w", err)
 	}
 
 	if err := secretsClient.DeleteUnused(managedSecrets.Unused); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return instanceClient, nil
 }
 
 func (r *Reconciler) createClient(tx *Transaction, payload types.ClientRegistration) (*types.ClientRegistration, error) {
@@ -235,32 +287,45 @@ func (r *Reconciler) handleError(tx *Transaction, err error) (ctrl.Result, error
 	return ctrl.Result{RequeueAfter: RequeueInterval}, nil
 }
 
-func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
+func (r *Reconciler) complete(tx *Transaction, application types.ClientRegistration) (ctrl.Result, error) {
 	tx.Logger.Debugf("updating status for %s", clients.GetInstanceType(tx.Instance))
 
-	hash, err := tx.Instance.Hash()
-	if err != nil {
+	if err := r.updateStatus(tx, application); err != nil {
+		r.reportEvent(tx, corev1.EventTypeWarning, v1.EventFailedStatusUpdate, "Failed to update status")
 		return ctrl.Result{}, err
 	}
-	tx.Instance.GetStatus().SetHash(hash)
-	tx.Instance.GetStatus().SetStateSynchronized()
-	tx.Instance.GetStatus().SetSynchronizationSecretName(clients.GetSecretName(tx.Instance))
-
-	if err := r.updateInstance(tx.Ctx, tx.Instance, func(existing clients.Instance) error {
-		existing.SetStatus(*tx.Instance.GetStatus())
-		return r.Client.Update(tx.Ctx, existing)
-	}); err != nil {
-		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedStatusUpdate, "Failed to update status")
-		return ctrl.Result{}, fmt.Errorf("updating status subresource: %w", err)
-	}
-
-	tx.Logger.Info("status subresource successfully updated")
 
 	r.reportEvent(tx, corev1.EventTypeNormal, EventSynchronized, "Client is up-to-date")
 	tx.Logger.Info("successfully reconciled")
 	metrics.IncClientsProcessed(tx.Instance)
 
 	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) updateStatus(tx *Transaction, application types.ClientRegistration) error {
+	tx.Instance.GetStatus().SetStateSynchronized()
+	tx.Instance.GetStatus().SetSynchronizationSecretName(clients.GetSecretName(tx.Instance))
+	tx.Instance.GetStatus().SetClientID(application.ClientID)
+	tx.Instance.GetStatus().SetSynchronizationState(v1.EventSynchronized)
+	now := metav1.Now()
+	tx.Instance.GetStatus().SynchronizationTime = &now
+
+	hash, err := tx.Instance.Hash()
+	if err != nil {
+		return err
+	}
+	tx.Instance.GetStatus().SetHash(hash)
+
+	if err := r.updateInstance(tx.Ctx, tx.Instance, func(existing clients.Instance) error {
+		existing.SetStatus(*tx.Instance.GetStatus())
+		return r.Client.Update(tx.Ctx, existing)
+	}); err != nil {
+		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedStatusUpdate, "Failed to update status")
+		return fmt.Errorf("updating status subresource: %w", err)
+	}
+
+	tx.Logger.Info("status subresource successfully updated")
+	return nil
 }
 
 func (r *Reconciler) reportEvent(tx *Transaction, eventType, event, message string) {
