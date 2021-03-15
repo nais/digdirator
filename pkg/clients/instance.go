@@ -25,7 +25,6 @@ type Instance interface {
 	metav1.Object
 	runtime.Object
 	schema.ObjectKind
-	metav1.ObjectMetaAccessor
 	Hash() (string, error)
 	GetStatus() *nais_io_v1.DigdiratorStatus
 	SetStatus(status nais_io_v1.DigdiratorStatus)
