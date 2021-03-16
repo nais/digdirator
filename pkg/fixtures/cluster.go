@@ -25,7 +25,7 @@ type ClusterFixtures struct {
 	pod                *corev1.Pod
 	podEnvFrom         *corev1.Pod
 	unusedSecret       *corev1.Secret
-	sharedNamespace    *corev1.Namespace
+	namespace          *corev1.Namespace
 }
 
 type Config struct {
@@ -53,7 +53,7 @@ func (c ClusterFixtures) MinimalConfig(clientType string) ClusterFixtures {
 }
 
 func (c ClusterFixtures) WithNamespace() ClusterFixtures {
-	c.sharedNamespace = &corev1.Namespace{
+	c.namespace = &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Namespace",
 			APIVersion: "v1",
@@ -201,8 +201,8 @@ func (c ClusterFixtures) WithUnusedSecret(label string) ClusterFixtures {
 
 func (c ClusterFixtures) Setup() error {
 	ctx := context.Background()
-	if c.sharedNamespace != nil {
-		if err := c.Create(ctx, c.sharedNamespace); err != nil {
+	if c.namespace != nil {
+		if err := c.Create(ctx, c.namespace); err != nil {
 			return err
 		}
 	}
@@ -236,6 +236,14 @@ func (c ClusterFixtures) Setup() error {
 
 func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 	resources := make([]resource, 0)
+	if c.namespace != nil {
+		resources = append(resources, resource{
+			ObjectKey: client.ObjectKey{
+				Name: c.NamespaceName,
+			},
+			Object: &corev1.Namespace{},
+		})
+	}
 	if c.unusedSecret != nil {
 		resources = append(resources, resource{
 			ObjectKey: client.ObjectKey{
@@ -317,7 +325,7 @@ func allExists(ctx context.Context, cli client.Client, resources []resource) (bo
 }
 
 func (c ClusterFixtures) WithSharedNamespace() ClusterFixtures {
-	c.sharedNamespace = &corev1.Namespace{
+	c.namespace = &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Namespace",
 			APIVersion: "v1",

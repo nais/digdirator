@@ -3,18 +3,18 @@ package maskinportenclient_test
 import (
 	"context"
 	"fmt"
+	"github.com/nais/digdirator/pkg/annotations"
+	"github.com/nais/liberator/pkg/finalizer"
 	"os"
 	"testing"
 
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"github.com/nais/liberator/pkg/finalizer"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/common/test"
-	"github.com/nais/digdirator/pkg/annotations"
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/fixtures"
 	"github.com/nais/digdirator/pkg/secrets"

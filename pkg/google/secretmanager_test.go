@@ -42,7 +42,7 @@ func TestGetKeyChainAndSetupOfSignerOptions(t *testing.T) {
 }
 
 func readPemFile() []byte {
-	payload, err := ioutil.ReadFile("cert.pem")
+	payload, err := ioutil.ReadFile("testdata/cert.pem")
 	if err != nil {
 		return nil
 	}

@@ -62,12 +62,12 @@ func AssertSecretExists(t *testing.T, cli client.Client, name string, namespace 
 	assertions(a, instance)
 }
 
-func AssertAnnotationExists(t *testing.T, instance clients.Instance, annotationKey, annotationValue string) {
+func AssertAnnotationExists(t *testing.T, instance clients.Instance, annotationKey, annotationValue string) bool {
 	assert.Eventually(t, func() bool {
 		_, key := instance.GetAnnotations()[annotationKey]
 		return key
 	}, Timeout, Interval, fmt.Sprintf("Annotation '%s' should exist on resource", annotationKey))
-	assert.Equal(t, instance.GetAnnotations()[annotationKey], annotationValue, fmt.Sprintf("IDPortenClient should contain annotation %s", annotationKey))
+	return assert.Equal(t, instance.GetAnnotations()[annotationKey], annotationValue, fmt.Sprintf("%s should contain annotation %s", clients.GetInstanceType(instance), annotationKey))
 }
 
 func AssertApplicationShouldNotProcess(t *testing.T, cli client.Client, testName string, key client.ObjectKey, instance clients.Instance) clients.Instance {
