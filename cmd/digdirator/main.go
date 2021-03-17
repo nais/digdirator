@@ -218,6 +218,7 @@ func setupConfig() (*config.Config, error) {
 
 	if err = cfg.Validate([]string{
 		config.ClusterName,
+		config.ProjectID,
 		config.DigDirAdminBaseURL,
 		config.DigDirAuthAudience,
 		config.DigDirIDportenClientID,
