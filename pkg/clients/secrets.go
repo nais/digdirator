@@ -10,16 +10,6 @@ import (
 	"strings"
 )
 
-func SecretName(instance Instance) string {
-	switch instance.(type) {
-	case *nais_io_v1.IDPortenClient:
-		return instance.(*nais_io_v1.IDPortenClient).Spec.SecretName
-	case *nais_io_v1.MaskinportenClient:
-		return instance.(*nais_io_v1.MaskinportenClient).Spec.SecretName
-	}
-	return ""
-}
-
 func SecretData(instance Instance, jwk jose.JSONWebKey) (map[string]string, error) {
 	var stringData map[string]string
 	var err error

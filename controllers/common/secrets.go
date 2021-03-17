@@ -32,8 +32,8 @@ func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
 	s.Logger.Infof("processing secret with name '%s'...", s.secretName)
 
 	labels := clients.MakeLabels(s.Instance)
-	secretName := clients.SecretName(s.Instance)
-	objectMeta := kubernetes.ObjectMeta(secretName, s.Instance.GetNamespace(), labels)
+
+	objectMeta := kubernetes.ObjectMeta(s.secretName, s.Instance.GetNamespace(), labels)
 
 	stringData, err := clients.SecretData(s.Instance, jwk)
 	if err != nil {

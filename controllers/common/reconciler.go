@@ -3,14 +3,13 @@ package common
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"sync"
+	"time"
+
 	"github.com/google/uuid"
-	"github.com/nais/digdirator/pkg/clients"
-	"github.com/nais/digdirator/pkg/config"
-	"github.com/nais/digdirator/pkg/crypto"
-	"github.com/nais/digdirator/pkg/digdir"
-	"github.com/nais/digdirator/pkg/digdir/types"
-	"github.com/nais/digdirator/pkg/metrics"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	finalizer2 "github.com/nais/liberator/pkg/finalizer"
 	"github.com/nais/liberator/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
@@ -18,11 +17,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
-	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sync"
-	"time"
+
+	"github.com/nais/digdirator/pkg/annotations"
+	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/crypto"
+	"github.com/nais/digdirator/pkg/digdir"
+	"github.com/nais/digdirator/pkg/digdir/types"
+	"github.com/nais/digdirator/pkg/metrics"
 )
 
 const RequeueInterval = 10 * time.Second
@@ -68,6 +72,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance clients.Instance) (ctr
 		tx.Logger.Infof("finished processing request")
 	}()
 
+	if r.shouldSkip(tx) {
+		tx.Logger.Info("skipping processing of this resource")
+		return ctrl.Result{}, nil
+	}
+
 	finalizer := r.finalizer(tx)
 
 	if finalizer2.IsBeingDeleted(tx.Instance) {
@@ -78,6 +87,19 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance clients.Instance) (ctr
 		return finalizer.Register()
 	}
 
+	inSharedNamespace, err := r.inSharedNamespace(tx)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if inSharedNamespace {
+		if err := r.Client.Update(tx.Ctx, tx.Instance); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update resource with skip flag: %w", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
 	if isUpToDate, err := clients.IsUpToDate(tx.Instance); isUpToDate {
 		if err != nil {
 			return ctrl.Result{}, err
@@ -86,7 +108,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance clients.Instance) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.process(tx); err != nil {
+	err = r.process(tx)
+	if err != nil {
 		return r.handleError(tx, err)
 	}
 
@@ -121,6 +144,34 @@ func (r *Reconciler) prepare(req ctrl.Request, instance clients.Instance) (*Tran
 		&digdirClient,
 	)
 	return &transaction, nil
+}
+
+func (r *Reconciler) shouldSkip(tx *Transaction) bool {
+	if annotations.HasSkipFlag(tx.Instance) {
+		msg := fmt.Sprintf("Resource contains '%s' annotation. Skipping processing...", annotations.SkipKey)
+		tx.Logger.Debug(msg)
+		r.reportEvent(tx, corev1.EventTypeWarning, v1.EventSkipped, msg)
+		return true
+	}
+	return false
+}
+
+func (r *Reconciler) inSharedNamespace(tx *Transaction) (bool, error) {
+	sharedNs, err := kubernetes.ListSharedNamespaces(tx.Ctx, r.Reader)
+	if err != nil {
+		return false, err
+	}
+	for _, ns := range sharedNs.Items {
+		if ns.Name == tx.Instance.GetNamespace() {
+			msg := fmt.Sprintf("Resource should not exist in shared namespace '%s'. Skipping...", tx.Instance.GetNamespace())
+			tx.Logger.Debug(msg)
+			annotations.Set(tx.Instance, annotations.SkipKey, annotations.SkipValue)
+			r.reportEvent(tx, corev1.EventTypeWarning, v1.EventNotInTeamNamespace, msg)
+			r.reportEvent(tx, corev1.EventTypeWarning, v1.EventSkipped, msg)
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (r *Reconciler) process(tx *Transaction) error {
@@ -165,6 +216,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 	if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
 		return err
 	}
+
 	r.reportEvent(tx, corev1.EventTypeNormal, EventRotatedInDigDir, "Client credentials is rotated")
 	metrics.IncClientsRotated(tx.Instance)
 
@@ -243,6 +295,7 @@ func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 	tx.Instance.GetStatus().SetHash(hash)
+
 	tx.Instance.GetStatus().SetStateSynchronized()
 	tx.Instance.GetStatus().SetSynchronizationSecretName(clients.GetSecretName(tx.Instance))
 

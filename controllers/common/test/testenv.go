@@ -3,27 +3,32 @@ package test
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/nais/digdirator/controllers/common"
-	"github.com/nais/digdirator/controllers/idportenclient"
-	"github.com/nais/digdirator/controllers/maskinportenclient"
-	"github.com/nais/digdirator/pkg/config"
+	"io/ioutil"
+	"net/http/httptest"
+	"time"
+
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/crd"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/square/go-jose.v2"
-	"io/ioutil"
 	"k8s.io/client-go/kubernetes/scheme"
-	"net/http/httptest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"time"
+
+	"github.com/nais/digdirator/controllers/common"
+	"github.com/nais/digdirator/controllers/idportenclient"
+	"github.com/nais/digdirator/controllers/maskinportenclient"
+	"github.com/nais/digdirator/pkg/config"
 )
 
 const (
-	Timeout  = time.Second * 5
-	Interval = time.Millisecond * 100
+	Timeout            = time.Second * 5
+	Interval           = time.Millisecond * 100
+	ClientID           = "some-random-id"
+	UnusedSecret       = "unused-secret"
+	AlreadyInUseSecret = "in-use-by-pod"
 )
 
 func SetupTestEnv(clientID string, handlerType HandlerType) (*envtest.Environment, *client.Client, error) {

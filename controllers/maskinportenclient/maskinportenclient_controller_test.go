@@ -2,28 +2,27 @@ package maskinportenclient_test
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"testing"
+
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/common/test"
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/fixtures"
 	"github.com/nais/digdirator/pkg/secrets"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
-	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 	// +kubebuilder:scaffold:imports
-)
-
-const (
-	clientID = "some-random-id"
 )
 
 var cli client.Client
 
 func TestMain(m *testing.M) {
-	testEnv, testEnvClient, err := test.SetupTestEnv(clientID, test.MaskinportenHandlerType)
+	testEnv, testEnvClient, err := test.SetupTestEnv(test.ClientID, test.MaskinportenHandlerType)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -42,8 +41,7 @@ func TestMaskinportenController(t *testing.T) {
 	}
 
 	// set up preconditions for cluster
-	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig().WithMaskinportenClient().WithPods().WithUnusedSecret(clients.MaskinportenTypeLabelValue)
-
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig(clients.MaskinportenTypeLabelValue).WithNamespace()
 	// create MaskinportenClient
 	if err := clusterFixtures.Setup(); err != nil {
 		t.Fatalf("failed to set up cluster fixtures: %v", err)
@@ -69,7 +67,7 @@ func TestMaskinportenController(t *testing.T) {
 	assert.NotEmpty(t, instance.Status.SynchronizationTime)
 	assert.Equal(t, common.EventSynchronized, instance.Status.SynchronizationState)
 
-	assert.Equal(t, clientID, instance.Status.ClientID)
+	assert.Equal(t, test.ClientID, instance.Status.ClientID)
 	assert.Contains(t, instance.Status.KeyIDs, "some-keyid")
 	assert.Len(t, instance.Status.KeyIDs, 1)
 
@@ -98,7 +96,7 @@ func TestMaskinportenController(t *testing.T) {
 		return previousHash != instance.Status.SynchronizationHash
 	}, test.Timeout, test.Interval, "new hash should be set")
 
-	assert.Equal(t, clientID, instance.Status.ClientID, "client ID should still match")
+	assert.Equal(t, test.ClientID, instance.Status.ClientID, "client ID should still match")
 	assert.Len(t, instance.Status.KeyIDs, 2, "should contain two key IDs")
 	assert.Contains(t, instance.Status.KeyIDs, "some-keyid", "previous key should still be valid")
 	assert.Contains(t, instance.Status.KeyIDs, "some-new-keyid", "new key should be valid")
@@ -142,4 +140,27 @@ func secretAssertions(t *testing.T) func(*corev1.Secret, clients.Instance) {
 		assert.Empty(t, actual.Data[secrets.IDPortenRedirectURIKey])
 		assert.Empty(t, actual.Data[secrets.IDPortenWellKnownURLKey])
 	}
+}
+
+func TestReconciler_CreateMaskinportenClient_ShouldNotProcessInSharedNamespace(t *testing.T) {
+	appName := "shared-namespace-maskinporten"
+	sharedNamespace := "shared"
+	secretName := fmt.Sprintf("%s-%s", appName, test.AlreadyInUseSecret)
+	cfg := fixtures.Config{
+		DigdirClientName: appName,
+		SecretName:       secretName,
+		UnusedSecretName: test.UnusedSecret,
+		NamespaceName:    sharedNamespace,
+	}
+
+	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig(clients.MaskinportenTypeLabelValue).WithSharedNamespace()
+
+	if err := clusterFixtures.Setup(); err != nil {
+		t.Fatalf("failed to set up cluster fixtures: %v", err)
+	}
+	key := client.ObjectKey{
+		Name:      appName,
+		Namespace: sharedNamespace,
+	}
+	test.AssertApplicationShouldNotProcess(t, cli, key, &nais_io_v1.MaskinportenClient{})
 }

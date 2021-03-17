@@ -3,11 +3,13 @@ package fixtures
 import (
 	"context"
 	"fmt"
-	"github.com/nais/digdirator/pkg/clients"
+	"time"
+
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"time"
+
+	"github.com/nais/digdirator/pkg/clients"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,10 +22,10 @@ type ClusterFixtures struct {
 	Config
 	idPortenClient     *nais_io_v1.IDPortenClient
 	maskinportenClient *nais_io_v1.MaskinportenClient
-	namespace          *corev1.Namespace
 	pod                *corev1.Pod
 	podEnvFrom         *corev1.Pod
 	unusedSecret       *corev1.Secret
+	namespace          *corev1.Namespace
 }
 
 type Config struct {
@@ -42,8 +44,12 @@ func New(cli client.Client, config Config) ClusterFixtures {
 	return ClusterFixtures{Client: cli, Config: config}
 }
 
-func (c ClusterFixtures) MinimalConfig() ClusterFixtures {
-	return c.WithNamespace()
+func (c ClusterFixtures) MinimalConfig(clientType string) ClusterFixtures {
+	if clientType == clients.IDPortenTypeLabelValue {
+		return c.WithPods().WithIDPortenClient().WithUnusedSecret(clients.IDPortenTypeLabelValue)
+	} else {
+		return c.WithPods().WithMaskinportenClient().WithUnusedSecret(clients.MaskinportenTypeLabelValue)
+	}
 }
 
 func (c ClusterFixtures) WithNamespace() ClusterFixtures {
@@ -197,32 +203,44 @@ func (c ClusterFixtures) Setup() error {
 	ctx := context.Background()
 	if c.namespace != nil {
 		if err := c.Create(ctx, c.namespace); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	if c.unusedSecret != nil {
 		if err := c.Create(ctx, c.unusedSecret); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	if c.pod != nil {
 		if err := c.Create(ctx, c.pod); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	if c.podEnvFrom != nil {
 		if err := c.Create(ctx, c.podEnvFrom); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	if c.idPortenClient != nil {
 		if err := c.Create(ctx, c.idPortenClient); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	if c.maskinportenClient != nil {
 		if err := c.Create(ctx, c.maskinportenClient); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	return c.waitForClusterResources(ctx)
@@ -230,13 +248,12 @@ func (c ClusterFixtures) Setup() error {
 
 func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 	resources := make([]resource, 0)
-	if c.unusedSecret != nil {
+	if c.namespace != nil {
 		resources = append(resources, resource{
 			ObjectKey: client.ObjectKey{
-				Namespace: c.NamespaceName,
-				Name:      c.UnusedSecretName,
+				Name: c.NamespaceName,
 			},
-			Object: &corev1.Secret{},
+			Object: &corev1.Namespace{},
 		})
 	}
 	if c.pod != nil {
@@ -308,4 +325,20 @@ func allExists(ctx context.Context, cli client.Client, resources []resource) (bo
 		}
 	}
 	return true, nil
+}
+
+func (c ClusterFixtures) WithSharedNamespace() ClusterFixtures {
+	c.namespace = &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: c.NamespaceName,
+			Labels: map[string]string{
+				"shared": "true",
+			},
+		},
+	}
+	return c
 }
