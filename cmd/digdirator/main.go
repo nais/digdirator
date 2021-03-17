@@ -91,7 +91,7 @@ func run() error {
 	idportenKeyChain, err := secretManagerClient.KeyChainMetadata(
 		ctx,
 		cfg.ProjectID,
-		cfg.DigDir.Maskinporten.CertChainSecretName,
+		cfg.DigDir.IDPorten.CertChainSecretName,
 	)
 
 	if err != nil {
