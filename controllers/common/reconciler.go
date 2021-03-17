@@ -15,7 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -109,12 +108,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance clients.Instance) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	application, err := r.process(tx)
+	err = r.process(tx)
 	if err != nil {
 		return r.handleError(tx, err)
 	}
 
-	return r.complete(tx, *application)
+	return r.complete(tx)
 }
 
 func (r *Reconciler) prepare(req ctrl.Request, instance clients.Instance) (*Transaction, error) {
@@ -175,10 +174,10 @@ func (r *Reconciler) inSharedNamespace(tx *Transaction) (bool, error) {
 	return false, nil
 }
 
-func (r *Reconciler) process(tx *Transaction) (*types.ClientRegistration, error) {
+func (r *Reconciler) process(tx *Transaction) error {
 	instanceClient, err := tx.DigdirClient.ClientExists(tx.Instance, tx.Ctx)
 	if err != nil {
-		return nil, fmt.Errorf("checking if client exists: %w", err)
+		return fmt.Errorf("checking if client exists: %w", err)
 	}
 
 	registrationPayload := clients.ToClientRegistration(tx.Instance)
@@ -192,7 +191,7 @@ func (r *Reconciler) process(tx *Transaction) (*types.ClientRegistration, error)
 		metrics.IncClientsCreated(tx.Instance)
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if len(tx.Instance.GetStatus().GetClientID()) == 0 {
@@ -200,35 +199,36 @@ func (r *Reconciler) process(tx *Transaction) (*types.ClientRegistration, error)
 	}
 
 	if !clients.ShouldUpdateSecrets(tx.Instance) {
-		return nil, nil
+		return nil
 	}
 
 	jwk, err := crypto.GenerateJwk()
 	if err != nil {
-		return nil, fmt.Errorf("generating new JWK for client: %w", err)
+		return fmt.Errorf("generating new JWK for client: %w", err)
 	}
 
 	secretsClient := r.secrets(tx)
 	managedSecrets, err := secretsClient.GetManaged()
 	if err != nil {
-		return nil, fmt.Errorf("getting managed secrets: %w", err)
+		return fmt.Errorf("getting managed secrets: %w", err)
 	}
 
 	if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
-		return nil, err
+		return err
 	}
+
 	r.reportEvent(tx, corev1.EventTypeNormal, EventRotatedInDigDir, "Client credentials is rotated")
 	metrics.IncClientsRotated(tx.Instance)
 
 	if err := secretsClient.CreateOrUpdate(*jwk); err != nil {
-		return nil, fmt.Errorf("creating or updating secret: %w", err)
+		return fmt.Errorf("creating or updating secret: %w", err)
 	}
 
 	if err := secretsClient.DeleteUnused(managedSecrets.Unused); err != nil {
-		return nil, err
+		return err
 	}
 
-	return instanceClient, nil
+	return nil
 }
 
 func (r *Reconciler) createClient(tx *Transaction, payload types.ClientRegistration) (*types.ClientRegistration, error) {
@@ -287,45 +287,33 @@ func (r *Reconciler) handleError(tx *Transaction, err error) (ctrl.Result, error
 	return ctrl.Result{RequeueAfter: RequeueInterval}, nil
 }
 
-func (r *Reconciler) complete(tx *Transaction, application types.ClientRegistration) (ctrl.Result, error) {
+func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
 	tx.Logger.Debugf("updating status for %s", clients.GetInstanceType(tx.Instance))
-
-	if err := r.updateStatus(tx, application); err != nil {
-		r.reportEvent(tx, corev1.EventTypeWarning, v1.EventFailedStatusUpdate, "Failed to update status")
-		return ctrl.Result{}, err
-	}
-
-	r.reportEvent(tx, corev1.EventTypeNormal, EventSynchronized, "Client is up-to-date")
-	tx.Logger.Info("successfully reconciled")
-	metrics.IncClientsProcessed(tx.Instance)
-
-	return ctrl.Result{}, nil
-}
-
-func (r *Reconciler) updateStatus(tx *Transaction, application types.ClientRegistration) error {
-	tx.Instance.GetStatus().SetStateSynchronized()
-	tx.Instance.GetStatus().SetSynchronizationSecretName(clients.GetSecretName(tx.Instance))
-	tx.Instance.GetStatus().SetClientID(application.ClientID)
-	tx.Instance.GetStatus().SetSynchronizationState(v1.EventSynchronized)
-	now := metav1.Now()
-	tx.Instance.GetStatus().SynchronizationTime = &now
 
 	hash, err := tx.Instance.Hash()
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 	tx.Instance.GetStatus().SetHash(hash)
+
+	tx.Instance.GetStatus().SetStateSynchronized()
+	tx.Instance.GetStatus().SetSynchronizationSecretName(clients.GetSecretName(tx.Instance))
 
 	if err := r.updateInstance(tx.Ctx, tx.Instance, func(existing clients.Instance) error {
 		existing.SetStatus(*tx.Instance.GetStatus())
 		return r.Client.Update(tx.Ctx, existing)
 	}); err != nil {
 		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedStatusUpdate, "Failed to update status")
-		return fmt.Errorf("updating status subresource: %w", err)
+		return ctrl.Result{}, fmt.Errorf("updating status subresource: %w", err)
 	}
 
 	tx.Logger.Info("status subresource successfully updated")
-	return nil
+
+	r.reportEvent(tx, corev1.EventTypeNormal, EventSynchronized, "Client is up-to-date")
+	tx.Logger.Info("successfully reconciled")
+	metrics.IncClientsProcessed(tx.Instance)
+
+	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) reportEvent(tx *Transaction, eventType, event, message string) {
