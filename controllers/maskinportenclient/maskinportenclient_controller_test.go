@@ -3,8 +3,6 @@ package maskinportenclient_test
 import (
 	"context"
 	"fmt"
-	"github.com/nais/digdirator/pkg/annotations"
-	"github.com/nais/liberator/pkg/finalizer"
 	"os"
 	"testing"
 
@@ -164,8 +162,5 @@ func TestReconciler_CreateMaskinportenClient_ShouldNotProcessInSharedNamespace(t
 		Name:      appName,
 		Namespace: sharedNamespace,
 	}
-	instance := test.AssertApplicationShouldNotProcess(t, cli, "MaskinportenClient in shared namespace should not be processed", key, &nais_io_v1.MaskinportenClient{})
-	assert.True(t, finalizer.HasFinalizer(instance, common.FinalizerName), "MaskinportenClient should contain a finalizer")
-	assert.Equal(t, common.EventSkipped, instance.GetStatus().SynchronizationState, "MaskinportenClient should be skipped")
-	test.AssertAnnotationExists(t, instance, annotations.SkipKey, annotations.SkipValue)
+	test.AssertApplicationShouldNotProcess(t, cli, key, &nais_io_v1.MaskinportenClient{})
 }

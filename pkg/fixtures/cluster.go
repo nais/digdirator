@@ -203,32 +203,44 @@ func (c ClusterFixtures) Setup() error {
 	ctx := context.Background()
 	if c.namespace != nil {
 		if err := c.Create(ctx, c.namespace); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	if c.unusedSecret != nil {
 		if err := c.Create(ctx, c.unusedSecret); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	if c.pod != nil {
 		if err := c.Create(ctx, c.pod); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	if c.podEnvFrom != nil {
 		if err := c.Create(ctx, c.podEnvFrom); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	if c.idPortenClient != nil {
 		if err := c.Create(ctx, c.idPortenClient); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	if c.maskinportenClient != nil {
 		if err := c.Create(ctx, c.maskinportenClient); err != nil {
-			return err
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
 		}
 	}
 	return c.waitForClusterResources(ctx)
@@ -242,15 +254,6 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 				Name: c.NamespaceName,
 			},
 			Object: &corev1.Namespace{},
-		})
-	}
-	if c.unusedSecret != nil {
-		resources = append(resources, resource{
-			ObjectKey: client.ObjectKey{
-				Namespace: c.NamespaceName,
-				Name:      c.UnusedSecretName,
-			},
-			Object: &corev1.Secret{},
 		})
 	}
 	if c.pod != nil {

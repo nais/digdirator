@@ -2,7 +2,9 @@ package test
 
 import (
 	"context"
-	"fmt"
+	"github.com/nais/digdirator/controllers/common"
+	"github.com/nais/digdirator/pkg/annotations"
+	"github.com/nais/liberator/pkg/finalizer"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -62,22 +64,24 @@ func AssertSecretExists(t *testing.T, cli client.Client, name string, namespace 
 	assertions(a, instance)
 }
 
-func AssertAnnotationExists(t *testing.T, instance clients.Instance, annotationKey, annotationValue string) bool {
+func AssertApplicationShouldNotProcess(t *testing.T, cli client.Client, key client.ObjectKey, instance clients.Instance) clients.Instance {
+	assert.Eventually(t, ResourceExists(cli, key, instance), Timeout, Interval, "Client should exist")
 	assert.Eventually(t, func() bool {
-		_, key := instance.GetAnnotations()[annotationKey]
-		return key
-	}, Timeout, Interval, fmt.Sprintf("Annotation '%s' should exist on resource", annotationKey))
-	return assert.Equal(t, instance.GetAnnotations()[annotationKey], annotationValue, fmt.Sprintf("%s should contain annotation %s", clients.GetInstanceType(instance), annotationKey))
-}
+		_ = cli.Get(context.Background(), key, instance)
 
-func AssertApplicationShouldNotProcess(t *testing.T, cli client.Client, testName string, key client.ObjectKey, instance clients.Instance) clients.Instance {
-	t.Run(testName, func(t *testing.T) {
-		assert.Eventually(t, ResourceExists(cli, key, instance), Timeout, Interval, "Client should exist")
-		assert.NotEmpty(t, instance.GetStatus().CorrelationID)
-		assert.Empty(t, instance.GetStatus().ClientID)
-		assert.Empty(t, instance.GetStatus().KeyIDs)
-		assert.Empty(t, instance.GetStatus().SynchronizationHash)
-		assert.Empty(t, instance.GetStatus().SynchronizationTime)
-	})
+		hasCorrelationID := len(instance.GetStatus().CorrelationID) > 0
+		hasFinalizer := finalizer.HasFinalizer(instance, common.FinalizerName)
+		hasSynchronizationState := common.EventSkipped == instance.GetStatus().SynchronizationState
+		annotationValue, annotationFound := instance.GetAnnotations()[annotations.SkipKey]
+		hasAnnotationValue := annotationValue == annotations.SkipValue
+
+		return hasCorrelationID && hasFinalizer && hasSynchronizationState && annotationFound && hasAnnotationValue
+	}, Timeout, Interval, "Client should not be processed")
+
+	assert.NotEmpty(t, instance.GetStatus().CorrelationID)
+	assert.Empty(t, instance.GetStatus().ClientID)
+	assert.Empty(t, instance.GetStatus().KeyIDs)
+	assert.Empty(t, instance.GetStatus().SynchronizationHash)
+	assert.Empty(t, instance.GetStatus().SynchronizationTime)
 	return instance
 }

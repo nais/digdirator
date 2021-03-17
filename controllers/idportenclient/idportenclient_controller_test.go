@@ -3,8 +3,6 @@ package idportenclient_test
 import (
 	"context"
 	"fmt"
-	"github.com/nais/digdirator/pkg/annotations"
-	"github.com/nais/liberator/pkg/finalizer"
 	"os"
 	"testing"
 
@@ -165,8 +163,5 @@ func TestReconciler_CreateIDPortenClient_ShouldNotProcessInSharedNamespace(t *te
 		Name:      appName,
 		Namespace: sharedNamespace,
 	}
-	instance := test.AssertApplicationShouldNotProcess(t, cli, "IDPortenClient in shared namespace should not be processed", key, &nais_io_v1.IDPortenClient{})
-	assert.True(t, finalizer.HasFinalizer(instance, common.FinalizerName), "IDPortenClient should contain a finalizer")
-	assert.Equal(t, common.EventSkipped, instance.GetStatus().SynchronizationState, "IDPortenClient should be skipped")
-	test.AssertAnnotationExists(t, instance, annotations.SkipKey, annotations.SkipValue)
+	test.AssertApplicationShouldNotProcess(t, cli, key, &nais_io_v1.IDPortenClient{})
 }
