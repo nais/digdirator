@@ -85,7 +85,7 @@ func run() error {
 
 	secretManagerClient, err := google.NewSecretManagerClient(ctx)
 	if err != nil {
-		log.Fatalf("getting secret manager client: %v", err)
+		return fmt.Errorf("getting secret manager client: %v", err)
 	}
 
 	idportenKeyChain, err := secretManagerClient.KeyChainMetadata(
