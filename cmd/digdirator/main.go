@@ -72,6 +72,7 @@ func run() error {
 	}
 	ctrl.SetLogger(zapr.NewLogger(zapLogger))
 
+	setupLog.Info("instantiating manager")
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: cfg.MetricsAddr,
@@ -83,11 +84,13 @@ func run() error {
 
 	ctx := context.Background()
 
+	setupLog.Info("instantiating secret manager client")
 	secretManagerClient, err := google.NewSecretManagerClient(ctx)
 	if err != nil {
 		return fmt.Errorf("getting secret manager client: %v", err)
 	}
 
+	setupLog.Info("fetching certificate key chain for idporten")
 	idportenKeyChain, err := secretManagerClient.KeyChainMetadata(
 		ctx,
 		cfg.ProjectID,
@@ -98,6 +101,7 @@ func run() error {
 		return fmt.Errorf("unable to fetch idporten cert chain: %w", err)
 	}
 
+	setupLog.Info("setting up signer for idporten")
 	idportenSigner, err := setupSigner(
 		idportenKeyChain,
 		cfg.DigDir.IDPorten.KmsKeyPath,
@@ -107,6 +111,7 @@ func run() error {
 		return fmt.Errorf("unable to setup signer: %w", err)
 	}
 
+	setupLog.Info("instantiating reconciler for idporten")
 	idportenReconciler := idportenclient.NewReconciler(common.NewReconciler(
 		mgr.GetClient(),
 		mgr.GetAPIReader(),
@@ -116,22 +121,26 @@ func run() error {
 		idportenSigner,
 		http.DefaultClient,
 	))
+
+	setupLog.Info("setting up idporten reconciler with manager")
 	if err = idportenReconciler.SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
 	}
 	// +kubebuilder:scaffold:builder
 
-	maskinportenKeyChain, err := secretManagerClient.KeyChainMetadata(
-		ctx,
-		cfg.ProjectID,
-		cfg.DigDir.Maskinporten.CertChainSecretName,
-	)
-
-	if err != nil {
-		return fmt.Errorf("unable to fetch maskinporten cert chain: %w", err)
-	}
-
 	if cfg.Features.Maskinporten {
+		setupLog.Info("fetching certificate key chain for maskinporten")
+		maskinportenKeyChain, err := secretManagerClient.KeyChainMetadata(
+			ctx,
+			cfg.ProjectID,
+			cfg.DigDir.Maskinporten.CertChainSecretName,
+		)
+
+		if err != nil {
+			return fmt.Errorf("unable to fetch maskinporten cert chain: %w", err)
+		}
+
+		setupLog.Info("setting up signer for maskinporten")
 		maskinportenSigner, err := setupSigner(
 			maskinportenKeyChain,
 			cfg.DigDir.Maskinporten.KmsKeyPath,
@@ -140,6 +149,8 @@ func run() error {
 		if err != nil {
 			return fmt.Errorf("unable to setup signer: %w", err)
 		}
+
+		setupLog.Info("instantiating reconciler for maskinporten")
 		maskinportenReconciler := maskinportenclient.NewReconciler(
 			common.NewReconciler(
 				mgr.GetClient(),
@@ -150,6 +161,8 @@ func run() error {
 				maskinportenSigner,
 				http.DefaultClient,
 			))
+
+		setupLog.Info("setting up maskinporten reconciler with manager")
 		if err = maskinportenReconciler.SetupWithManager(mgr); err != nil {
 			return fmt.Errorf("unable to create controller: %w", err)
 		}
