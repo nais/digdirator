@@ -181,17 +181,33 @@ func (r *Reconciler) process(tx *Transaction) error {
 	}
 
 	registrationPayload := clients.ToClientRegistration(tx.Instance)
+
+	switch tx.Instance.(type) {
+	case *nais_io_v1.MaskinportenClient:
+		filteredPayload, err := r.filterValidScopes(tx, registrationPayload)
+		if err != nil {
+			return err
+		}
+
+		registrationPayload = *filteredPayload
+	}
+
 	if instanceClient != nil {
 		instanceClient, err = r.updateClient(tx, registrationPayload, instanceClient.ClientID)
+		if err != nil {
+			return err
+		}
+
 		r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedInDigDir, "Client is updated")
 		metrics.IncClientsUpdated(tx.Instance)
 	} else {
 		instanceClient, err = r.createClient(tx, registrationPayload)
+		if err != nil {
+			return err
+		}
+
 		r.reportEvent(tx, corev1.EventTypeNormal, EventCreatedInDigDir, "Client is registered")
 		metrics.IncClientsCreated(tx.Instance)
-	}
-	if err != nil {
-		return err
 	}
 
 	if len(tx.Instance.GetStatus().GetClientID()) == 0 {
@@ -255,6 +271,35 @@ func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistrat
 
 	tx.Logger.WithField("ClientID", registrationResponse.ClientID).Info("client updated")
 	return registrationResponse, err
+}
+
+func (r *Reconciler) filterValidScopes(tx *Transaction, registration types.ClientRegistration) (*types.ClientRegistration, error) {
+	var desiredScopes []v1.MaskinportenScope
+
+	switch tx.Instance.(type) {
+	case *nais_io_v1.IDPortenClient:
+		return &registration, nil
+	case *nais_io_v1.MaskinportenClient:
+		desiredScopes = tx.Instance.(*nais_io_v1.MaskinportenClient).Spec.Scopes
+	}
+
+	accessibleScopes, err := tx.DigdirClient.GetAccessibleScopes(tx.Ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	filteredScopes := clients.FilterScopes(desiredScopes, accessibleScopes)
+	registration.Scopes = filteredScopes.Valid
+
+	if len(filteredScopes.Invalid) > 0 {
+		for _, scope := range filteredScopes.Invalid {
+			msg := fmt.Sprintf("ERROR: Precondition failed: This organization number has not been granted access to the scope '%s'.", scope)
+			tx.Logger.Error(msg)
+			r.reportEvent(tx, corev1.EventTypeWarning, EventSkipped, msg)
+		}
+	}
+
+	return &registration, nil
 }
 
 func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSecrets kubernetes.SecretLists, clientID string) error {

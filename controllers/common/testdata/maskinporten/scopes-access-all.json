@@ -1,0 +1,26 @@
+[
+  {
+    "consumer_orgno": "string",
+    "created": "2021-03-19T10:29:55.174Z",
+    "last_updated": "2021-03-19T10:29:55.174Z",
+    "owner_orgno": "string",
+    "scope": "valid-scope",
+    "state": "APPROVED"
+  },
+  {
+    "consumer_orgno": "string",
+    "created": "2021-03-19T10:29:55.174Z",
+    "last_updated": "2021-03-19T10:29:55.174Z",
+    "owner_orgno": "string",
+    "scope": "valid-scope-2",
+    "state": "APPROVED"
+  },
+  {
+    "consumer_orgno": "string",
+    "created": "2021-03-19T10:29:55.174Z",
+    "last_updated": "2021-03-19T10:29:55.174Z",
+    "owner_orgno": "string",
+    "scope": "invalid-scope",
+    "state": "DENIED"
+  }
+]

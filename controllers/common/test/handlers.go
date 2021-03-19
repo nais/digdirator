@@ -52,6 +52,10 @@ func DigdirHandler(clientID string, handlerType HandlerType) http.HandlerFunc {
 			}
 			response, _ := ioutil.ReadFile(path)
 			_, _ = w.Write(response)
+		// GET accessible maskinporten scopes
+		case r.URL.Path == "/scopes/access/all" && r.Method == http.MethodGet:
+			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/scopes-access-all.json", handlerType))
+			_, _ = w.Write(response)
 		}
 	}
 }

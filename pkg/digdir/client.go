@@ -96,6 +96,16 @@ func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose
 	return response, nil
 }
 
+func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) {
+	endpoint := fmt.Sprintf("%s/scopes/access/all", c.Config.DigDir.Admin.BaseURL)
+	scopes := make([]types.Scope, 0)
+
+	if err := c.request(ctx, http.MethodGet, endpoint, nil, &scopes); err != nil {
+		return nil, fmt.Errorf("fetching scopes: %w", err)
+	}
+	return scopes, nil
+}
+
 func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget interface{}) error {
 	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
 	defer cancel()

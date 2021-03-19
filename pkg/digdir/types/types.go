@@ -74,3 +74,18 @@ type JwksResponse struct {
 	LastUpdated string `json:"last_updated"`
 	jose.JSONWebKeySet
 }
+
+type ScopeAccessState string
+
+const (
+	ScopeAccessRequested ScopeAccessState = "REQUESTED"
+	ScopeAccessApproved  ScopeAccessState = "APPROVED"
+	ScopeAccessDenied    ScopeAccessState = "DENIED"
+)
+
+type Scope struct {
+	ConsumerOrgNo string           `json:"consumer_orgno"`
+	OwnerOrgNo    string           `json:"owner_orgno"`
+	Scope         string           `json:"scope"`
+	State         ScopeAccessState `json:"state"`
+}
