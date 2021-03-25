@@ -2,6 +2,7 @@ package clients
 
 import (
 	"fmt"
+	"github.com/nais/digdirator/pkg/annotations"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/secrets"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -31,11 +32,11 @@ type Instance interface {
 }
 
 func ToClientRegistration(instance Instance) types.ClientRegistration {
-	switch instance.(type) {
+	switch v := instance.(type) {
 	case *nais_io_v1.IDPortenClient:
-		return toIDPortenClientRegistration(*instance.(*nais_io_v1.IDPortenClient))
+		return toIDPortenClientRegistration(*v)
 	case *nais_io_v1.MaskinportenClient:
-		return toMaskinPortenClientRegistration(*instance.(*nais_io_v1.MaskinportenClient))
+		return toMaskinPortenClientRegistration(*v)
 	}
 	return types.ClientRegistration{}
 }
@@ -55,11 +56,11 @@ func GetInstanceType(instance Instance) string {
 }
 
 func GetSecretName(instance Instance) string {
-	switch instance.(type) {
+	switch v := instance.(type) {
 	case *nais_io_v1.IDPortenClient:
-		return instance.(*nais_io_v1.IDPortenClient).Spec.SecretName
+		return v.Spec.SecretName
 	case *nais_io_v1.MaskinportenClient:
-		return instance.(*nais_io_v1.MaskinportenClient).Spec.SecretName
+		return v.Spec.SecretName
 	}
 	return ""
 }
@@ -84,6 +85,37 @@ func IsUpToDate(instance Instance) (bool, error) {
 
 func ShouldUpdateSecrets(instance Instance) bool {
 	return instance.GetStatus().GetSynchronizationSecretName() != GetSecretName(instance)
+}
+
+func HasSkipAnnotation(instance Instance) bool {
+	switch v := instance.(type) {
+	case *nais_io_v1.IDPortenClient:
+		return annotations.HasSkipAnnotation(v)
+	case *nais_io_v1.MaskinportenClient:
+		return annotations.HasSkipAnnotation(v)
+	default:
+		return false
+	}
+}
+
+func HasDeleteAnnotation(instance Instance) bool {
+	switch v := instance.(type) {
+	case *nais_io_v1.IDPortenClient:
+		return annotations.HasDeleteAnnotation(v)
+	case *nais_io_v1.MaskinportenClient:
+		return annotations.HasDeleteAnnotation(v)
+	default:
+		return false
+	}
+}
+
+func SetAnnotation(instance Instance, key, value string) {
+	switch v := instance.(type) {
+	case *nais_io_v1.IDPortenClient:
+		annotations.Set(v, key, value)
+	case *nais_io_v1.MaskinportenClient:
+		annotations.Set(v, key, value)
+	}
 }
 
 func toIDPortenClientRegistration(in nais_io_v1.IDPortenClient) types.ClientRegistration {

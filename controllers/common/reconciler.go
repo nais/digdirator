@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -147,7 +148,7 @@ func (r *Reconciler) prepare(req ctrl.Request, instance clients.Instance) (*Tran
 }
 
 func (r *Reconciler) shouldSkip(tx *Transaction) bool {
-	if annotations.HasSkipFlag(tx.Instance) {
+	if clients.HasSkipAnnotation(tx.Instance) {
 		msg := fmt.Sprintf("Resource contains '%s' annotation. Skipping processing...", annotations.SkipKey)
 		tx.Logger.Debug(msg)
 		r.reportEvent(tx, corev1.EventTypeWarning, v1.EventSkipped, msg)
@@ -165,7 +166,7 @@ func (r *Reconciler) inSharedNamespace(tx *Transaction) (bool, error) {
 		if ns.Name == tx.Instance.GetNamespace() {
 			msg := fmt.Sprintf("Resource should not exist in shared namespace '%s'. Skipping...", tx.Instance.GetNamespace())
 			tx.Logger.Debug(msg)
-			annotations.Set(tx.Instance, annotations.SkipKey, annotations.SkipValue)
+			clients.SetAnnotation(tx.Instance, annotations.SkipKey, strconv.FormatBool(true))
 			r.reportEvent(tx, corev1.EventTypeWarning, v1.EventNotInTeamNamespace, msg)
 			r.reportEvent(tx, corev1.EventTypeWarning, v1.EventSkipped, msg)
 			return true, nil
@@ -276,11 +277,11 @@ func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistrat
 func (r *Reconciler) filterValidScopes(tx *Transaction, registration types.ClientRegistration) (*types.ClientRegistration, error) {
 	var desiredScopes []v1.MaskinportenScope
 
-	switch tx.Instance.(type) {
+	switch v := tx.Instance.(type) {
 	case *nais_io_v1.IDPortenClient:
 		return &registration, nil
 	case *nais_io_v1.MaskinportenClient:
-		desiredScopes = tx.Instance.(*nais_io_v1.MaskinportenClient).Spec.Scopes
+		desiredScopes = v.Spec.Scopes
 	}
 
 	accessibleScopes, err := tx.DigdirClient.GetAccessibleScopes(tx.Ctx)

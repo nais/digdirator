@@ -13,11 +13,11 @@ const (
 )
 
 func MakeLabels(instance Instance) map[string]string {
-	switch instance.(type) {
+	switch v := instance.(type) {
 	case *nais_io_v1.IDPortenClient:
-		return idPortenLabels(instance.(*nais_io_v1.IDPortenClient))
+		return idPortenLabels(v)
 	case *nais_io_v1.MaskinportenClient:
-		return maskinportenLabels(instance.(*nais_io_v1.MaskinportenClient))
+		return maskinportenLabels(v)
 	}
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/pkg/annotations"
 	"github.com/nais/liberator/pkg/finalizer"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -73,7 +74,7 @@ func AssertApplicationShouldNotProcess(t *testing.T, cli client.Client, key clie
 		hasFinalizer := finalizer.HasFinalizer(instance, common.FinalizerName)
 		hasSynchronizationState := common.EventSkipped == instance.GetStatus().SynchronizationState
 		annotationValue, annotationFound := instance.GetAnnotations()[annotations.SkipKey]
-		hasAnnotationValue := annotationValue == annotations.SkipValue
+		hasAnnotationValue := annotationValue == strconv.FormatBool(true)
 
 		return hasCorrelationID && hasFinalizer && hasSynchronizationState && annotationFound && hasAnnotationValue
 	}, Timeout, Interval, "Client should not be processed")

@@ -14,11 +14,11 @@ func SecretData(instance Instance, jwk jose.JSONWebKey) (map[string]string, erro
 	var stringData map[string]string
 	var err error
 
-	switch instance.(type) {
+	switch v := instance.(type) {
 	case *nais_io_v1.IDPortenClient:
-		stringData, err = idPortenClientSecretData(instance.(*nais_io_v1.IDPortenClient), jwk)
+		stringData, err = idPortenClientSecretData(v, jwk)
 	case *nais_io_v1.MaskinportenClient:
-		stringData, err = maskinportenClientSecretData(instance.(*nais_io_v1.MaskinportenClient), jwk)
+		stringData, err = maskinportenClientSecretData(v, jwk)
 	}
 
 	if err != nil {

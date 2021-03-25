@@ -10,7 +10,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const FinalizerName string = "finalizer.digdirator.nais.io"
+const (
+	FinalizerName string = "finalizer.digdirator.nais.io"
+)
 
 // Finalizers allow the controller to implement an asynchronous pre-delete hook
 type finalizer struct {
@@ -43,16 +45,18 @@ func (f finalizer) Process() (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	f.Logger.Info("finalizer triggered, deleting resources...")
+	f.Logger.Info("finalizer triggered...")
 
 	clientRegistration, err := f.DigdirClient.ClientExists(f.Instance, f.Ctx)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if clientRegistration != nil {
-		f.Logger.Info("client does not exist, skipping deletion...")
+	clientExists := clientRegistration != nil
+	shouldDelete := clients.HasDeleteAnnotation(f.Instance)
 
+	if clientExists && shouldDelete {
+		f.Logger.Info("delete annotation set, deleting client from DigDir...")
 		if err := f.DigdirClient.Delete(f.Ctx, f.Instance.GetStatus().GetClientID()); err != nil {
 			return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
 		}
