@@ -3,7 +3,7 @@ name: Build and deploy digdirator
 on: [push]
 
 env:
-  image: docker.pkg.github.com/${{ github.repository }}/digdirator
+  image: ghcr.io/${{ github.repository }}:${{ github.sha }}
 
 jobs:
   build:
@@ -16,14 +16,16 @@ jobs:
           version=$(./version.sh)
           echo "version=${version}" >> $GITHUB_ENV
           echo "IMAGE=${image}:${version}" >> $GITHUB_ENV
-      - name: Build docker image
-        run: docker build . --tag $IMAGE
-      - name: Login to Github package registry
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "$GITHUB_TOKEN" | docker login docker.pkg.github.com -u "$GITHUB_REPOSITORY" --password-stdin
-      - name: Push docker image
-        run: docker push $IMAGE
+      - name: Login to GitHub Docker Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build an push the Docker image
+        run: |
+          docker build --pull --tag ${IMAGE} .
+          docker push ${IMAGE}
   deploy:
     name: Deploy to Kubernetes
     if: github.ref == 'refs/heads/master'
