@@ -3,7 +3,7 @@ name: Build and deploy digdirator
 on: [push]
 
 env:
-  image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+  image: ghcr.io/${{ github.repository }}
 
 jobs:
   build:
