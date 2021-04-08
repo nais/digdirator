@@ -95,6 +95,7 @@ func run() error {
 		ctx,
 		cfg.ProjectID,
 		cfg.DigDir.IDPorten.CertChainSecretName,
+		cfg.DigDir.IDPorten.CertChainSecretVersion,
 	)
 
 	if err != nil {
@@ -134,6 +135,7 @@ func run() error {
 			ctx,
 			cfg.ProjectID,
 			cfg.DigDir.Maskinporten.CertChainSecretName,
+			cfg.DigDir.Maskinporten.CertChainSecretVersion,
 		)
 
 		if err != nil {

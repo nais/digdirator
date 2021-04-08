@@ -22,9 +22,10 @@ var (
 func TestToAccessSecretVersionRequest(t *testing.T) {
 	projectID := "some-project"
 	secretName := "some-secret"
+	secretVersion := "latest"
 
 	expected := "projects/some-project/secrets/some-secret/versions/latest"
-	actual := google.ToAccessSecretVersionRequest(projectID, secretName)
+	actual := google.ToAccessSecretVersionRequest(projectID, secretName, secretVersion)
 
 	assert.Equal(t, expected, actual.GetName())
 }

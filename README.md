@@ -44,12 +44,14 @@ digdir:
   idporten:
     base-url: "base URL endpoint for idporten API"
     client-id: "client ID / issuer for JWT assertion"
-    cert-chain-secret-name: "Secret name to PEM file containing public certificate chain for authenticating to DigDir."
+    cert-chain-secret-name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
+    cert-chain-secret-version: "Secret version for the secret in Google Secret Manager."
     kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
   maskinporten:
     base-url: "base URL endpoint for maskinporten API"
     client-id: "client ID / issuer for JWT assertion"
-    cert-chain-secret-name: "Secret name to PEM file containing certificate chain for authenticating to DigDir."
+    cert-chain-secret-name: "Secret name in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir."
+    cert-chain-secret-version: "Secret version for the secret in Google Secret Manager."
     kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
 cluster-name: local
 development-mode: true
