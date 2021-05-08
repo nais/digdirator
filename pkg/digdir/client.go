@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/digdir/scopes"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/liberator/pkg/kubernetes"
 	"gopkg.in/square/go-jose.v2"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -107,6 +109,7 @@ func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) 
 }
 
 func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget interface{}) error {
+	println()
 	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
 	defer cancel()
 
@@ -159,4 +162,72 @@ func clientMatches(actual types.ClientRegistration, desired clients.Instance) bo
 	integrationTypeMatches := actual.IntegrationType == clients.GetIntegrationType(desired)
 
 	return descriptionMatches && integrationTypeMatches
+}
+
+func (c Client) ScopesExists(desired clients.Instance, ctx context.Context, scopeClient scopes.FilteredScopeContainer) (*scopes.FilteredScopeContainer, error) {
+	endpoint := fmt.Sprintf("%s/scopes", c.Config.DigDir.Admin.BaseURL)
+	actualScopesRegistrations := make([]types.ScopeRegistration, 0)
+
+	if err := c.request(ctx, http.MethodGet, endpoint, nil, &actualScopesRegistrations); err != nil {
+		return nil, fmt.Errorf("fetching list of scopes from Digdir: %w", err)
+	}
+	return scopeClient.FilterScopes(actualScopesRegistrations, desired), nil
+}
+
+func (c Client) RegisterScope(ctx context.Context, payload types.ScopeRegistration) (*types.ScopeRegistration, error) {
+	endpoint := fmt.Sprintf("%s/scopes", c.Config.DigDir.Admin.BaseURL)
+	registration := &types.ScopeRegistration{}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling register scope payload: %w", err)
+	}
+
+	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, registration); err != nil {
+		return nil, fmt.Errorf("registering FilteredScopeContainer: %w", err)
+	}
+	return registration, nil
+}
+
+func (c Client) UpdateScope(ctx context.Context, payload types.ScopeRegistration, scope string) (*types.ScopeRegistration, error) {
+	endpoint := fmt.Sprintf("%s/scopes/%s", c.Config.DigDir.Admin.BaseURL, url.QueryEscape(scope))
+	registration := &types.ScopeRegistration{}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling update scope payload: %w", err)
+	}
+	if err := c.request(ctx, http.MethodPut, endpoint, jsonPayload, registration); err != nil {
+		return nil, fmt.Errorf("updating FilteredScopeContainer client: %w", err)
+	}
+	return registration, nil
+}
+
+func (c Client) GetScopeACL(ctx context.Context, scope string) (*[]types.ConsumerRegistration, error) {
+	endpoint := fmt.Sprintf("%s/scopes/access?scope=%s", c.Config.DigDir.Admin.BaseURL, url.QueryEscape(scope))
+	registration := &[]types.ConsumerRegistration{}
+	if err := c.request(ctx, http.MethodGet, endpoint, nil, registration); err != nil {
+		return nil, fmt.Errorf("getting scope access: %w", err)
+	}
+	return registration, nil
+}
+
+func (c Client) AddToConsumerACL(ctx context.Context, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
+	endpoint := fmt.Sprintf("%s/scopes/access/%s?scope=%s", c.Config.DigDir.Admin.BaseURL, consumerOrgno, url.QueryEscape(scope))
+	registration := &types.ConsumerRegistration{}
+
+	if err := c.request(ctx, http.MethodPut, endpoint, nil, registration); err != nil {
+		return nil, fmt.Errorf("updating scope acl: %w", err)
+	}
+	return registration, nil
+}
+
+func (c Client) DeleteFromConsumerACL(ctx context.Context, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
+	endpoint := fmt.Sprintf("%s/scopes/access/%s?scope=%s", c.Config.DigDir.Admin.BaseURL, consumerOrgno, url.QueryEscape(scope))
+	registration := &types.ConsumerRegistration{}
+
+	if err := c.request(ctx, http.MethodDelete, endpoint, []byte{}, registration); err != nil {
+		return nil, fmt.Errorf("updating scope acl: %w", err)
+	}
+	return registration, nil
 }

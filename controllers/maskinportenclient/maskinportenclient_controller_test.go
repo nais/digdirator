@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,7 +47,7 @@ func TestMaskinportenController(t *testing.T) {
 		t.Fatalf("failed to set up cluster fixtures: %v", err)
 	}
 
-	instance := &nais_io_v1.MaskinportenClient{}
+	instance := &naisiov1.MaskinportenClient{}
 	key := client.ObjectKey{
 		Name:      "test-client",
 		Namespace: "test-namespace",
@@ -162,5 +162,51 @@ func TestReconciler_CreateMaskinportenClient_ShouldNotProcessInSharedNamespace(t
 		Name:      appName,
 		Namespace: sharedNamespace,
 	}
-	test.AssertApplicationShouldNotProcess(t, cli, key, &nais_io_v1.MaskinportenClient{})
+	test.AssertApplicationShouldNotProcess(t, cli, key, &naisiov1.MaskinportenClient{})
+}
+
+func TestMaskinportenControllerWithNewExternalScope(t *testing.T) {
+	cfg := fixtures.Config{
+		DigdirClientName: "scope-client",
+		NamespaceName:    "scope-namespace",
+		SecretName:       "scope-secret",
+		UnusedSecretName: "scope-unused-secret",
+	}
+
+	// set up preconditions for cluster
+	clusterFixtures := fixtures.New(cli, cfg).MinimalScopesConfig().WithNamespace()
+
+	// create MaskinportenClient
+	if err := clusterFixtures.Setup(); err != nil {
+		t.Fatalf("failed to set up cluster fixtures: %v", err)
+	}
+
+	instance := &naisiov1.MaskinportenClient{}
+	key := client.ObjectKey{
+		Name:      "scope-client",
+		Namespace: "scope-namespace",
+	}
+	assert.Eventually(t, test.ResourceExists(cli, key, instance), test.Timeout, test.Interval, "MaskinportenClient should exist")
+	assert.Eventually(t, func() bool {
+		err := cli.Get(context.Background(), key, instance)
+		assert.NoError(t, err)
+		b, err := clients.IsUpToDate(instance)
+		assert.NoError(t, err)
+		return b
+	}, test.Timeout, test.Interval, "MaskinportenClient should be synchronized")
+
+	err := cli.Update(context.Background(), instance)
+	assert.NoError(t, err)
+
+	applicationScope := instance.Status.GetApplicationScopes()[0]
+	assert.Equal(t, test.ClientID, instance.Status.ClientID, "client ID should still match")
+	assert.Equal(t, 1, len(instance.Status.GetApplicationScopes()), "Scope list should contain actual 1 scope")
+	assert.Equal(t, test.Scope, applicationScope.Name, "Scope should match")
+	assert.Equal(t, 2, len(applicationScope.OrganizationNumbers), " OrganizationNumbers should contain 2 active consumers")
+	assert.Equal(t, "101010101", applicationScope.OrganizationNumbers[0], " OrganizationNumbers should match")
+	assert.Equal(t, test.ExternalConsumerOrgno, applicationScope.OrganizationNumbers[1], " OrganizationNumbers should match")
+	assert.Len(t, instance.Status.KeyIDs, 2, "should contain two key IDs")
+	assert.NotEmpty(t, instance.Status.SynchronizationHash)
+	assert.NotEmpty(t, instance.Status.SynchronizationTime)
+	assert.Equal(t, common.EventSynchronized, instance.Status.SynchronizationState)
 }

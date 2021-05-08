@@ -24,11 +24,13 @@ import (
 )
 
 const (
-	Timeout            = time.Second * 5
-	Interval           = time.Millisecond * 100
-	ClientID           = "some-random-id"
-	UnusedSecret       = "unused-secret"
-	AlreadyInUseSecret = "in-use-by-pod"
+	Timeout               = time.Second * 5
+	Interval              = time.Millisecond * 100
+	ClientID              = "some-random-id"
+	Scope                 = "nav:test/scope"
+	ExternalConsumerOrgno = "111111111"
+	UnusedSecret          = "unused-secret"
+	AlreadyInUseSecret    = "in-use-by-pod"
 )
 
 func SetupTestEnv(clientID string, handlerType HandlerType) (*envtest.Environment, *client.Client, error) {
@@ -80,7 +82,7 @@ func SetupTestEnv(clientID string, handlerType HandlerType) (*envtest.Environmen
 		return nil, nil, fmt.Errorf("creating signer from jwk: %v", err)
 	}
 
-	testServer := httptest.NewServer(DigdirHandler(clientID, handlerType))
+	testServer := httptest.NewServer(DigdirHandler(clientID, handlerType, Scope, ExternalConsumerOrgno))
 	httpClient := testServer.Client()
 	digdiratorConfig.ClusterName = "test-cluster"
 	digdiratorConfig.DigDir.Admin.BaseURL = testServer.URL

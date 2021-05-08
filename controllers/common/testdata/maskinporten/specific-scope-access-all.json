@@ -1,0 +1,18 @@
+[
+  {
+    "consumer_orgno": "101010101",
+    "created": "2021-03-19T10:29:55.174Z",
+    "last_updated": "2021-03-19T10:29:55.174Z",
+    "owner_orgno": "string",
+    "scope": "nav:test/scope",
+    "state": "APPROVED"
+  },
+  {
+    "consumer_orgno": "999999999",
+    "created": "2021-03-19T10:29:55.174Z",
+    "last_updated": "2021-03-19T10:29:55.174Z",
+    "owner_orgno": "string",
+    "scope": "nav:test/scope",
+    "state": "APPROVED"
+  }
+]

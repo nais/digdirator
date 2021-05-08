@@ -6,5 +6,15 @@ metadata:
   namespace: default
 spec:
   secretName: my-secret
+  scope:
+    internal:
+      - name: "nav:test/api"
+    external:
+      - name: "nav:cope.read"
+        atAgeMax: 60 # token expires in sec / default 30 sec
+        allowedIntegration: maskinporten # default maskinporten
+        consumers:
+          - orgno: "1011223344"
   scopes:
     - name: "nav:test/api"
+

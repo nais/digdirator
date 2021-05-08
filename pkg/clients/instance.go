@@ -11,14 +11,19 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"reflect"
+	"strings"
 )
 
 const (
 	// Default values
-	IDPortenDefaultClientURI                  = "https://www.nav.no"
-	IDPortenDefaultPostLogoutRedirectURI      = "https://www.nav.no"
-	IDPortenDefaultAccessTokenLifetimeSeconds = 3600
-	IDPortenDefaultSessionLifetimeSeconds     = 7200
+	IDPortenDefaultClientURI                    = "https://www.nav.no"
+	IDPortenDefaultPostLogoutRedirectURI        = "https://www.nav.no"
+	IDPortenDefaultAccessTokenLifetimeSeconds   = 3600
+	IDPortenDefaultSessionLifetimeSeconds       = 7200
+	MaskinportenScopePrefix                     = "nav"
+	MaskinportenAllowedIntegrationType          = "maskinporten"
+	MaskinportenDefaultAtAgeMax                 = 30
+	MaskinportenDefaultAuthorizationMaxLifetime = 0
 )
 
 // +kubebuilder:object:generate=false
@@ -29,6 +34,14 @@ type Instance interface {
 	Hash() (string, error)
 	GetStatus() *nais_io_v1.DigdiratorStatus
 	SetStatus(status nais_io_v1.DigdiratorStatus)
+}
+
+func ToScopeRegistration(instance Instance, scope nais_io_v1.ExternalScope) types.ScopeRegistration {
+	switch v := instance.(type) {
+	case *nais_io_v1.MaskinportenClient:
+		return toMaskinPortenScopeRegistration(*v, scope)
+	}
+	return types.ScopeRegistration{}
 }
 
 func ToClientRegistration(instance Instance) types.ClientRegistration {
@@ -181,4 +194,36 @@ func toMaskinPortenClientRegistration(in nais_io_v1.MaskinportenClient) types.Cl
 		Scopes:                  in.GetScopes(),
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
+}
+
+func toMaskinPortenScopeRegistration(in nais_io_v1.MaskinportenClient, externalScope nais_io_v1.ExternalScope) types.ScopeRegistration {
+	if externalScope.AllowedIntegrations == nil {
+		externalScope.AllowedIntegrations = []string{MaskinportenAllowedIntegrationType}
+	}
+	if externalScope.AtAgeMax == 0 {
+		externalScope.AtAgeMax = MaskinportenDefaultAtAgeMax
+	}
+	return types.ScopeRegistration{
+		AllowedIntegrationType:     externalScope.AllowedIntegrations,
+		AtMaxAge:                   externalScope.AtAgeMax,
+		DelegationSource:           "",
+		Name:                       "",
+		AuthorizationMaxLifetime:   MaskinportenDefaultAuthorizationMaxLifetime,
+		Description:                kubernetes.UniformResourceScopeName(&in, externalScope.Name),
+		Prefix:                     MaskinportenScopePrefix,
+		Subscope:                   FilterScopePrefix(externalScope.Name),
+		TokenType:                  types.TokenTypeSelfContained,
+		Visibility:                 types.VisibilityPublic,
+		RequiresPseudonymousTokens: false,
+		RequiresUserAuthentication: false,
+		RequiresUserConsent:        false,
+	}
+}
+
+func FilterScopePrefix(prefix string) string {
+	return strings.TrimPrefix(prefix, scopePrefix(MaskinportenScopePrefix))
+}
+
+func scopePrefix(prefix string) string {
+	return fmt.Sprintf("%s:", prefix)
 }

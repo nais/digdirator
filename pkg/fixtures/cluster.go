@@ -52,6 +52,10 @@ func (c ClusterFixtures) MinimalConfig(clientType string) ClusterFixtures {
 	}
 }
 
+func (c ClusterFixtures) MinimalScopesConfig() ClusterFixtures {
+	return c.WithPods().WithMaskinportenScopesClient().WithUnusedSecret(clients.MaskinportenTypeLabelValue)
+}
+
 func (c ClusterFixtures) WithNamespace() ClusterFixtures {
 	c.namespace = &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
@@ -99,6 +103,50 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 		SecretName: c.SecretName,
 		Scopes: []nais_io_v1.MaskinportenScope{
 			{Name: "scopes"},
+		},
+	}
+	c.maskinportenClient = &nais_io_v1.MaskinportenClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        key.Name,
+			Namespace:   key.Namespace,
+			ClusterName: "test-cluster",
+		},
+		Spec: spec,
+	}
+	return c
+}
+
+func (c ClusterFixtures) WithMaskinportenScopesClient() ClusterFixtures {
+	key := types.NamespacedName{
+		Namespace: c.NamespaceName,
+		Name:      c.DigdirClientName,
+	}
+
+	spec := nais_io_v1.MaskinportenClientSpec{
+		SecretName: c.SecretName,
+		Scope: nais_io_v1.MaskinportenScopeSpec{
+			Internal: []nais_io_v1.InternalScope{
+				{
+					Name: "not/used",
+				},
+			},
+			External: []nais_io_v1.ExternalScope{
+				{
+					Name:                "nav:test/scope",
+					AtAgeMax:            30,
+					AllowedIntegrations: []string{"maskinporten"},
+					Consumers: []nais_io_v1.ExternalScopeConsumer{
+						{
+							Name:  "KPL",
+							Orgno: "101010101",
+						},
+						{
+							Name:  "ALB",
+							Orgno: "111111111",
+						},
+					},
+				},
+			},
 		},
 	}
 	c.maskinportenClient = &nais_io_v1.MaskinportenClient{
