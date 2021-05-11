@@ -3,7 +3,7 @@
   "active": true,
   "prefix": "nav",
   "subscope": "test/scope",
-  "description": "test-cluster:test-namespace:test-app:nav:test/scope",
+  "description": "testcluster:testnamespace:testapp.test/scope",
   "visibility": "PUBLIC",
   "last_updated": "2021-01-13T10:53:56.301+01:00",
   "at_max_age": 0,

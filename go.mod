@@ -8,7 +8,7 @@ require (
 	github.com/golang/protobuf v1.5.1 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/mitchellh/mapstructure v1.1.2
-	github.com/nais/liberator v0.0.0-20210508230656-ee3543a5c677
+	github.com/nais/liberator v0.0.0-20210511133211-d21597732251
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

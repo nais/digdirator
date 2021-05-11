@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	finalizer2 "github.com/nais/liberator/pkg/finalizer"
 	"github.com/nais/liberator/pkg/kubernetes"
@@ -185,7 +185,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 	registrationPayload := clients.ToClientRegistration(tx.Instance)
 
 	switch tx.Instance.(type) {
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		filteredPayload, err := r.filterValidScopes(tx, registrationPayload)
 		if err != nil {
 			return err
@@ -235,7 +235,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 	}
 
 	switch instance := tx.Instance.(type) {
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		actual, err := scopeExists(*tx, instance)
 		if err != nil {
 			return fmt.Errorf("checking if scopes exists: %w", err)
@@ -244,12 +244,20 @@ func (r *Reconciler) process(tx *Transaction) error {
 		if actual != nil {
 			if len(actual.CurrentScopes) > 0 {
 				for _, scope := range actual.CurrentScopes {
+
 					// update existing scopes and consumers
-					scopeRegistration, consumerRegistration, err := r.UpdateScopeAndConsumers(tx, scope)
-					if err != nil {
-						return fmt.Errorf("updateing scopes and consumers: %w", err)
+					if scope.HasChanged(instance.GetExposedScopes()) {
+						scopeRegistration, err := r.UpdateScope(tx, scope)
+						if err != nil {
+							return fmt.Errorf("update scopes: %w", err)
+						}
+						println(scopeRegistration)
 					}
-					println(scopeRegistration)
+
+					consumerRegistration, err := r.UpdateConsumers(tx, scope)
+					if err != nil {
+						return fmt.Errorf("update consumers: %w", err)
+					}
 					println(consumerRegistration)
 				}
 			}
@@ -257,12 +265,17 @@ func (r *Reconciler) process(tx *Transaction) error {
 			if len(actual.ScopeToCreate) > 0 {
 				for _, newScope := range actual.ScopeToCreate {
 					// create scopes and add consumers
-					scope, consumers, err := r.CreateAndUpdateConsumers(tx, instance, newScope)
+					scope, err := r.CreateScope(tx, instance, newScope)
 					if err != nil {
-						return fmt.Errorf("creating scopes and adding consumers: %w", err)
+						return fmt.Errorf("creating scopes: %w", err)
 					}
+					consumerRegistration, err := r.UpdateConsumers(tx, scopes.CreateScope(newScope.Consumers, *scope))
+					if err != nil {
+						return fmt.Errorf("adding new consumers: %w", err)
+					}
+
 					println(scope)
-					println(consumers)
+					println(consumerRegistration)
 				}
 			}
 		}
@@ -309,13 +322,13 @@ func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistrat
 }
 
 func (r *Reconciler) filterValidScopes(tx *Transaction, registration types.ClientRegistration) (*types.ClientRegistration, error) {
-	var desiredScopes []v1.MaskinportenScope
+	var desiredScopes []v1.UsedScope
 
 	switch v := tx.Instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		return &registration, nil
-	case *nais_io_v1.MaskinportenClient:
-		desiredScopes = v.Spec.Scopes
+	case *naisiov1.MaskinportenClient:
+		desiredScopes = v.Spec.Scopes.UsedScope
 	}
 
 	accessibleScopes, err := tx.DigdirClient.GetAccessibleScopes(tx.Ctx)
@@ -409,10 +422,10 @@ func (r *Reconciler) updateInstance(ctx context.Context, instance clients.Instan
 
 	existing := func(instance clients.Instance) clients.Instance {
 		switch instance.(type) {
-		case *nais_io_v1.IDPortenClient:
-			return &nais_io_v1.IDPortenClient{}
-		case *nais_io_v1.MaskinportenClient:
-			return &nais_io_v1.MaskinportenClient{}
+		case *naisiov1.IDPortenClient:
+			return &naisiov1.IDPortenClient{}
+		case *naisiov1.MaskinportenClient:
+			return &naisiov1.MaskinportenClient{}
 		}
 		return nil
 	}(instance)
@@ -426,8 +439,8 @@ func (r *Reconciler) updateInstance(ctx context.Context, instance clients.Instan
 }
 
 func scopeExists(tx Transaction, instance *v1.MaskinportenClient) (*scopes.FilteredScopeContainer, error) {
-	if instance.GetExternalScopes() != nil {
-		scopeContainer, err := tx.DigdirClient.ScopesExists(tx.Instance, tx.Ctx, scopes.NewFilterForScope(instance.GetExternalScopes()))
+	if instance.GetExposedScopes() != nil {
+		scopeContainer, err := tx.DigdirClient.ScopesExists(tx.Instance, tx.Ctx, scopes.NewFilterForScope(instance.GetExposedScopes()))
 		if err != nil {
 			return nil, fmt.Errorf("getting list of scopes: %w", err)
 		}
@@ -468,7 +481,7 @@ func (r *Reconciler) updateConsumers(tx *Transaction, scope scopes.Scope) ([]typ
 
 	acl, err := tx.DigdirClient.GetScopeACL(tx.Ctx, scope.ToString())
 	if err != nil {
-		return nil, fmt.Errorf("gettin ACL list from Digdir: %w", err)
+		return nil, fmt.Errorf("gettin ACL from Digdir: %w", err)
 	}
 
 	consumerStatus, consumerList := scope.FilterConsumers(acl)
@@ -477,13 +490,12 @@ func (r *Reconciler) updateConsumers(tx *Transaction, scope scopes.Scope) ([]typ
 	if len(consumerList) > 0 {
 		for _, consumer := range consumerList {
 			if consumer.Active {
-				response, err := tx.DigdirClient.AddToConsumerACL(tx.Ctx, scope.ToString(), consumer.Orgno)
+				response, err := activateConsumer(*tx, scope.ToString(), consumer.Orgno)
 				if err != nil {
 					return nil, fmt.Errorf("updating ACL list for scope at Digdir: %w", err)
 				}
 				consumerStatus = append(consumerStatus, consumer.Orgno)
 				registrationResponse = append(registrationResponse, *response)
-				tx.Logger.WithField("FilteredScopeContainer", response.Scope).Info("scope acl updated, added consumer(s)")
 			} else {
 				response, err := tx.DigdirClient.DeleteFromConsumerACL(tx.Ctx, scope.ToString(), consumer.Orgno)
 				if err != nil {
@@ -493,34 +505,41 @@ func (r *Reconciler) updateConsumers(tx *Transaction, scope scopes.Scope) ([]typ
 				tx.Logger.WithField("FilteredScopeContainer", response.Scope).Info("scope acl updated, deleted consumer(s)")
 			}
 		}
-		tx.Instance.GetStatus().SetApplicationScopeConsumer(scope.ToString(), consumerStatus)
+		tx.Instance.GetStatus().SetApplicationScopeConsumer(scope.ScopeRegistration.Subscope, consumerStatus)
 	}
 	return registrationResponse, nil
 }
 
-func (r *Reconciler) UpdateScopeAndConsumers(tx *Transaction, scope scopes.Scope) (*types.ScopeRegistration, []types.ConsumerRegistration, error) {
-	scopeRegistration, err := r.updateScope(tx, scope)
+func activateConsumer(tx Transaction, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
+	response, err := tx.DigdirClient.AddToConsumerACL(tx.Ctx, scope, consumerOrgno)
 	if err != nil {
-		return nil, nil, fmt.Errorf("updating scopes: %w", err)
+		return nil, err
 	}
-	consumerRegistration, err := r.updateConsumers(tx, scope)
-	if err != nil {
-		return nil, nil, fmt.Errorf("updating consumers: %w", err)
-	}
-	return scopeRegistration, consumerRegistration, nil
+	tx.Logger.WithField("FilteredScopeContainer", response.Scope).Info("scope acl updated, added consumer(s)")
+	return response, nil
 }
 
-func (r *Reconciler) CreateAndUpdateConsumers(tx *Transaction, instance *v1.MaskinportenClient, newScope v1.ExternalScope) (*types.ScopeRegistration, []types.ConsumerRegistration, error) {
+func (r *Reconciler) UpdateScope(tx *Transaction, scope scopes.Scope) (*types.ScopeRegistration, error) {
+	scopeRegistration, err := r.updateScope(tx, scope)
+	if err != nil {
+		return nil, fmt.Errorf("updating scope: %w", err)
+	}
+	return scopeRegistration, nil
+}
+
+func (r *Reconciler) UpdateConsumers(tx *Transaction, scope scopes.Scope) ([]types.ConsumerRegistration, error) {
+	consumerRegistration, err := r.updateConsumers(tx, scope)
+	if err != nil {
+		return nil, fmt.Errorf("updating consumers: %w", err)
+	}
+	return consumerRegistration, nil
+}
+
+func (r *Reconciler) CreateScope(tx *Transaction, instance *v1.MaskinportenClient, newScope v1.ExposedScope) (*types.ScopeRegistration, error) {
 	scopeRegistrationPayload := clients.ToScopeRegistration(instance, newScope)
 	scope, err := r.createScope(tx, scopeRegistrationPayload)
 	if err != nil {
-		return nil, nil, fmt.Errorf("creating scopes: %w", err)
+		return nil, fmt.Errorf("creating scope: %w", err)
 	}
-
-	scopeInfo := scopes.CreateScope(newScope.Consumers, scopeRegistrationPayload)
-	consumers, err := r.updateConsumers(tx, scopeInfo)
-	if err != nil {
-		return nil, nil, fmt.Errorf("adding consumers: %w", err)
-	}
-	return scope, consumers, nil
+	return scope, nil
 }

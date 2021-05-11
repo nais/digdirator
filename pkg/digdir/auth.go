@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	grantType                 = "urn:ietf:params:oauth:grant-type:jwt-bearer"
-	applicationFormUrlEncoded = "application/x-www-form-urlencoded"
+	grantType                   = "urn:ietf:params:oauth:grant-type:jwt-bearer"
+	applicationFormUrlEncoded   = "application/x-www-form-urlencoded"
+	MaskinportenAdminWriteScope = "idporten:scopes.write"
 )
 
 type TokenResponse struct {
@@ -67,12 +68,15 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 
 func (c Client) claims() customClaims {
 	var clientID string
+	var scopes string
 
 	switch c.instance.(type) {
 	case *nais_io_v1.IDPortenClient:
 		clientID = c.Config.DigDir.IDPorten.ClientID
+		scopes = c.Config.DigDir.Auth.Scopes
 	case *nais_io_v1.MaskinportenClient:
 		clientID = c.Config.DigDir.Maskinporten.ClientID
+		scopes = fmt.Sprintf("%s %s", c.Config.DigDir.Auth.Scopes, MaskinportenAdminWriteScope)
 	}
 
 	return customClaims{
@@ -84,7 +88,7 @@ func (c Client) claims() customClaims {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ID:        uuid.New().String(),
 		},
-		Scope: c.Config.DigDir.Auth.Scopes,
+		Scope: scopes,
 	}
 }
 

@@ -9,15 +9,17 @@ import (
 )
 
 func TestFilterScopes(t *testing.T) {
-	desired := []v1.MaskinportenScope{
-		{
-			Name: "valid-scope",
-		},
-		{
-			Name: "invalid-scope",
-		},
-		{
-			Name: "not-found-scope",
+	desired := v1.MaskinportenScope{
+		UsedScope: []v1.UsedScope{
+			{
+				Name: "valid-scope",
+			},
+			{
+				Name: "invalid-scope",
+			},
+			{
+				Name: "not-found-scope",
+			},
 		},
 	}
 
@@ -36,7 +38,7 @@ func TestFilterScopes(t *testing.T) {
 		},
 	}
 
-	filteredScopes := clients.FilterScopes(desired, accessibleScopes)
+	filteredScopes := clients.FilterScopes(desired.UsedScope, accessibleScopes)
 
 	assert.Len(t, filteredScopes.Valid, 1)
 	assert.Contains(t, filteredScopes.Valid, "valid-scope")

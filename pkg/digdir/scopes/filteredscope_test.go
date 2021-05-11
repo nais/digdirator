@@ -11,10 +11,9 @@ import (
 )
 
 func TestScopeFiltering(t *testing.T) {
-	currentScope := "nav:test/scope"
-	currentScope2 := "nav:test/scope2"
-	noneExistingScope := "nav:test/scope/nr2"
-	ownedScope := "nav:test/scope/nr3"
+	currentScope := "test/scope"
+	currentScope2 := "test.scope2"
+	noneExistingScope := "scope/nr2"
 
 	currentObjectMeta := metav1.ObjectMeta{
 		Name:        "test-app",
@@ -22,10 +21,10 @@ func TestScopeFiltering(t *testing.T) {
 		ClusterName: "test-cluster",
 	}
 
-	currentExternals := []naisiov1.ExternalScope{
+	currentExternals := []naisiov1.ExposedScope{
 		{
 			Name: currentScope,
-			Consumers: []naisiov1.ExternalScopeConsumer{
+			Consumers: []naisiov1.ExposedScopeConsumer{
 				{
 					Orgno: "1010101010",
 				},
@@ -33,7 +32,7 @@ func TestScopeFiltering(t *testing.T) {
 		},
 		{
 			Name: currentScope2,
-			Consumers: []naisiov1.ExternalScopeConsumer{
+			Consumers: []naisiov1.ExposedScopeConsumer{
 				{
 					Orgno: "1010101010",
 				},
@@ -41,15 +40,7 @@ func TestScopeFiltering(t *testing.T) {
 		},
 		{
 			Name: noneExistingScope,
-			Consumers: []naisiov1.ExternalScopeConsumer{
-				{
-					Orgno: "1010101010",
-				},
-			},
-		},
-		{
-			Name: ownedScope,
-			Consumers: []naisiov1.ExternalScopeConsumer{
+			Consumers: []naisiov1.ExposedScopeConsumer{
 				{
 					Orgno: "1010101010",
 				},
@@ -59,31 +50,29 @@ func TestScopeFiltering(t *testing.T) {
 
 	currentMaskinportenClient := minimalMaskinportenWithScopeInternalExternalClient(currentObjectMeta, currentExternals)
 
-	ownedObjectMeta := metav1.ObjectMeta{
-		Name:        "owned-app",
-		Namespace:   "owned-namespace",
-		ClusterName: "test-cluster",
-	}
-	ownedExternals := []naisiov1.ExternalScope{
-		{
-			Name: ownedScope,
-			Consumers: []naisiov1.ExternalScopeConsumer{
-				{
-					Orgno: "11111111",
-				},
-			},
-		},
-	}
-	ownedMaskinportenClient := minimalMaskinportenWithScopeInternalExternalClient(ownedObjectMeta, ownedExternals)
-
-	scopeContainer := NewFilterForScope(currentMaskinportenClient.GetExternalScopes())
+	scopeContainer := NewFilterForScope(currentMaskinportenClient.GetExposedScopes())
 
 	actualScopeRegistrations := make([]types.ScopeRegistration, 0)
-	// scopes owned by current namespace
-	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration(*currentMaskinportenClient, currentMaskinportenClient.GetExternalScopes()[0], currentScope))
-	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration(*currentMaskinportenClient, currentMaskinportenClient.GetExternalScopes()[1], currentScope2))
-	// FilteredScopeContainer owned by another namespace
-	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration(*ownedMaskinportenClient, ownedMaskinportenClient.GetExternalScopes()[0], ownedScope))
+
+	// First case:
+	// with legacy scopes used on-prem
+	// description: cluster:namespace:app.scope/api
+	// subscope: scope/api
+	scoperegistration1 := scopeRegistration(*currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[0], currentScope)
+	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, scoperegistration1.Name), scoperegistration1.Description)
+	assert.Equal(t, currentScope, scoperegistration1.Subscope)
+
+	// Secound case new format
+	// description: cluster:team:app.scope
+	// subscope: team:app.scope
+	scoperegistration2 := scopeRegistration(*currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[1], currentScope2)
+	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, scoperegistration2.Name), scoperegistration2.Description)
+	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, scoperegistration2.Name), scoperegistration2.Subscope)
+
+	// scopes owned by current application
+	actualScopeRegistrations = append(actualScopeRegistrations, scoperegistration1)
+	actualScopeRegistrations = append(actualScopeRegistrations, scoperegistration2)
+
 	// FilteredScopeContainer not managed by digdirator should be ignored
 	actualScopeRegistrations = append(actualScopeRegistrations, types.ScopeRegistration{
 		Description: "some: random description:",
@@ -98,11 +87,6 @@ func TestScopeFiltering(t *testing.T) {
 	assert.Equal(t, noneExistingScope, scopesToCreate.Name)
 	assert.Equal(t, 1, len(scopesToCreate.Consumers))
 
-	// Scopes existing but used by another namespace
-	assert.Equal(t, 1, len(result.OwnedScopes))
-	ownedScopes := result.OwnedScopes[0]
-	assert.Equal(t, ownedScope, ownedScopes.Name)
-
 	// Scopes existing, owned and used by current namespace
 	assert.Equal(t, 2, len(result.CurrentScopes))
 	currentScopes1 := result.CurrentScopes[0]
@@ -111,32 +95,33 @@ func TestScopeFiltering(t *testing.T) {
 	assert.Equal(t, currentScope2, currentScopes2.ScopeRegistration.Name)
 }
 
-func minimalMaskinportenWithScopeInternalExternalClient(meta metav1.ObjectMeta, scope []naisiov1.ExternalScope) *naisiov1.MaskinportenClient {
+func minimalMaskinportenWithScopeInternalExternalClient(meta metav1.ObjectMeta, scope []naisiov1.ExposedScope) *naisiov1.MaskinportenClient {
 	return &naisiov1.MaskinportenClient{
 		ObjectMeta: meta,
 		Spec: naisiov1.MaskinportenClientSpec{
-			Scope: naisiov1.MaskinportenScopeSpec{
-				Internal: []naisiov1.InternalScope{
+			Scopes: naisiov1.MaskinportenScope{
+				UsedScope: []naisiov1.UsedScope{
 					{
-						Name: "some-scope",
+						Name: "some.scope",
 					},
 				},
-				External: scope,
+				ExposedScopes: scope,
 			},
 		},
 	}
 }
 
-func scopeRegistration(in naisiov1.MaskinportenClient, externalScope naisiov1.ExternalScope, scope string) types.ScopeRegistration {
+func scopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope, scope string) types.ScopeRegistration {
+	uniformedName := kubernetes.UniformResourceScopeName(&in, exposedScope.Name)
 	return types.ScopeRegistration{
-		AllowedIntegrationType:     externalScope.AllowedIntegrations,
-		AtMaxAge:                   externalScope.AtAgeMax,
+		AllowedIntegrationType:     exposedScope.AllowedIntegrations,
+		AtMaxAge:                   exposedScope.AtAgeMax,
 		DelegationSource:           "",
 		Name:                       scope,
-		AuthorizationMaxLifetime:   0,
-		Description:                kubernetes.UniformResourceScopeName(&in, externalScope.Name),
-		Prefix:                     "nav",
-		Subscope:                   clients.FilterScopePrefix(externalScope.Name),
+		AuthorizationMaxLifetime:   clients.MaskinportenDefaultAuthorizationMaxLifetime,
+		Description:                uniformedName,
+		Prefix:                     clients.MaskinportenScopePrefix,
+		Subscope:                   kubernetes.FilterUniformedName(&in, uniformedName, exposedScope.Name),
 		TokenType:                  types.TokenTypeSelfContained,
 		Visibility:                 types.VisibilityPublic,
 		RequiresPseudonymousTokens: false,

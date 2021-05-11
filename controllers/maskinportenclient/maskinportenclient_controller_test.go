@@ -201,11 +201,11 @@ func TestMaskinportenControllerWithNewExternalScope(t *testing.T) {
 	applicationScope := instance.Status.GetApplicationScopes()[0]
 	assert.Equal(t, test.ClientID, instance.Status.ClientID, "client ID should still match")
 	assert.Equal(t, 1, len(instance.Status.GetApplicationScopes()), "Scope list should contain actual 1 scope")
-	assert.Equal(t, test.Scope, applicationScope.Name, "Scope should match")
+	assert.Equal(t, "test/scope", applicationScope.Name, "Scope should match")
 	assert.Equal(t, 2, len(applicationScope.OrganizationNumbers), " OrganizationNumbers should contain 2 active consumers")
 	assert.Equal(t, "101010101", applicationScope.OrganizationNumbers[0], " OrganizationNumbers should match")
 	assert.Equal(t, test.ExternalConsumerOrgno, applicationScope.OrganizationNumbers[1], " OrganizationNumbers should match")
-	assert.Len(t, instance.Status.KeyIDs, 2, "should contain two key IDs")
+	assert.Len(t, instance.Status.KeyIDs, 2, "should contain 2 key IDs")
 	assert.NotEmpty(t, instance.Status.SynchronizationHash)
 	assert.NotEmpty(t, instance.Status.SynchronizationTime)
 	assert.Equal(t, common.EventSynchronized, instance.Status.SynchronizationState)

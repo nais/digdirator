@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"sort"
 )
 
 const NumberOfPermutation = 2
 
 type Scope struct {
-	Consumers         []naisiov1.ExternalScopeConsumer
+	Consumers         []naisiov1.ExposedScopeConsumer
 	ScopeRegistration types.ScopeRegistration
 }
 
-func CreateScope(consumers []naisiov1.ExternalScopeConsumer, registration types.ScopeRegistration) Scope {
+func CreateScope(consumers []naisiov1.ExposedScopeConsumer, registration types.ScopeRegistration) Scope {
 	return Scope{
 		Consumers:         consumers,
 		ScopeRegistration: registration,
@@ -41,6 +42,7 @@ func (s Scope) FilterConsumers(acl *[]types.ConsumerRegistration) ([]string, []C
 			swapped = true
 		}
 	}
+	sortConsumers(differance)
 	return consumerStatus, differance
 }
 
@@ -53,7 +55,7 @@ func addConsumerStatus(found, swapped bool, consumerOrgno string, consumerStatus
 func (s Scope) toConsumers() map[string]Consumer {
 	consumers := make(map[string]Consumer)
 	for _, consumer := range s.Consumers {
-		consumers[consumer.Orgno] = CreateConsumer(false, consumer.Orgno)
+		consumers[consumer.Orgno] = CreateConsumer(false, types.StateApproved, consumer.Orgno)
 	}
 	return consumers
 }
@@ -61,11 +63,42 @@ func (s Scope) toConsumers() map[string]Consumer {
 func toConsumers(acl *[]types.ConsumerRegistration) map[string]Consumer {
 	consumers := make(map[string]Consumer)
 	for _, consumer := range *acl {
-		consumers[consumer.ConsumerOrgno] = CreateConsumer(false, consumer.ConsumerOrgno)
+		consumers[consumer.ConsumerOrgno] = CreateConsumer(false, consumer.State, consumer.ConsumerOrgno)
 	}
 	return consumers
 }
 
 func (s Scope) ToString() string {
 	return fmt.Sprintf("%s:%s", s.ScopeRegistration.Prefix, s.ScopeRegistration.Subscope)
+}
+
+func sortConsumers(consumerList []Consumer) {
+	sort.SliceStable(consumerList, func(i, j int) bool {
+		return consumerList[i].Orgno < consumerList[j].Orgno
+	})
+}
+
+func (s Scope) HasChanged(desires []naisiov1.ExposedScope) bool {
+	change := false
+	for _, desired := range desires {
+		switch {
+		case s.ScopeRegistration.AtMaxAge != desired.AtAgeMax:
+			change = true
+		case !equals(s.ScopeRegistration.AllowedIntegrationType, desired.AllowedIntegrations):
+			change = true
+		}
+	}
+	return change
+}
+
+func equals(actual, desires []string) bool {
+	if len(actual) != len(desires) {
+		return false
+	}
+	for i, value := range actual {
+		if value != desires[i] {
+			return false
+		}
+	}
+	return true
 }

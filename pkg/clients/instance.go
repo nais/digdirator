@@ -5,23 +5,22 @@ import (
 	"github.com/nais/digdirator/pkg/annotations"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/secrets"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"reflect"
-	"strings"
 )
 
 const (
-	// Default values
+	// IDPortenDefaultClientURI Default values
 	IDPortenDefaultClientURI                    = "https://www.nav.no"
 	IDPortenDefaultPostLogoutRedirectURI        = "https://www.nav.no"
 	IDPortenDefaultAccessTokenLifetimeSeconds   = 3600
 	IDPortenDefaultSessionLifetimeSeconds       = 7200
 	MaskinportenScopePrefix                     = "nav"
-	MaskinportenAllowedIntegrationType          = "maskinporten"
+	MaskinportenDefaultAllowedIntegrationType   = "maskinporten"
 	MaskinportenDefaultAtAgeMax                 = 30
 	MaskinportenDefaultAuthorizationMaxLifetime = 0
 )
@@ -32,13 +31,13 @@ type Instance interface {
 	runtime.Object
 	schema.ObjectKind
 	Hash() (string, error)
-	GetStatus() *nais_io_v1.DigdiratorStatus
-	SetStatus(status nais_io_v1.DigdiratorStatus)
+	GetStatus() *naisiov1.DigdiratorStatus
+	SetStatus(status naisiov1.DigdiratorStatus)
 }
 
-func ToScopeRegistration(instance Instance, scope nais_io_v1.ExternalScope) types.ScopeRegistration {
+func ToScopeRegistration(instance Instance, scope naisiov1.ExposedScope) types.ScopeRegistration {
 	switch v := instance.(type) {
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		return toMaskinPortenScopeRegistration(*v, scope)
 	}
 	return types.ScopeRegistration{}
@@ -46,9 +45,9 @@ func ToScopeRegistration(instance Instance, scope nais_io_v1.ExternalScope) type
 
 func ToClientRegistration(instance Instance) types.ClientRegistration {
 	switch v := instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		return toIDPortenClientRegistration(*v)
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		return toMaskinPortenClientRegistration(*v)
 	}
 	return types.ClientRegistration{}
@@ -56,9 +55,9 @@ func ToClientRegistration(instance Instance) types.ClientRegistration {
 
 func GetIntegrationType(instance Instance) types.IntegrationType {
 	switch instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		return types.IntegrationTypeIDPorten
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		return types.IntegrationTypeMaskinporten
 	}
 	return types.IntegrationTypeUnknown
@@ -70,9 +69,9 @@ func GetInstanceType(instance Instance) string {
 
 func GetSecretName(instance Instance) string {
 	switch v := instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		return v.Spec.SecretName
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		return v.Spec.SecretName
 	}
 	return ""
@@ -80,9 +79,9 @@ func GetSecretName(instance Instance) string {
 
 func GetSecretJwkKey(instance Instance) string {
 	switch instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		return secrets.IDPortenJwkKey
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		return secrets.MaskinportenJwkKey
 	}
 	return ""
@@ -102,9 +101,9 @@ func ShouldUpdateSecrets(instance Instance) bool {
 
 func HasSkipAnnotation(instance Instance) bool {
 	switch v := instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		return annotations.HasSkipAnnotation(v)
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		return annotations.HasSkipAnnotation(v)
 	default:
 		return false
@@ -113,9 +112,9 @@ func HasSkipAnnotation(instance Instance) bool {
 
 func HasDeleteAnnotation(instance Instance) bool {
 	switch v := instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		return annotations.HasDeleteAnnotation(v)
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		return annotations.HasDeleteAnnotation(v)
 	default:
 		return false
@@ -124,14 +123,14 @@ func HasDeleteAnnotation(instance Instance) bool {
 
 func SetAnnotation(instance Instance, key, value string) {
 	switch v := instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		annotations.Set(v, key, value)
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		annotations.Set(v, key, value)
 	}
 }
 
-func toIDPortenClientRegistration(in nais_io_v1.IDPortenClient) types.ClientRegistration {
+func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegistration {
 	if in.Spec.AccessTokenLifetime == nil {
 		lifetime := IDPortenDefaultAccessTokenLifetimeSeconds
 		in.Spec.AccessTokenLifetime = &lifetime
@@ -173,7 +172,7 @@ func toIDPortenClientRegistration(in nais_io_v1.IDPortenClient) types.ClientRegi
 	}
 }
 
-func toMaskinPortenClientRegistration(in nais_io_v1.MaskinportenClient) types.ClientRegistration {
+func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient) types.ClientRegistration {
 	return types.ClientRegistration{
 		AccessTokenLifetime:               IDPortenDefaultAccessTokenLifetimeSeconds,
 		ApplicationType:                   types.ApplicationTypeWeb,
@@ -191,39 +190,32 @@ func toMaskinPortenClientRegistration(in nais_io_v1.MaskinportenClient) types.Cl
 		RedirectURIs:            nil,
 		RefreshTokenLifetime:    0,
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
-		Scopes:                  in.GetScopes(),
+		Scopes:                  in.GetUsedScopes(),
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
 }
 
-func toMaskinPortenScopeRegistration(in nais_io_v1.MaskinportenClient, externalScope nais_io_v1.ExternalScope) types.ScopeRegistration {
-	if externalScope.AllowedIntegrations == nil {
-		externalScope.AllowedIntegrations = []string{MaskinportenAllowedIntegrationType}
+func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope) types.ScopeRegistration {
+	if exposedScope.AllowedIntegrations == nil {
+		exposedScope.AllowedIntegrations = []string{MaskinportenDefaultAllowedIntegrationType}
 	}
-	if externalScope.AtAgeMax == 0 {
-		externalScope.AtAgeMax = MaskinportenDefaultAtAgeMax
+	if exposedScope.AtAgeMax == 0 {
+		exposedScope.AtAgeMax = MaskinportenDefaultAtAgeMax
 	}
+	uniformedScopeName := kubernetes.UniformResourceScopeName(&in, exposedScope.Name)
 	return types.ScopeRegistration{
-		AllowedIntegrationType:     externalScope.AllowedIntegrations,
-		AtMaxAge:                   externalScope.AtAgeMax,
+		AllowedIntegrationType:     exposedScope.AllowedIntegrations,
+		AtMaxAge:                   exposedScope.AtAgeMax,
 		DelegationSource:           "",
 		Name:                       "",
 		AuthorizationMaxLifetime:   MaskinportenDefaultAuthorizationMaxLifetime,
-		Description:                kubernetes.UniformResourceScopeName(&in, externalScope.Name),
+		Description:                uniformedScopeName,
 		Prefix:                     MaskinportenScopePrefix,
-		Subscope:                   FilterScopePrefix(externalScope.Name),
+		Subscope:                   kubernetes.FilterUniformedName(&in, uniformedScopeName, exposedScope.Name),
 		TokenType:                  types.TokenTypeSelfContained,
 		Visibility:                 types.VisibilityPublic,
 		RequiresPseudonymousTokens: false,
 		RequiresUserAuthentication: false,
 		RequiresUserConsent:        false,
 	}
-}
-
-func FilterScopePrefix(prefix string) string {
-	return strings.TrimPrefix(prefix, scopePrefix(MaskinportenScopePrefix))
-}
-
-func scopePrefix(prefix string) string {
-	return fmt.Sprintf("%s:", prefix)
 }

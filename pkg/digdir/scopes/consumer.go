@@ -1,13 +1,19 @@
 package scopes
 
+import (
+	"github.com/nais/digdirator/pkg/digdir/types"
+)
+
 type Consumer struct {
 	Active bool
+	State  types.State
 	Orgno  string
 }
 
-func CreateConsumer(shouldBeAdded bool, orgno string) Consumer {
+func CreateConsumer(shouldBeAdded bool, state types.State, orgno string) Consumer {
 	return Consumer{
 		Active: shouldBeAdded,
+		State:  state,
 		Orgno:  orgno,
 	}
 }
@@ -24,13 +30,25 @@ func (c Consumer) findIn(consumers map[string]Consumer) bool {
 }
 
 func (c Consumer) addOrUpdate(found, swapped bool, consumerList []Consumer) []Consumer {
+
+	// Consumer is not in digdir acl
 	if !found {
+		// Compare exposedConsumer against digdir acl
 		if !swapped {
 			c.Active = true
 			consumerList = append(consumerList, c)
-		} else {
+		}
+		// Compare digdir acl against exposedConsumers, ignore consumers in denied state
+		if swapped && c.State != types.StateDenied {
 			consumerList = append(consumerList, c)
 		}
+	}
+
+	// Consumer found, check digidir response acl against consumer list to re-activate denied consumer
+	if found && swapped && c.State == types.StateDenied {
+		c.Active = true
+		c.State = types.StateApproved
+		consumerList = append(consumerList, c)
 	}
 	return consumerList
 }
