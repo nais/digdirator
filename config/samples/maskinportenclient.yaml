@@ -10,10 +10,10 @@ spec:
     exposes:
       - name: "digdirator.test.read"
         enabled: true
-        # atAgeMax: 112 # token expires in sec / default 30 sec
+        atAgeMax: 114 # token expires in sec # default 30 sec
         # allowedIntegration: maskinporten # default maskinporten
         consumers:
-          - name: "Just For show"
+          - name: "Some User"
             orgno: "889640782"
     use:
       - name: "nav:test/api"
