@@ -78,7 +78,7 @@ func DigdirHandler(clientID string, handlerType HandlerType, scope string, orgno
 			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/specific-scope-info.json", handlerType))
 			_, _ = w.Write(response)
 			// GET nav OWNED scopes
-		case r.URL.Path == "/scopes" && r.Method == http.MethodGet:
+		case r.URL.Path == "/scopes" && r.URL.RawQuery == "inactive=true" && r.Method == http.MethodGet:
 			var path string
 			if clientExists {
 				path = fmt.Sprintf("../common/testdata/%s/list-scopes-response-exists.json", handlerType)

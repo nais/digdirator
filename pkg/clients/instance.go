@@ -211,7 +211,7 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 		AuthorizationMaxLifetime:   MaskinportenDefaultAuthorizationMaxLifetime,
 		Description:                uniformedScopeName,
 		Prefix:                     MaskinportenScopePrefix,
-		Subscope:                   kubernetes.FilterUniformedName(&in, uniformedScopeName, exposedScope.Name),
+		Subscope:                   kubernetes.FilterUniformedName(&in, exposedScope.Name),
 		TokenType:                  types.TokenTypeSelfContained,
 		Visibility:                 types.VisibilityPublic,
 		RequiresPseudonymousTokens: false,

@@ -8,51 +8,36 @@ import (
 )
 
 type FilteredScopeContainer struct {
-	ExposedScopes []naisiov1.ExposedScope
-	CurrentScopes []Scope
-	ScopeToCreate []naisiov1.ExposedScope
+	Current  []Scope
+	ToCreate []naisiov1.ExposedScope
 }
 
-func NewFilterForScope(scope []naisiov1.ExposedScope) FilteredScopeContainer {
-	return FilteredScopeContainer{
-		ExposedScopes: scope,
-		CurrentScopes: []Scope{},
-		ScopeToCreate: make([]naisiov1.ExposedScope, 0),
-	}
-}
-
-func (s FilteredScopeContainer) FilterScopes(actualScopesRegistrations []types.ScopeRegistration, desired clients.Instance) *FilteredScopeContainer {
-	currentSubscopes := make([]string, 0)
-
-	for _, ExposedScope := range s.ExposedScopes {
+func (s FilteredScopeContainer) FilterScopes(actualScopesRegistrations []types.ScopeRegistration, desired clients.Instance, exposedScopes map[string]naisiov1.ExposedScope) *FilteredScopeContainer {
+	for _, exposedScope := range exposedScopes {
 		scopeDoNotExist := true
 		for _, actual := range actualScopesRegistrations {
-			if scopeExistsInList(ExposedScope.Name, actual.Name) {
+			if scopeExistsInList(desired, exposedScope.Name, actual.Subscope) {
 				scopeDoNotExist = false
-
-				// cluster:namespace:appnavn/scope.read
-				if scopeMatches(actual, desired) {
+				// cluster:namespace:appnavn.scope.read
+				if scopeMatches(actual, desired, exposedScope) {
 					// match is found for already registered scope for team:namespace
-					currentSubscopes = append(currentSubscopes, actual.Name)
-					s.CurrentScopes = append(s.CurrentScopes, CreateScope(ExposedScope.Consumers, actual))
+					s.Current = append(s.Current, CurrentScopeInfo(actual, exposedScope))
 				}
+				break
 			}
 		}
 		if scopeDoNotExist {
 			// scope do not exist, will be created
-			currentSubscopes = append(currentSubscopes, ExposedScope.Name)
-			s.ScopeToCreate = append(s.ScopeToCreate, ExposedScope)
+			s.ToCreate = append(s.ToCreate, exposedScope)
 		}
 	}
-	// Setting current scopes for an app
-	desired.GetStatus().SetApplicationScopes(currentSubscopes)
 	return &s
 }
 
-func scopeExistsInList(ExposedScopeName string, actualScopeName string) bool {
-	return ExposedScopeName == actualScopeName
+func scopeExistsInList(desired clients.Instance, exposedScopeName string, actualScopeName string) bool {
+	return kubernetes.FilterUniformedName(desired, exposedScopeName) == actualScopeName
 }
 
-func scopeMatches(actual types.ScopeRegistration, desired clients.Instance) bool {
-	return actual.Description == kubernetes.UniformResourceScopeName(desired, actual.Name)
+func scopeMatches(actual types.ScopeRegistration, desired clients.Instance, scope naisiov1.ExposedScope) bool {
+	return actual.Description == kubernetes.UniformResourceScopeName(desired, scope.Name)
 }

@@ -22,7 +22,7 @@ import (
 var cli client.Client
 
 func TestMain(m *testing.M) {
-	testEnv, testEnvClient, err := test.SetupTestEnv(test.ClientID, test.MaskinportenHandlerType)
+	testEnv, testEnvClient, err := test.SetupTestEnv(test.ClientID, test.Scope, test.ExposedConsumerOrgno, test.MaskinportenHandlerType)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -173,8 +173,10 @@ func TestMaskinportenControllerWithNewExternalScope(t *testing.T) {
 		UnusedSecretName: "scope-unused-secret",
 	}
 
+	scope := "test/scope"
+
 	// set up preconditions for cluster
-	clusterFixtures := fixtures.New(cli, cfg).MinimalScopesConfig().WithNamespace()
+	clusterFixtures := fixtures.New(cli, cfg).MinimalScopesConfig("test/scope").WithNamespace()
 
 	// create MaskinportenClient
 	if err := clusterFixtures.Setup(); err != nil {
@@ -198,13 +200,17 @@ func TestMaskinportenControllerWithNewExternalScope(t *testing.T) {
 	err := cli.Update(context.Background(), instance)
 	assert.NoError(t, err)
 
-	applicationScope := instance.Status.GetApplicationScopes()[0]
+	applicationScope := instance.Status.GetApplicationScopes()
 	assert.Equal(t, test.ClientID, instance.Status.ClientID, "client ID should still match")
 	assert.Equal(t, 1, len(instance.Status.GetApplicationScopes()), "Scope list should contain actual 1 scope")
-	assert.Equal(t, "test/scope", applicationScope.Name, "Scope should match")
-	assert.Equal(t, 2, len(applicationScope.OrganizationNumbers), " OrganizationNumbers should contain 2 active consumers")
-	assert.Equal(t, "101010101", applicationScope.OrganizationNumbers[0], " OrganizationNumbers should match")
-	assert.Equal(t, test.ExternalConsumerOrgno, applicationScope.OrganizationNumbers[1], " OrganizationNumbers should match")
+	assert.NotEmpty(t, applicationScope[scope], "Scope contain orgnumbers")
+	assert.Equal(t, 2, len(applicationScope[scope]), " OrganizationNumbers should contain 2 active consumers")
+	validOrgnos := map[string]string{test.ExposedConsumerOrgno: test.ExposedConsumerOrgno, "101010101": "101010101"}
+	for _, v := range applicationScope[scope] {
+		if _, ok := validOrgnos[v]; ok {
+			assert.True(t, ok, "Map should contain match")
+		}
+	}
 	assert.Len(t, instance.Status.KeyIDs, 2, "should contain 2 key IDs")
 	assert.NotEmpty(t, instance.Status.SynchronizationHash)
 	assert.NotEmpty(t, instance.Status.SynchronizationTime)

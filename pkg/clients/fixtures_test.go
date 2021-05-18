@@ -65,6 +65,7 @@ func minimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenC
 				ExposedScopes: []naisiov1.ExposedScope{
 					{
 						Name:                "my-scope",
+						Enabled:             true,
 						AtAgeMax:            30,
 						AllowedIntegrations: []string{"maskinporten"},
 						Consumers: []naisiov1.ExposedScopeConsumer{
@@ -77,7 +78,7 @@ func minimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenC
 			},
 		},
 		Status: naisiov1.DigdiratorStatus{
-			SynchronizationHash:  "8d0a6d00283b7316",
+			SynchronizationHash:  "cd1383c681d02b9a",
 			SynchronizationState: common.EventSynchronized,
 		},
 	}

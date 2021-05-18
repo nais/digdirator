@@ -1,6 +1,7 @@
 package scopes
 
 import (
+	"fmt"
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -9,124 +10,95 @@ import (
 	"time"
 )
 
+func TestConsumerFilteringWithNoChanges(t *testing.T) {
+
+	expectedConsumer := "1010101010"
+	subscope := "test/scope"
+	name := fmt.Sprintf("nav:%s", subscope)
+
+	// Consumers inn nais.yml and actual list of consumers
+	exposedScopeConsumers := createExposedConsumers(expectedConsumer)
+
+	// ACL Consumers registered at Maskinporten received from response
+	consumerRegistrations := createConsumerRegistrations(expectedConsumer)
+
+	// Actual scope Consumer(s) are associated to
+	// create scope struct
+	scope := CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
+
+	consumerStatus, filteredResult := scope.FilterConsumers(&consumerRegistrations)
+
+	assert.Equal(t, 0, len(filteredResult))
+	assert.Equal(t, 1, len(consumerStatus))
+	assert.Equal(t, expectedConsumer, consumerStatus[0])
+}
+
 func TestConsumerFilteringWithAConsumerToRemove(t *testing.T) {
 
 	expectedConsumerToRemove := "123456789"
+	existingConsumer := "1010101010"
+	subscope := "test/scope"
+	name := fmt.Sprintf("nav:%s", subscope)
 
-	// Actual scope Consumer(s) are associated to
-	scopeRegistrations := types.ScopeRegistration{
-		Name:     "nav:test/scope",
-		Subscope: "test/scope",
-		Prefix:   "nav:",
-	}
+	// Existing consumer
+	exposedScopeConsumers := createExposedConsumers(existingConsumer)
+	// existing consumer and consumer to remove
+	consumerRegistrations := createConsumerRegistrations(existingConsumer, expectedConsumerToRemove)
+	scope := CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
 
-	// Consumers inn nais.yml and actual list of consumers
-	exposedScopeConsumers := []naisiov1.ExposedScopeConsumer{
-		{
-			Name:  "Test",
-			Orgno: "1010101010",
-		},
-	}
-
-	// ACL Consumers registered at Maskinporten received from response
-	consumerRegistrations := &[]types.ConsumerRegistration{
-		{
-			ConsumerOrgno: expectedConsumerToRemove,
-			Created:       time.Time{},
-			LastUpdated:   time.Time{},
-			OwnerOrgno:    "000000000",
-			Scope:         "nav:test/scope",
-			State:         "APPROVED",
-		},
-		{
-			ConsumerOrgno: "1010101010",
-			Created:       time.Time{},
-			LastUpdated:   time.Time{},
-			OwnerOrgno:    "000000000",
-			Scope:         "nav:test/scope",
-			State:         "APPROVED",
-		},
-	}
-
-	scope := CreateScope(exposedScopeConsumers, scopeRegistrations)
-
-	_, result := scope.FilterConsumers(consumerRegistrations)
+	consumerStatus, result := scope.FilterConsumers(&consumerRegistrations)
 
 	assert.Equal(t, 1, len(result))
 	assert.Equal(t, CreateConsumer(false, types.StateApproved, expectedConsumerToRemove), result[0])
+	assert.Equal(t, 1, len(consumerStatus))
+	assert.Equal(t, existingConsumer, consumerStatus[0])
 }
 
 func TestConsumerFilteringWithAConsumerToAdd(t *testing.T) {
 
 	expectedConsumerToAdd := "123456789"
+	existingConsumer := "1010101010"
+	subscope := "test/scope"
+	name := fmt.Sprintf("nav:%s", subscope)
 
-	// Actual scope Consumer(s) are associated to
-	scopeRegistrations := types.ScopeRegistration{
-		Name:     "nav:test/scope",
-		Subscope: "test/scope",
-		Prefix:   "nav:",
-	}
+	// existing and consumer to add
+	exposedScopeConsumers := createExposedConsumers(existingConsumer, expectedConsumerToAdd)
+	// only existing consumer
+	consumerRegistrations := createConsumerRegistrations(existingConsumer)
+	scope := CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
+	consumerStatus, result := scope.FilterConsumers(&consumerRegistrations)
 
-	// Consumers inn nais.yml and actual list of consumers
-	exposedScopeConsumers := []naisiov1.ExposedScopeConsumer{
-		{
-			Name:  "Test",
-			Orgno: "1010101010",
-		},
-		{
-			Name:  "Test2",
-			Orgno: expectedConsumerToAdd,
-		},
-	}
+	assert.Equal(t, 1, len(result))
+	assert.Equal(t, CreateConsumer(true, types.StateApproved, expectedConsumerToAdd), result[0])
+	assert.Equal(t, 1, len(consumerStatus))
+	assert.Equal(t, existingConsumer, consumerStatus[0])
+	// consumer added recently get added to consumerStatus list after remote/digdir is updated with new consumer in acl
+}
 
-	// ACL Consumers registered at Maskinporten received from response
+func TestConsumerFilteringWithAConsumerToAddAndToRemoveToActivateAndExisting(t *testing.T) {
+
+	// More complex test
+	expectedConsumerToAdd := "123456789"
+	existingConsumer := "923456781"
+	expectedConsumerToRemove := "1010101010"
+	ignoredConsumerAlreadyInactiveInDeniedState := "11111111"
+	consumerInDeniedStateActivatedAgain := "22222222"
+	subscope := "test/scope"
+	name := fmt.Sprintf("nav:%s", subscope)
+
+	exposedScopeConsumers := createExposedConsumers(expectedConsumerToAdd, consumerInDeniedStateActivatedAgain, existingConsumer)
+
 	consumerRegistrations := &[]types.ConsumerRegistration{
+		// Existing, keep as is
 		{
-			ConsumerOrgno: "1010101010",
+			ConsumerOrgno: existingConsumer,
 			Created:       time.Time{},
 			LastUpdated:   time.Time{},
 			OwnerOrgno:    "000000000",
 			Scope:         "nav:test/scope",
 			State:         "APPROVED",
 		},
-	}
-
-	scope := CreateScope(exposedScopeConsumers, scopeRegistrations)
-
-	_, result := scope.FilterConsumers(consumerRegistrations)
-
-	assert.Equal(t, 1, len(result))
-	assert.Equal(t, CreateConsumer(true, types.StateApproved, expectedConsumerToAdd), result[0])
-}
-
-func TestConsumerFilteringWithAConsumerToAddAndToRemove(t *testing.T) {
-
-	expectedConsumerToAdd := "123456789"
-	expectedConsumerToRemove := "1010101010"
-	ignoredConsumerAlreadyInactiveInDeniedState := "11111111"
-	consumerInDeniedStateActivatedAgain := "22222222"
-
-	// Actual scope Consumer(s) are associated to
-	scopeRegistrations := types.ScopeRegistration{
-		Name:     "nav:test/scope",
-		Subscope: "test/scope",
-		Prefix:   "nav:",
-	}
-
-	// Consumers inn nais.yml and actual list of consumers
-	exposedScopeConsumers := []naisiov1.ExposedScopeConsumer{
-		{
-			Name:  "Test2",
-			Orgno: expectedConsumerToAdd,
-		},
-		{
-			Name:  "Test3",
-			Orgno: consumerInDeniedStateActivatedAgain,
-		},
-	}
-
-	// ACL Consumers registered at Maskinporten received from response
-	consumerRegistrations := &[]types.ConsumerRegistration{
+		// Should be removed
 		{
 			ConsumerOrgno: expectedConsumerToRemove,
 			Created:       time.Time{},
@@ -155,14 +127,33 @@ func TestConsumerFilteringWithAConsumerToAddAndToRemove(t *testing.T) {
 		},
 	}
 
-	scope := CreateScope(exposedScopeConsumers, scopeRegistrations)
+	scope := CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
 
-	_, result := scope.FilterConsumers(consumerRegistrations)
+	consumerStatus, result := scope.FilterConsumers(consumerRegistrations)
 
 	assert.Equal(t, 3, len(result))
-	assert.Equal(t, CreateConsumer(false, types.StateApproved, expectedConsumerToRemove), result[0])
-	assert.Equal(t, CreateConsumer(true, types.StateApproved, expectedConsumerToAdd), result[1])
-	assert.Equal(t, CreateConsumer(true, types.StateApproved, consumerInDeniedStateActivatedAgain), result[2])
+
+	validConsumers := map[string]Consumer{
+		expectedConsumerToRemove:            CreateConsumer(false, types.StateApproved, expectedConsumerToRemove),
+		expectedConsumerToAdd:               CreateConsumer(true, types.StateApproved, expectedConsumerToAdd),
+		consumerInDeniedStateActivatedAgain: CreateConsumer(true, types.StateApproved, consumerInDeniedStateActivatedAgain),
+	}
+
+	for _, v := range result {
+		if _, ok := validConsumers[v.Orgno]; ok {
+			assert.True(t, ok, "Map should valid consumer, either getting updated or deleted")
+		}
+	}
+
+	assert.Equal(t, 2, len(consumerStatus))
+	for _, v := range consumerStatus {
+		if v == consumerInDeniedStateActivatedAgain {
+			assert.Equal(t, consumerInDeniedStateActivatedAgain, v)
+		}
+		if v == existingConsumer {
+			assert.Equal(t, existingConsumer, v)
+		}
+	}
 }
 
 func TestDesiredExposedScopeHasChanges(t *testing.T) {
@@ -171,9 +162,9 @@ func TestDesiredExposedScopeHasChanges(t *testing.T) {
 	maskinportenIntegration := []string{clients.MaskinportenDefaultAllowedIntegrationType}
 
 	// Desired changes
-	exposedScopes := []naisiov1.ExposedScope{
-		{
-			Name:                "KLP",
+	exposedScopes := map[string]naisiov1.ExposedScope{
+		"test/scope": {
+			Name:                "test/scope",
 			AtAgeMax:            atMaxAge,
 			AllowedIntegrations: maskinportenIntegration,
 			Consumers:           []naisiov1.ExposedScopeConsumer{},
@@ -189,22 +180,80 @@ func TestDesiredExposedScopeHasChanges(t *testing.T) {
 		AllowedIntegrationType: maskinportenIntegration,
 	}
 
+	exposedScope := naisiov1.ExposedScope{
+		Enabled:             true,
+		Name:                scopeRegistrations.Subscope,
+		AtAgeMax:            30,
+		AllowedIntegrations: []string{"maskinporten"},
+		Consumers:           []naisiov1.ExposedScopeConsumer{},
+	}
+
 	// AtAgeMax has changes
-	scope := CreateScope([]naisiov1.ExposedScopeConsumer{}, scopeRegistrations)
-	result := scope.HasChanged(exposedScopes)
+	scope := CurrentScopeInfo(scopeRegistrations, exposedScope)
+	result := scope.HasChanged(nil, exposedScopes)
 	assert.True(t, result)
 
 	// AllowedIntegrationType has changes
 	scopeRegistrations.AtMaxAge = atMaxAge
 	scopeRegistrations.AllowedIntegrationType = []string{"krr"}
-	scope = CreateScope([]naisiov1.ExposedScopeConsumer{}, scopeRegistrations)
-	result = scope.HasChanged(exposedScopes)
+	scope = CurrentScopeInfo(scopeRegistrations, exposedScope)
+	result = scope.HasChanged(nil, exposedScopes)
 	assert.True(t, result)
 
 	// No Changes
 	scopeRegistrations.AtMaxAge = atMaxAge
 	scopeRegistrations.AllowedIntegrationType = maskinportenIntegration
-	scope = CreateScope([]naisiov1.ExposedScopeConsumer{}, scopeRegistrations)
-	result = scope.HasChanged(exposedScopes)
+	scope = CurrentScopeInfo(scopeRegistrations, exposedScope)
+	result = scope.HasChanged(nil, exposedScopes)
 	assert.False(t, result)
+}
+
+func createScopeRegistrations(name, subscope string) []types.ScopeRegistration {
+	return []types.ScopeRegistration{
+		{
+			Name:     name,
+			Subscope: subscope,
+			Prefix:   "nav:",
+		},
+	}
+}
+
+func createExposedConsumers(consumers ...string) []naisiov1.ExposedScopeConsumer {
+	exposed := make([]naisiov1.ExposedScopeConsumer, 0)
+	for i, c := range consumers {
+		exposed = append(exposed, naisiov1.ExposedScopeConsumer{
+			Name:  fmt.Sprintf("test%d", i),
+			Orgno: c,
+		})
+	}
+	return exposed
+}
+
+func createExposedScope(exposedConsumers []naisiov1.ExposedScopeConsumer, subscopes ...string) []naisiov1.ExposedScope {
+	exposed := make([]naisiov1.ExposedScope, 0)
+	for _, s := range subscopes {
+		exposed = append(exposed, naisiov1.ExposedScope{
+			Enabled:             true,
+			Name:                s,
+			AtAgeMax:            30,
+			AllowedIntegrations: []string{"maskinporten"},
+			Consumers:           exposedConsumers,
+		})
+	}
+	return exposed
+}
+
+func createConsumerRegistrations(consumers ...string) []types.ConsumerRegistration {
+	exposed := make([]types.ConsumerRegistration, 0)
+	for _, c := range consumers {
+		exposed = append(exposed, types.ConsumerRegistration{
+			ConsumerOrgno: c,
+			Created:       time.Time{},
+			LastUpdated:   time.Time{},
+			OwnerOrgno:    "000000000",
+			Scope:         "nav:test/scope",
+			State:         "APPROVED",
+		})
+	}
+	return exposed
 }

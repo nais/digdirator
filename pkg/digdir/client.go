@@ -9,6 +9,7 @@ import (
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir/scopes"
 	"github.com/nais/digdirator/pkg/digdir/types"
+	"github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	"gopkg.in/square/go-jose.v2"
 	"io/ioutil"
@@ -164,43 +165,71 @@ func clientMatches(actual types.ClientRegistration, desired clients.Instance) bo
 	return descriptionMatches && integrationTypeMatches
 }
 
-func (c Client) ScopesExists(desired clients.Instance, ctx context.Context, scopeClient scopes.FilteredScopeContainer) (*scopes.FilteredScopeContainer, error) {
-	endpoint := fmt.Sprintf("%s/scopes", c.Config.DigDir.Admin.BaseURL)
+func (c Client) GetFilteredScopes(desired clients.Instance, ctx context.Context, exposedScopes map[string]nais_io_v1.ExposedScope) (*scopes.FilteredScopeContainer, error) {
+	endpoint := fmt.Sprintf("%s/scopes?inactive=true", c.Config.DigDir.Admin.BaseURL)
 	actualScopesRegistrations := make([]types.ScopeRegistration, 0)
+	container := scopes.FilteredScopeContainer{}
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &actualScopesRegistrations); err != nil {
 		return nil, fmt.Errorf("fetching list of scopes from Digdir: %w", err)
 	}
-	return scopeClient.FilterScopes(actualScopesRegistrations, desired), nil
+	return container.FilterScopes(actualScopesRegistrations, desired, exposedScopes), nil
 }
 
 func (c Client) RegisterScope(ctx context.Context, payload types.ScopeRegistration) (*types.ScopeRegistration, error) {
 	endpoint := fmt.Sprintf("%s/scopes", c.Config.DigDir.Admin.BaseURL)
 	registration := &types.ScopeRegistration{}
-
 	jsonPayload, err := json.Marshal(payload)
+
 	if err != nil {
 		return nil, fmt.Errorf("marshalling register scope payload: %w", err)
 	}
 
 	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, registration); err != nil {
-		return nil, fmt.Errorf("registering FilteredScopeContainer: %w", err)
+		return nil, fmt.Errorf("registering scope: %w", err)
 	}
 	return registration, nil
 }
 
 func (c Client) UpdateScope(ctx context.Context, payload types.ScopeRegistration, scope string) (*types.ScopeRegistration, error) {
-	endpoint := fmt.Sprintf("%s/scopes/%s", c.Config.DigDir.Admin.BaseURL, url.QueryEscape(scope))
+	endpoint := fmt.Sprintf("%s/scopes?scope=%s", c.Config.DigDir.Admin.BaseURL, url.QueryEscape(scope))
 	registration := &types.ScopeRegistration{}
-
 	jsonPayload, err := json.Marshal(payload)
+
 	if err != nil {
 		return nil, fmt.Errorf("marshalling update scope payload: %w", err)
 	}
+
 	if err := c.request(ctx, http.MethodPut, endpoint, jsonPayload, registration); err != nil {
-		return nil, fmt.Errorf("updating FilteredScopeContainer client: %w", err)
+		return nil, fmt.Errorf("updating scope: %w", err)
 	}
 	return registration, nil
+}
+
+func (c Client) DeleteScope(ctx context.Context, scope string) (*types.ScopeRegistration, error) {
+	endpoint := fmt.Sprintf("%s/scopes?scope=%s", c.Config.DigDir.Admin.BaseURL, url.QueryEscape(scope))
+	actualScopesRegistration := &types.ScopeRegistration{}
+
+	if err := c.request(ctx, http.MethodDelete, endpoint, nil, &actualScopesRegistration); err != nil {
+		return nil, fmt.Errorf("deleting scope from Digdir: %w", err)
+	}
+	return actualScopesRegistration, nil
+}
+
+func (c Client) ActivateScope(ctx context.Context, payload types.ScopeRegistration, scope string) (*types.ScopeRegistration, error) {
+	endpoint := fmt.Sprintf("%s/scopes?scope=%s", c.Config.DigDir.Admin.BaseURL, url.QueryEscape(scope))
+	actualScopesRegistration := &types.ScopeRegistration{}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling activate scope payload: %w", err)
+	}
+
+	if err := c.request(ctx, http.MethodPut, endpoint, jsonPayload, actualScopesRegistration); err != nil {
+		return nil, fmt.Errorf("activate scope: %w", err)
+	}
+	return actualScopesRegistration, nil
+
 }
 
 func (c Client) GetScopeACL(ctx context.Context, scope string) (*[]types.ConsumerRegistration, error) {
@@ -212,7 +241,7 @@ func (c Client) GetScopeACL(ctx context.Context, scope string) (*[]types.Consume
 	return registration, nil
 }
 
-func (c Client) AddToConsumerACL(ctx context.Context, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
+func (c Client) AddToScopeACL(ctx context.Context, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
 	endpoint := fmt.Sprintf("%s/scopes/access/%s?scope=%s", c.Config.DigDir.Admin.BaseURL, consumerOrgno, url.QueryEscape(scope))
 	registration := &types.ConsumerRegistration{}
 
@@ -222,12 +251,12 @@ func (c Client) AddToConsumerACL(ctx context.Context, scope, consumerOrgno strin
 	return registration, nil
 }
 
-func (c Client) DeleteFromConsumerACL(ctx context.Context, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
+func (c Client) DeleteFromScopeACL(ctx context.Context, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
 	endpoint := fmt.Sprintf("%s/scopes/access/%s?scope=%s", c.Config.DigDir.Admin.BaseURL, consumerOrgno, url.QueryEscape(scope))
 	registration := &types.ConsumerRegistration{}
 
 	if err := c.request(ctx, http.MethodDelete, endpoint, []byte{}, registration); err != nil {
-		return nil, fmt.Errorf("updating scope acl: %w", err)
+		return nil, fmt.Errorf("delete consumer from scope: %w", err)
 	}
 	return registration, nil
 }

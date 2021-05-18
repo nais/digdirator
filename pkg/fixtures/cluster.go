@@ -52,8 +52,8 @@ func (c ClusterFixtures) MinimalConfig(clientType string) ClusterFixtures {
 	}
 }
 
-func (c ClusterFixtures) MinimalScopesConfig() ClusterFixtures {
-	return c.WithPods().WithMaskinportenScopesClient().WithUnusedSecret(clients.MaskinportenTypeLabelValue)
+func (c ClusterFixtures) MinimalScopesConfig(scope string) ClusterFixtures {
+	return c.WithPods().WithMaskinportenScopesClient(scope).WithUnusedSecret(clients.MaskinportenTypeLabelValue)
 }
 
 func (c ClusterFixtures) WithNamespace() ClusterFixtures {
@@ -120,7 +120,7 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 	return c
 }
 
-func (c ClusterFixtures) WithMaskinportenScopesClient() ClusterFixtures {
+func (c ClusterFixtures) WithMaskinportenScopesClient(scope string) ClusterFixtures {
 	key := types.NamespacedName{
 		Namespace: c.NamespaceName,
 		Name:      c.DigdirClientName,
@@ -136,7 +136,7 @@ func (c ClusterFixtures) WithMaskinportenScopesClient() ClusterFixtures {
 			},
 			ExposedScopes: []naisiov1.ExposedScope{
 				{
-					Name:                "test/scope",
+					Name:                scope,
 					AtAgeMax:            30,
 					AllowedIntegrations: []string{"maskinporten"},
 					Consumers: []naisiov1.ExposedScopeConsumer{

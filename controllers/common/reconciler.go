@@ -215,6 +215,24 @@ func (r *Reconciler) process(tx *Transaction) error {
 		tx.Instance.GetStatus().SetClientID(instanceClient.ClientID)
 	}
 
+	switch instance := tx.Instance.(type) {
+	case *naisiov1.MaskinportenClient:
+		exposedScopes := instance.GetExposedScopes()
+
+		if exposedScopes != nil {
+			filteredScopes, err := scopesExist(*tx, exposedScopes)
+			if err != nil {
+				return fmt.Errorf("checking if scopes exists: %w", err)
+			}
+
+			if filteredScopes != nil {
+				if err := r.handleFilteredScopes(filteredScopes, tx, exposedScopes); err != nil {
+					return fmt.Errorf("handle filtered scopes: %w", err)
+				}
+			}
+		}
+	}
+
 	if !clients.ShouldUpdateSecrets(tx.Instance) {
 		return nil
 	}
@@ -232,53 +250,6 @@ func (r *Reconciler) process(tx *Transaction) error {
 
 	if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
 		return err
-	}
-
-	switch instance := tx.Instance.(type) {
-	case *naisiov1.MaskinportenClient:
-		actual, err := scopeExists(*tx, instance)
-		if err != nil {
-			return fmt.Errorf("checking if scopes exists: %w", err)
-		}
-
-		if actual != nil {
-			if len(actual.CurrentScopes) > 0 {
-				for _, scope := range actual.CurrentScopes {
-
-					// update existing scopes and consumers
-					if scope.HasChanged(instance.GetExposedScopes()) {
-						scopeRegistration, err := r.UpdateScope(tx, scope)
-						if err != nil {
-							return fmt.Errorf("update scopes: %w", err)
-						}
-						println(scopeRegistration)
-					}
-
-					consumerRegistration, err := r.UpdateConsumers(tx, scope)
-					if err != nil {
-						return fmt.Errorf("update consumers: %w", err)
-					}
-					println(consumerRegistration)
-				}
-			}
-
-			if len(actual.ScopeToCreate) > 0 {
-				for _, newScope := range actual.ScopeToCreate {
-					// create scopes and add consumers
-					scope, err := r.CreateScope(tx, instance, newScope)
-					if err != nil {
-						return fmt.Errorf("creating scopes: %w", err)
-					}
-					consumerRegistration, err := r.UpdateConsumers(tx, scopes.CreateScope(newScope.Consumers, *scope))
-					if err != nil {
-						return fmt.Errorf("adding new consumers: %w", err)
-					}
-
-					println(scope)
-					println(consumerRegistration)
-				}
-			}
-		}
 	}
 
 	r.reportEvent(tx, corev1.EventTypeNormal, EventRotatedInDigDir, "Client credentials is rotated")
@@ -438,11 +409,11 @@ func (r *Reconciler) updateInstance(ctx context.Context, instance clients.Instan
 	return updateFunc(existing)
 }
 
-func scopeExists(tx Transaction, instance *v1.MaskinportenClient) (*scopes.FilteredScopeContainer, error) {
-	if instance.GetExposedScopes() != nil {
-		scopeContainer, err := tx.DigdirClient.ScopesExists(tx.Instance, tx.Ctx, scopes.NewFilterForScope(instance.GetExposedScopes()))
+func scopesExist(tx Transaction, exposedScopes map[string]v1.ExposedScope) (*scopes.FilteredScopeContainer, error) {
+	if exposedScopes != nil {
+		scopeContainer, err := tx.DigdirClient.GetFilteredScopes(tx.Instance, tx.Ctx, exposedScopes)
 		if err != nil {
-			return nil, fmt.Errorf("getting list of scopes: %w", err)
+			return nil, fmt.Errorf("getting filterted scopes: %w", err)
 		}
 		return scopeContainer, nil
 	}
@@ -450,7 +421,7 @@ func scopeExists(tx Transaction, instance *v1.MaskinportenClient) (*scopes.Filte
 }
 
 func (r *Reconciler) createScope(tx *Transaction, payload types.ScopeRegistration) (*types.ScopeRegistration, error) {
-	tx.Logger.Debug("scopes does not exist in Digdir, registering...")
+	tx.Logger.Debug("scope does not exist in Digdir, registering...")
 
 	registrationResponse, err := tx.DigdirClient.RegisterScope(tx.Ctx, payload)
 	if err != nil {
@@ -462,16 +433,14 @@ func (r *Reconciler) createScope(tx *Transaction, payload types.ScopeRegistratio
 	return registrationResponse, nil
 }
 
-func (r *Reconciler) updateScope(tx *Transaction, container scopes.Scope) (*types.ScopeRegistration, error) {
-	tx.Logger = tx.Logger.WithField("Subscope", container.ScopeRegistration.Name)
-	tx.Logger.Debug("scope already exists in Digdir, updating...")
+func (r *Reconciler) updateScope(tx *Transaction, body types.ScopeRegistration, scopeName string) (*types.ScopeRegistration, error) {
+	tx.Logger = tx.Logger.WithField("scope", scopeName)
+	tx.Logger.Debug("updating scope...")
 
-	registrationResponse, err := tx.DigdirClient.UpdateScope(tx.Ctx, container.ScopeRegistration, container.ScopeRegistration.Name)
+	registrationResponse, err := tx.DigdirClient.UpdateScope(tx.Ctx, body, scopeName)
 	if err != nil {
 		return nil, fmt.Errorf("updating scope at Digdir: %w", err)
 	}
-
-	tx.Logger.WithField("FilteredScopeContainer", registrationResponse.Name).Info("scope updated")
 	return registrationResponse, err
 }
 
@@ -487,31 +456,37 @@ func (r *Reconciler) updateConsumers(tx *Transaction, scope scopes.Scope) ([]typ
 	consumerStatus, consumerList := scope.FilterConsumers(acl)
 	registrationResponse := make([]types.ConsumerRegistration, 0)
 
-	if len(consumerList) > 0 {
-		for _, consumer := range consumerList {
-			if consumer.Active {
-				response, err := activateConsumer(*tx, scope.ToString(), consumer.Orgno)
-				if err != nil {
-					return nil, fmt.Errorf("updating ACL list for scope at Digdir: %w", err)
-				}
-				consumerStatus = append(consumerStatus, consumer.Orgno)
-				registrationResponse = append(registrationResponse, *response)
-			} else {
-				response, err := tx.DigdirClient.DeleteFromConsumerACL(tx.Ctx, scope.ToString(), consumer.Orgno)
-				if err != nil {
-					return nil, fmt.Errorf("updating ACL list for scope at Digdir: %w", err)
-				}
-				registrationResponse = append(registrationResponse, *response)
-				tx.Logger.WithField("FilteredScopeContainer", response.Scope).Info("scope acl updated, deleted consumer(s)")
-			}
-		}
+	if len(consumerList) == 0 {
 		tx.Instance.GetStatus().SetApplicationScopeConsumer(scope.ScopeRegistration.Subscope, consumerStatus)
+		r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, fmt.Sprintf("ACL already up to date for scope %s", scope.ToString()))
+		return nil, nil
 	}
+
+	for _, consumer := range consumerList {
+		if consumer.Active {
+			response, err := activateConsumer(*tx, scope.ToString(), consumer.Orgno)
+			if err != nil {
+				return nil, fmt.Errorf("updating ACL list for scope at Digdir: %w", err)
+			}
+			consumerStatus = append(consumerStatus, consumer.Orgno)
+			registrationResponse = append(registrationResponse, *response)
+		} else {
+			response, err := tx.DigdirClient.DeleteFromScopeACL(tx.Ctx, scope.ToString(), consumer.Orgno)
+			if err != nil {
+				return nil, fmt.Errorf("updating ACL list for scope at Digdir: %w", err)
+			}
+			registrationResponse = append(registrationResponse, *response)
+			tx.Logger.WithField("FilteredScopeContainer", response.Scope).Info("scope acl updated, deleted consumer(s)")
+		}
+	}
+
+	r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, fmt.Sprintf("Scope ACL been updated.. %s", scope.ToString()))
+	tx.Instance.GetStatus().SetApplicationScopeConsumer(scope.ScopeRegistration.Subscope, consumerStatus)
 	return registrationResponse, nil
 }
 
 func activateConsumer(tx Transaction, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
-	response, err := tx.DigdirClient.AddToConsumerACL(tx.Ctx, scope, consumerOrgno)
+	response, err := tx.DigdirClient.AddToScopeACL(tx.Ctx, scope, consumerOrgno)
 	if err != nil {
 		return nil, err
 	}
@@ -520,9 +495,10 @@ func activateConsumer(tx Transaction, scope, consumerOrgno string) (*types.Consu
 }
 
 func (r *Reconciler) UpdateScope(tx *Transaction, scope scopes.Scope) (*types.ScopeRegistration, error) {
-	scopeRegistration, err := r.updateScope(tx, scope)
+	updatedScopeBody := clients.ToScopeRegistration(tx.Instance, scope.CurrentScope)
+	scopeRegistration, err := r.updateScope(tx, updatedScopeBody, scope.ScopeRegistration.Name)
 	if err != nil {
-		return nil, fmt.Errorf("updating scope: %w", err)
+		return nil, err
 	}
 	return scopeRegistration, nil
 }
@@ -542,4 +518,86 @@ func (r *Reconciler) CreateScope(tx *Transaction, instance *v1.MaskinportenClien
 		return nil, fmt.Errorf("creating scope: %w", err)
 	}
 	return scope, nil
+}
+
+func (r *Reconciler) InActivateScope(tx *Transaction, scope string) (*types.ScopeRegistration, error) {
+	scopeRegistration, err := tx.DigdirClient.DeleteScope(tx.Ctx, scope)
+	if err != nil {
+		return nil, fmt.Errorf("deleting scope: %w", err)
+	}
+	return scopeRegistration, nil
+}
+
+func (r *Reconciler) ActivateScope(tx *Transaction, scope scopes.Scope, exposedScopes map[string]v1.ExposedScope) (*types.ScopeRegistration, error) {
+	exposedScope, err := scope.GetExposedScope(tx.Instance, exposedScopes)
+	if err != nil {
+		return nil, err
+	}
+	scopeActivationPayload := clients.ToScopeRegistration(tx.Instance, exposedScope)
+	scopeRegistration, err := tx.DigdirClient.ActivateScope(tx.Ctx, scopeActivationPayload, scope.ToString())
+	if err != nil {
+		return nil, fmt.Errorf("acrivating scope: %w", err)
+	}
+	return scopeRegistration, nil
+}
+
+func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.FilteredScopeContainer, tx *Transaction, exposedScopes map[string]v1.ExposedScope) error {
+	if len(filteredScopes.Current) > 0 {
+		for _, scope := range filteredScopes.Current {
+			tx.Logger.Debug(fmt.Sprintf("Scope - %s already exists in Digdir...", scope.ToString()))
+
+			// update existing scope
+			if scope.HasChanged(tx.Instance, exposedScopes) {
+				scopeRegistration, err := r.UpdateScope(tx, scope)
+				if err != nil {
+					return err
+				}
+				r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedScopeInDigDir, fmt.Sprintf("Scope been updated.. %s", scopeRegistration.Name))
+			}
+
+			// Update Consumers
+			_, err := r.UpdateConsumers(tx, scope)
+			if err != nil {
+				return fmt.Errorf("update consumers acl: %w", err)
+			}
+
+			// should be activated
+			if scope.CanBeAvtivated(tx.Instance, exposedScopes) {
+				// re-activate scope
+				scopeRegistration, err := r.ActivateScope(tx, scope, exposedScopes)
+				if err != nil {
+					return err
+				}
+				r.reportEvent(tx, corev1.EventTypeNormal, EventActivatedScopeInDigDir, fmt.Sprintf("Scope been activated.. %s", scopeRegistration.Name))
+			}
+
+			// Should be deactivated
+			if !scope.IsActive(tx.Instance, exposedScopes) {
+				// delete/inactivate scope
+				scopeRegistration, err := r.InActivateScope(tx, scope.ToString())
+				if err != nil {
+					return err
+				}
+				r.reportEvent(tx, corev1.EventTypeNormal, EventDeletedScopeInDigDir, fmt.Sprintf("Scope been deleted.. %s", scopeRegistration.Name))
+			}
+		}
+	}
+
+	if len(filteredScopes.ToCreate) > 0 {
+		for _, newScope := range filteredScopes.ToCreate {
+			tx.Logger.Debug(fmt.Sprintf("Scope - %s do not exist in Digdir, creating...", newScope.Name))
+
+			// create scope and add consumers
+			scope, err := r.CreateScope(tx, tx.Instance.(*naisiov1.MaskinportenClient), newScope)
+			if err != nil {
+				return err
+			}
+			r.reportEvent(tx, corev1.EventTypeNormal, EventCreatedScopeInDigDir, fmt.Sprintf("Scope been created.. %s", scope.Name))
+			_, err = r.UpdateConsumers(tx, scopes.CurrentScopeInfo(*scope, newScope))
+			if err != nil {
+				return fmt.Errorf("adding new consumers to acl: %w", err)
+			}
+		}
+	}
+	return nil
 }

@@ -3,16 +3,21 @@ apiVersion: nais.io/v1
 kind: MaskinportenClient
 metadata:
   name: my-app
-  namespace: default
+  namespace: aura
 spec:
   secretName: my-secret
   scopes:
+    exposes:
+      - name: "digdirator.test.read"
+        enabled: true
+        # atAgeMax: 112 # token expires in sec / default 30 sec
+        # allowedIntegration: maskinporten # default maskinporten
+        consumers:
+          - name: "Just For show"
+            orgno: "889640782"
     use:
       - name: "nav:test/api"
-    exposes:
-      # nav:teamnamespace:appnavn/scope.read
-      - name: "scope.read"
-        atAgeMax: 60 # token expires in sec / default 30 sec
-        allowedIntegration: maskinporten # default maskinporten
-        consumers:
-          - orgno: "10112233444"
+
+# exposes
+# new format -> nav:teamnamespace:appnavn.scope.read
+# legacy format -> nav:some/api (applikasjons kan move to gcp, if they want to keep config in yml)

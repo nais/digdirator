@@ -2,22 +2,23 @@ package scopes
 
 import (
 	"fmt"
+	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"sort"
+	"github.com/nais/liberator/pkg/kubernetes"
 )
 
 const NumberOfPermutation = 2
 
 type Scope struct {
-	Consumers         []naisiov1.ExposedScopeConsumer
 	ScopeRegistration types.ScopeRegistration
+	CurrentScope      naisiov1.ExposedScope
 }
 
-func CreateScope(consumers []naisiov1.ExposedScopeConsumer, registration types.ScopeRegistration) Scope {
+func CurrentScopeInfo(registration types.ScopeRegistration, scope naisiov1.ExposedScope) Scope {
 	return Scope{
-		Consumers:         consumers,
 		ScopeRegistration: registration,
+		CurrentScope:      scope,
 	}
 }
 
@@ -42,7 +43,6 @@ func (s Scope) FilterConsumers(acl *[]types.ConsumerRegistration) ([]string, []C
 			swapped = true
 		}
 	}
-	sortConsumers(differance)
 	return consumerStatus, differance
 }
 
@@ -54,7 +54,7 @@ func addConsumerStatus(found, swapped bool, consumerOrgno string, consumerStatus
 
 func (s Scope) toConsumers() map[string]Consumer {
 	consumers := make(map[string]Consumer)
-	for _, consumer := range s.Consumers {
+	for _, consumer := range s.CurrentScope.Consumers {
 		consumers[consumer.Orgno] = CreateConsumer(false, types.StateApproved, consumer.Orgno)
 	}
 	return consumers
@@ -72,31 +72,49 @@ func (s Scope) ToString() string {
 	return fmt.Sprintf("%s:%s", s.ScopeRegistration.Prefix, s.ScopeRegistration.Subscope)
 }
 
-func sortConsumers(consumerList []Consumer) {
-	sort.SliceStable(consumerList, func(i, j int) bool {
-		return consumerList[i].Orgno < consumerList[j].Orgno
-	})
-}
-
-func (s Scope) HasChanged(desires []naisiov1.ExposedScope) bool {
-	change := false
-	for _, desired := range desires {
-		switch {
-		case s.ScopeRegistration.AtMaxAge != desired.AtAgeMax:
-			change = true
-		case !equals(s.ScopeRegistration.AllowedIntegrationType, desired.AllowedIntegrations):
-			change = true
+func (s Scope) HasChanged(instance clients.Instance, desired map[string]naisiov1.ExposedScope) bool {
+	for d, scope := range desired {
+		if kubernetes.FilterUniformedName(instance, d) == s.ScopeRegistration.Subscope {
+			switch {
+			case scope.AtAgeMax != 0 && s.ScopeRegistration.AtMaxAge != scope.AtAgeMax:
+				return true
+			case !equals(s.ScopeRegistration.AllowedIntegrationType, scope.AllowedIntegrations):
+				return true
+			}
 		}
 	}
-	return change
+	return false
 }
 
-func equals(actual, desires []string) bool {
-	if len(actual) != len(desires) {
+// IsActive exposed scope should be active or not
+func (s Scope) IsActive(instance clients.Instance, desired map[string]naisiov1.ExposedScope) bool {
+	scope, err := s.GetExposedScope(instance, desired)
+	if err == nil {
+		return scope.Enabled
+	}
+	return false
+}
+
+func (s Scope) GetExposedScope(instance clients.Instance, desired map[string]naisiov1.ExposedScope) (naisiov1.ExposedScope, error) {
+	for d, scope := range desired {
+		if kubernetes.FilterUniformedName(instance, d) == s.ScopeRegistration.Subscope {
+			return scope, nil
+		}
+	}
+	return naisiov1.ExposedScope{}, fmt.Errorf("could not find scope")
+}
+
+// CanBeAvtivated Existing and inactive scope need to be activated again
+func (s Scope) CanBeAvtivated(tx clients.Instance, desired map[string]naisiov1.ExposedScope) bool {
+	return s.IsActive(tx, desired) && !s.ScopeRegistration.Active
+}
+
+func equals(actual, desired []string) bool {
+	if len(actual) != len(desired) {
 		return false
 	}
-	for i, value := range actual {
-		if value != desires[i] {
+	for i, value := range desired {
+		if value != actual[i] {
 			return false
 		}
 	}
