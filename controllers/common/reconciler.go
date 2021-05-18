@@ -430,7 +430,7 @@ func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.FilteredScopeCo
 			}
 
 			// Update Consumers
-			_, err := r.UpdateConsumers(tx, scope)
+			_, err := r.updateConsumers(tx, scope)
 			if err != nil {
 				return fmt.Errorf("update consumers acl: %w", err)
 			}
@@ -467,7 +467,7 @@ func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.FilteredScopeCo
 				return err
 			}
 			r.reportEvent(tx, corev1.EventTypeNormal, EventCreatedScopeInDigDir, fmt.Sprintf("Scope been created.. %s", scope.Name))
-			_, err = r.UpdateConsumers(tx, scopes.CurrentScopeInfo(*scope, newScope))
+			_, err = r.updateConsumers(tx, scopes.CurrentScopeInfo(*scope, newScope))
 			if err != nil {
 				return fmt.Errorf("adding new consumers to acl: %w", err)
 			}
@@ -566,14 +566,6 @@ func (r *Reconciler) UpdateScope(tx *Transaction, scope scopes.Scope) (*types.Sc
 		return nil, err
 	}
 	return scopeRegistration, nil
-}
-
-func (r *Reconciler) UpdateConsumers(tx *Transaction, scope scopes.Scope) ([]types.ConsumerRegistration, error) {
-	consumerRegistration, err := r.updateConsumers(tx, scope)
-	if err != nil {
-		return nil, fmt.Errorf("updating consumers: %w", err)
-	}
-	return consumerRegistration, nil
 }
 
 func (r *Reconciler) CreateScope(tx *Transaction, instance *v1.MaskinportenClient, newScope v1.ExposedScope) (*types.ScopeRegistration, error) {
