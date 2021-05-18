@@ -104,8 +104,8 @@ func (s Scope) GetExposedScope(instance clients.Instance, desired map[string]nai
 	return naisiov1.ExposedScope{}, fmt.Errorf("could not find scope")
 }
 
-// CanBeAvtivated Existing and inactive scope need to be activated again
-func (s Scope) CanBeAvtivated(tx clients.Instance, desired map[string]naisiov1.ExposedScope) bool {
+// CanBeActivated Existing and inactive scope need to be activated again
+func (s Scope) CanBeActivated(tx clients.Instance, desired map[string]naisiov1.ExposedScope) bool {
 	return s.IsActive(tx, desired) && !s.ScopeRegistration.Active
 }
 

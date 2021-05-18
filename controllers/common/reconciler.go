@@ -429,20 +429,20 @@ func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.FilteredScopeCo
 				r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedScopeInDigDir, fmt.Sprintf("Scope been updated.. %s", scopeRegistration.Name))
 			}
 
-			// Update Consumers
-			_, err := r.updateConsumers(tx, scope)
-			if err != nil {
-				return fmt.Errorf("update consumers acl: %w", err)
-			}
-
 			// should be activated
-			if scope.CanBeAvtivated(tx.Instance, exposedScopes) {
+			if scope.CanBeActivated(tx.Instance, exposedScopes) {
 				// re-activate scope
 				scopeRegistration, err := r.ActivateScope(tx, scope, exposedScopes)
 				if err != nil {
 					return err
 				}
 				r.reportEvent(tx, corev1.EventTypeNormal, EventActivatedScopeInDigDir, fmt.Sprintf("Scope been activated.. %s", scopeRegistration.Name))
+			}
+
+			// Update Consumers
+			_, err := r.updateConsumers(tx, scope)
+			if err != nil {
+				return fmt.Errorf("update consumers acl: %w", err)
 			}
 
 			// Should be deactivated
@@ -452,7 +452,7 @@ func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.FilteredScopeCo
 				if err != nil {
 					return err
 				}
-				r.reportEvent(tx, corev1.EventTypeNormal, EventDeletedScopeInDigDir, fmt.Sprintf("Scope been deleted.. %s", scopeRegistration.Name))
+				r.reportEvent(tx, corev1.EventTypeNormal, EventDeletedScopeInDigDir, fmt.Sprintf("Scope been inactivated.. %s", scopeRegistration.Name))
 			}
 		}
 	}
@@ -522,17 +522,16 @@ func (r *Reconciler) updateConsumers(tx *Transaction, scope scopes.Scope) ([]typ
 		if consumer.Active {
 			response, err := activateConsumer(*tx, scope.ToString(), consumer.Orgno)
 			if err != nil {
-				return nil, fmt.Errorf("updating ACL: %w", err)
+				return nil, fmt.Errorf("adding to ACL: %w", err)
 			}
 			consumerStatus = append(consumerStatus, consumer.Orgno)
 			registrationResponse = append(registrationResponse, *response)
 		} else {
 			response, err := inActivateConsumer(*tx, scope.ToString(), consumer.Orgno)
 			if err != nil {
-				return nil, fmt.Errorf("updating ACL list for scope at Digdir: %w", err)
+				return nil, fmt.Errorf("delete from ACL: %w", err)
 			}
 			registrationResponse = append(registrationResponse, *response)
-
 		}
 	}
 
