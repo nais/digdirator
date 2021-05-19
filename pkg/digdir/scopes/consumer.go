@@ -5,16 +5,16 @@ import (
 )
 
 type Consumer struct {
-	Active bool
-	State  types.State
-	Orgno  string
+	ShouldBeAdded bool
+	State         types.State
+	Orgno         string
 }
 
 func CreateConsumer(shouldBeAdded bool, state types.State, orgno string) Consumer {
 	return Consumer{
-		Active: shouldBeAdded,
-		State:  state,
-		Orgno:  orgno,
+		ShouldBeAdded: shouldBeAdded,
+		State:         state,
+		Orgno:         orgno,
 	}
 }
 
@@ -35,10 +35,11 @@ func (c Consumer) addOrUpdate(found, swapped bool, consumerList []Consumer) []Co
 	if !found {
 		// Compare exposedConsumer against digdir acl
 		if !swapped {
-			c.Active = true
+			c.ShouldBeAdded = true
+			c.State = types.StateApproved
 			consumerList = append(consumerList, c)
 		}
-		// Compare digdir acl against exposedConsumers, ignore consumers in denied state
+		// Keep existing, ignore consumers in denied state
 		if swapped && c.State != types.StateDenied {
 			consumerList = append(consumerList, c)
 		}
@@ -46,7 +47,7 @@ func (c Consumer) addOrUpdate(found, swapped bool, consumerList []Consumer) []Co
 
 	// Consumer found, check digidir response acl against consumer list to re-activate denied consumer
 	if found && swapped && c.State == types.StateDenied {
-		c.Active = true
+		c.ShouldBeAdded = true
 		c.State = types.StateApproved
 		consumerList = append(consumerList, c)
 	}
