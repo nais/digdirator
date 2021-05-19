@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	finalizer2 "github.com/nais/liberator/pkg/finalizer"
 	"github.com/nais/liberator/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
@@ -152,7 +151,7 @@ func (r *Reconciler) shouldSkip(tx *Transaction) bool {
 	if clients.HasSkipAnnotation(tx.Instance) {
 		msg := fmt.Sprintf("Resource contains '%s' annotation. Skipping processing...", annotations.SkipKey)
 		tx.Logger.Debug(msg)
-		r.reportEvent(tx, corev1.EventTypeWarning, v1.EventSkipped, msg)
+		r.reportEvent(tx, corev1.EventTypeWarning, naisiov1.EventSkipped, msg)
 		return true
 	}
 	return false
@@ -168,8 +167,8 @@ func (r *Reconciler) inSharedNamespace(tx *Transaction) (bool, error) {
 			msg := fmt.Sprintf("Resource should not exist in shared namespace '%s'. Skipping...", tx.Instance.GetNamespace())
 			tx.Logger.Debug(msg)
 			clients.SetAnnotation(tx.Instance, annotations.SkipKey, strconv.FormatBool(true))
-			r.reportEvent(tx, corev1.EventTypeWarning, v1.EventNotInTeamNamespace, msg)
-			r.reportEvent(tx, corev1.EventTypeWarning, v1.EventSkipped, msg)
+			r.reportEvent(tx, corev1.EventTypeWarning, naisiov1.EventNotInTeamNamespace, msg)
+			r.reportEvent(tx, corev1.EventTypeWarning, naisiov1.EventSkipped, msg)
 			return true, nil
 		}
 	}
@@ -291,7 +290,7 @@ func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistrat
 }
 
 func (r *Reconciler) filterValidScopes(tx *Transaction, registration types.ClientRegistration) (*types.ClientRegistration, error) {
-	var desiredScopes []v1.UsedScope
+	var desiredScopes []naisiov1.UsedScope
 
 	switch v := tx.Instance.(type) {
 	case *naisiov1.IDPortenClient:
@@ -407,7 +406,7 @@ func (r *Reconciler) updateInstance(ctx context.Context, instance clients.Instan
 	return updateFunc(existing)
 }
 
-func scopesExist(tx Transaction, exposedScopes map[string]v1.ExposedScope) (*scopes.ScopeStash, error) {
+func scopesExist(tx Transaction, exposedScopes map[string]naisiov1.ExposedScope) (*scopes.ScopeStash, error) {
 	scopeContainer, err := tx.DigdirClient.GetFilteredScopes(tx.Instance, tx.Ctx, exposedScopes)
 	if err != nil {
 		return nil, fmt.Errorf("getting filterted scopes: %w", err)
@@ -415,7 +414,7 @@ func scopesExist(tx Transaction, exposedScopes map[string]v1.ExposedScope) (*sco
 	return scopeContainer, nil
 }
 
-func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.ScopeStash, tx *Transaction, exposedScopes map[string]v1.ExposedScope) error {
+func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.ScopeStash, tx *Transaction, exposedScopes map[string]naisiov1.ExposedScope) error {
 	if len(filteredScopes.Current) > 0 {
 		for _, scope := range filteredScopes.Current {
 			tx.Logger.Debug(fmt.Sprintf("Scope - %s already exists in Digdir...", scope.ToString()))
@@ -569,7 +568,7 @@ func (r *Reconciler) UpdateScope(tx *Transaction, scope scopes.Scope) (*types.Sc
 	return scopeRegistration, nil
 }
 
-func (r *Reconciler) CreateScope(tx *Transaction, instance *v1.MaskinportenClient, newScope v1.ExposedScope) (*types.ScopeRegistration, error) {
+func (r *Reconciler) CreateScope(tx *Transaction, instance *naisiov1.MaskinportenClient, newScope naisiov1.ExposedScope) (*types.ScopeRegistration, error) {
 	scopeRegistrationPayload := clients.ToScopeRegistration(instance, newScope)
 	scope, err := r.createScope(tx, scopeRegistrationPayload)
 	if err != nil {
@@ -586,7 +585,7 @@ func (r *Reconciler) InActivateScope(tx *Transaction, scope string) (*types.Scop
 	return scopeRegistration, nil
 }
 
-func (r *Reconciler) ActivateScope(tx *Transaction, scope scopes.Scope, exposedScopes map[string]v1.ExposedScope) (*types.ScopeRegistration, error) {
+func (r *Reconciler) ActivateScope(tx *Transaction, scope scopes.Scope, exposedScopes map[string]naisiov1.ExposedScope) (*types.ScopeRegistration, error) {
 	exposedScope, err := scope.GetExposedScope(exposedScopes)
 	if err != nil {
 		return nil, err
