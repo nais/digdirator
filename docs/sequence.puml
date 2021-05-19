@@ -36,6 +36,19 @@ group client already exists in ID-Porten
     digdirator -> digdir: register JWKS (new and existing JWK)
 end
 
+digdirator -> DigdirClient: exposed scopes enabled
+digdirator -> digdir: check if scope exists
+
+group scope do not exists in Maskinporten
+digdirator -> digdir: register scope
+digdirator -> digdir: add consumer(s)
+end
+
+group scope already exists in Maskinporten
+    digdirator -> digdir: update scope metadata
+    digdirator -> digdir: update / add consumer(s)
+end
+
 digdirator -> DigdirClient: update status subresource
 digdirator -> Secret: inject JWK and metadata
 
