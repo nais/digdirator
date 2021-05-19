@@ -111,7 +111,6 @@ func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) 
 }
 
 func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget interface{}) error {
-	println()
 	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
 	defer cancel()
 
