@@ -62,7 +62,7 @@ func DigdirHandler(clientID string, handlerType HandlerType, scope string, orgno
 			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/create-scope-response.json", handlerType))
 			_, _ = w.Write(response)
 			// PUT (update) scope
-		case r.URL.Path == "/scopes" && r.URL.RawQuery == fmt.Sprintf("%s", url.QueryEscape(scope)) && r.Method == http.MethodPut:
+		case r.URL.Path == "/scopes" && r.URL.RawQuery == url.QueryEscape(scope) && r.Method == http.MethodPut:
 			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/specific-scope-info.json", handlerType))
 			_, _ = w.Write(response)
 			// GET consumer access for a scope
