@@ -139,6 +139,7 @@ func (c ClusterFixtures) WithMaskinportenScopesClient(scope string) ClusterFixtu
 					Name:                scope,
 					AtAgeMax:            30,
 					AllowedIntegrations: []string{"maskinporten"},
+					Product:             "arbeid",
 					Consumers: []naisiov1.ExposedScopeConsumer{
 						{
 							Name:  "KPL",

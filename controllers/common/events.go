@@ -13,7 +13,6 @@ const (
 	EventDeletedInDigDir            = "DeletedInDigDir"
 	EventSkipped                    = "Skipped"
 	EventRetrying                   = "Retrying"
-	EventDeletedScopeInDigDir       = "DeletedScopeInDigDir"
 	EventActivatedScopeInDigDir     = "ActivatedScopeInDigDir"
 	EventCreatedScopeInDigDir       = "CreatedScopeInDigDir"
 	EventUpdatedScopeInDigDir       = "UpdatedScopeInDigDir"

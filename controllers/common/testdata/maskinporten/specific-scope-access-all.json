@@ -4,7 +4,7 @@
     "created": "2021-03-19T10:29:55.174Z",
     "last_updated": "2021-03-19T10:29:55.174Z",
     "owner_orgno": "string",
-    "scope": "nav:test/scope",
+    "scope": "nav:arbeid/test/scope",
     "state": "APPROVED"
   },
   {
@@ -12,7 +12,7 @@
     "created": "2021-03-19T10:29:55.174Z",
     "last_updated": "2021-03-19T10:29:55.174Z",
     "owner_orgno": "string",
-    "scope": "nav:test/scope",
+    "scope": "nav:arbeid/test/scope",
     "state": "APPROVED"
   }
 ]

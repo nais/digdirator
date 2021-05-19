@@ -19,8 +19,8 @@ func TestScopeFilteringWithNewScopeAndOneExistingOne(t *testing.T) {
 	scopeContainer := FilteredScopeContainer{}
 
 	scopeRegistration := toScopeRegistration(*currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], currentScope)
-	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, currentScope), scopeRegistration.Description)
-	assert.Equal(t, currentScope, scopeRegistration.Subscope)
+	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, "arbeid", currentScope), scopeRegistration.Description)
+	assert.Equal(t, kubernetes.ToScope("arbeid", currentScope), scopeRegistration.Subscope)
 	assert.True(t, scopeRegistration.Active)
 
 	actualScopeRegistrations := make([]types.ScopeRegistration, 0)
@@ -49,15 +49,15 @@ func TestScopeFiltering(t *testing.T) {
 	// description: cluster:namespace:app.scope/api
 	// subscope: scope/api
 	scoperegistration1 := toScopeRegistration(*currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], currentScope)
-	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, currentScope), scoperegistration1.Description)
-	assert.Equal(t, currentScope, scoperegistration1.Subscope)
+	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, "arbeid", currentScope), scoperegistration1.Description)
+	assert.Equal(t, kubernetes.ToScope("arbeid", currentScope), scoperegistration1.Subscope)
 
 	// Secound case new format
 	// description: cluster:team:app.scope
 	// subscope: team:app.scope
 	scoperegistration2 := toScopeRegistration(*currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope2], currentScope2)
-	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, currentScope2), scoperegistration2.Description)
-	assert.Equal(t, "testnamespace:testapp.test.scope2", scoperegistration2.Subscope)
+	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, "arbeid", currentScope2), scoperegistration2.Description)
+	assert.Equal(t, "arbeid:test.scope2", scoperegistration2.Subscope)
 
 	// add scopes owned by current application
 	actualScopeRegistrations = append(actualScopeRegistrations, scoperegistration1)
@@ -122,6 +122,7 @@ func createExposedScopes(scopeNames ...string) []naisiov1.ExposedScope {
 		exposed = append(exposed, naisiov1.ExposedScope{
 			Name:    s,
 			Enabled: true,
+			Product: "arbeid",
 			Consumers: []naisiov1.ExposedScopeConsumer{
 				{
 					Orgno: "1010101010",
@@ -140,9 +141,9 @@ func toScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.E
 		DelegationSource:           "",
 		Name:                       fmt.Sprintf("nav:%s", scope),
 		AuthorizationMaxLifetime:   clients.MaskinportenDefaultAuthorizationMaxLifetime,
-		Description:                kubernetes.UniformResourceScopeName(&in, exposedScope.Name),
+		Description:                kubernetes.UniformResourceScopeName(&in, exposedScope.Product, exposedScope.Name),
 		Prefix:                     clients.MaskinportenScopePrefix,
-		Subscope:                   kubernetes.FilterUniformedName(&in, exposedScope.Name),
+		Subscope:                   kubernetes.ToScope(exposedScope.Product, exposedScope.Name),
 		TokenType:                  types.TokenTypeSelfContained,
 		Visibility:                 types.VisibilityPublic,
 		RequiresPseudonymousTokens: false,

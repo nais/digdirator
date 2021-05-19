@@ -8,16 +8,11 @@ spec:
   secretName: my-secret
   scopes:
     exposes:
+      # nav:arbeid:digdirator.test.read
       - name: "digdirator.test.read"
         enabled: true
-        atAgeMax: 114 # token expires in sec # default 30 sec
-        # allowedIntegration: maskinporten # default maskinporten
+        product: "arbeid"
         consumers:
-          - name: "Some User"
-            orgno: "889640782"
+          - orgno: "889640782"
     use:
       - name: "nav:test/api"
-
-# exposes
-# new format -> nav:teamnamespace:appnavn.scope.read
-# legacy format -> nav:some/api (applikasjons kan move to gcp, if they want to keep config in yml)

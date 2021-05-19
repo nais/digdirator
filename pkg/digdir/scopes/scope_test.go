@@ -160,12 +160,14 @@ func TestDesiredExposedScopeHasChanges(t *testing.T) {
 
 	atMaxAge := 44
 	maskinportenIntegration := []string{clients.MaskinportenDefaultAllowedIntegrationType}
+	product := "arbeid"
 
 	// Desired changes
 	exposedScopes := map[string]naisiov1.ExposedScope{
 		"test/scope": {
 			Name:                "test/scope",
 			AtAgeMax:            atMaxAge,
+			Product:             product,
 			AllowedIntegrations: maskinportenIntegration,
 			Consumers:           []naisiov1.ExposedScopeConsumer{},
 		},
@@ -173,8 +175,8 @@ func TestDesiredExposedScopeHasChanges(t *testing.T) {
 
 	// Actual scope in digdir
 	scopeRegistrations := types.ScopeRegistration{
-		Name:                   "nav:test/scope",
-		Subscope:               "test/scope",
+		Name:                   fmt.Sprintf("nav:%s/test/scope", product),
+		Subscope:               fmt.Sprintf("%s/test/scope", product),
 		Prefix:                 "nav:",
 		AtMaxAge:               66,
 		AllowedIntegrationType: maskinportenIntegration,
@@ -184,27 +186,28 @@ func TestDesiredExposedScopeHasChanges(t *testing.T) {
 		Enabled:             true,
 		Name:                scopeRegistrations.Subscope,
 		AtAgeMax:            30,
+		Product:             product,
 		AllowedIntegrations: []string{"maskinporten"},
 		Consumers:           []naisiov1.ExposedScopeConsumer{},
 	}
 
 	// AtAgeMax has changes
 	scope := CurrentScopeInfo(scopeRegistrations, exposedScope)
-	result := scope.HasChanged(nil, exposedScopes)
+	result := scope.HasChanged(exposedScopes)
 	assert.True(t, result)
 
 	// AllowedIntegrationType has changes
 	scopeRegistrations.AtMaxAge = atMaxAge
 	scopeRegistrations.AllowedIntegrationType = []string{"krr"}
 	scope = CurrentScopeInfo(scopeRegistrations, exposedScope)
-	result = scope.HasChanged(nil, exposedScopes)
+	result = scope.HasChanged(exposedScopes)
 	assert.True(t, result)
 
 	// No Changes
 	scopeRegistrations.AtMaxAge = atMaxAge
 	scopeRegistrations.AllowedIntegrationType = maskinportenIntegration
 	scope = CurrentScopeInfo(scopeRegistrations, exposedScope)
-	result = scope.HasChanged(nil, exposedScopes)
+	result = scope.HasChanged(exposedScopes)
 	assert.False(t, result)
 }
 

@@ -16,7 +16,7 @@ func (s FilteredScopeContainer) FilterScopes(actualScopesRegistrations []types.S
 	for _, exposedScope := range exposedScopes {
 		scopeDoNotExist := true
 		for _, actual := range actualScopesRegistrations {
-			if scopeExistsInList(desired, exposedScope.Name, actual.Subscope) {
+			if scopeExistsInList(exposedScope.Product, exposedScope.Name, actual.Subscope) {
 				scopeDoNotExist = false
 				// cluster:namespace:appnavn.scope.read
 				if scopeMatches(actual, desired, exposedScope) {
@@ -34,10 +34,10 @@ func (s FilteredScopeContainer) FilterScopes(actualScopesRegistrations []types.S
 	return &s
 }
 
-func scopeExistsInList(desired clients.Instance, exposedScopeName string, actualScopeName string) bool {
-	return kubernetes.FilterUniformedName(desired, exposedScopeName) == actualScopeName
+func scopeExistsInList(exposedScopeProduct, exposedScopeName, actualScopeName string) bool {
+	return kubernetes.ToScope(exposedScopeProduct, exposedScopeName) == actualScopeName
 }
 
 func scopeMatches(actual types.ScopeRegistration, desired clients.Instance, scope naisiov1.ExposedScope) bool {
-	return actual.Description == kubernetes.UniformResourceScopeName(desired, scope.Name)
+	return actual.Description == kubernetes.UniformResourceScopeName(desired, scope.Product, scope.Name)
 }

@@ -202,16 +202,15 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 	if exposedScope.AtAgeMax == 0 {
 		exposedScope.AtAgeMax = MaskinportenDefaultAtAgeMax
 	}
-	uniformedScopeName := kubernetes.UniformResourceScopeName(&in, exposedScope.Name)
 	return types.ScopeRegistration{
 		AllowedIntegrationType:     exposedScope.AllowedIntegrations,
 		AtMaxAge:                   exposedScope.AtAgeMax,
 		DelegationSource:           "",
 		Name:                       "",
 		AuthorizationMaxLifetime:   MaskinportenDefaultAuthorizationMaxLifetime,
-		Description:                uniformedScopeName,
+		Description:                kubernetes.UniformResourceScopeName(&in, exposedScope.Product, exposedScope.Name),
 		Prefix:                     MaskinportenScopePrefix,
-		Subscope:                   kubernetes.FilterUniformedName(&in, exposedScope.Name),
+		Subscope:                   kubernetes.ToScope(exposedScope.Product, exposedScope.Name),
 		TokenType:                  types.TokenTypeSelfContained,
 		Visibility:                 types.VisibilityPublic,
 		RequiresPseudonymousTokens: false,

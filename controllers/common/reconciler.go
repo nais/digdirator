@@ -421,7 +421,7 @@ func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.FilteredScopeCo
 			tx.Logger.Debug(fmt.Sprintf("Scope - %s already exists in Digdir...", scope.ToString()))
 
 			// update existing scope
-			if scope.HasChanged(tx.Instance, exposedScopes) {
+			if scope.HasChanged(exposedScopes) {
 				scopeRegistration, err := r.UpdateScope(tx, scope)
 				if err != nil {
 					return err
@@ -430,7 +430,7 @@ func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.FilteredScopeCo
 			}
 
 			// should be activated
-			if scope.CanBeActivated(tx.Instance, exposedScopes) {
+			if scope.CanBeActivated(exposedScopes) {
 				// re-activate scope
 				scopeRegistration, err := r.ActivateScope(tx, scope, exposedScopes)
 				if err != nil {
@@ -446,20 +446,22 @@ func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.FilteredScopeCo
 			}
 
 			// Should be deactivated
-			if !scope.IsActive(tx.Instance, exposedScopes) {
+			if !scope.IsActive(exposedScopes) {
 				// delete/inactivate scope
 				scopeRegistration, err := r.InActivateScope(tx, scope.ToString())
 				if err != nil {
 					return err
 				}
-				r.reportEvent(tx, corev1.EventTypeNormal, EventDeletedScopeInDigDir, fmt.Sprintf("Scope been inactivated.. %s", scopeRegistration.Name))
+				msg := fmt.Sprintf("Scope been inactivated and no consumers is granted access... %s", scopeRegistration.Name)
+				tx.Logger.Warning(msg)
+				r.reportEvent(tx, corev1.EventTypeWarning, EventSkipped, msg)
 			}
 		}
 	}
 
 	if len(filteredScopes.ToCreate) > 0 {
 		for _, newScope := range filteredScopes.ToCreate {
-			tx.Logger.Debug(fmt.Sprintf("Scope - %s do not exist in Digdir, creating...", newScope.Name))
+			tx.Logger.Debug(fmt.Sprintf("Subscope - %s do not exist in Digdir, creating...", newScope.Name))
 
 			// create scope and add consumers
 			scope, err := r.CreateScope(tx, tx.Instance.(*naisiov1.MaskinportenClient), newScope)
@@ -585,7 +587,7 @@ func (r *Reconciler) InActivateScope(tx *Transaction, scope string) (*types.Scop
 }
 
 func (r *Reconciler) ActivateScope(tx *Transaction, scope scopes.Scope, exposedScopes map[string]v1.ExposedScope) (*types.ScopeRegistration, error) {
-	exposedScope, err := scope.GetExposedScope(tx.Instance, exposedScopes)
+	exposedScope, err := scope.GetExposedScope(exposedScopes)
 	if err != nil {
 		return nil, err
 	}

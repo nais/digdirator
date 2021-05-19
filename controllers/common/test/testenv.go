@@ -27,7 +27,7 @@ const (
 	Timeout              = time.Second * 5
 	Interval             = time.Millisecond * 100
 	ClientID             = "some-random-id"
-	Scope                = "nav:test/scope"
+	Scope                = "nav:arbeid/test/scope"
 	ExposedConsumerOrgno = "111111111"
 	UnusedSecret         = "unused-secret"
 	AlreadyInUseSecret   = "in-use-by-pod"
