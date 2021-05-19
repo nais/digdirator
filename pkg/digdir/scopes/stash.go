@@ -7,12 +7,12 @@ import (
 	"github.com/nais/liberator/pkg/kubernetes"
 )
 
-type FilteredScopeContainer struct {
+type ScopeStash struct {
 	Current  []Scope
 	ToCreate []naisiov1.ExposedScope
 }
 
-func (s FilteredScopeContainer) FilterScopes(actualScopesRegistrations []types.ScopeRegistration, desired clients.Instance, exposedScopes map[string]naisiov1.ExposedScope) *FilteredScopeContainer {
+func (s ScopeStash) FilterScopes(actualScopesRegistrations []types.ScopeRegistration, desired clients.Instance, exposedScopes map[string]naisiov1.ExposedScope) *ScopeStash {
 	for _, exposedScope := range exposedScopes {
 		scopeDoNotExist := true
 		for _, actual := range actualScopesRegistrations {

@@ -16,9 +16,11 @@ func TestScopeFilteringWithNewScopeAndOneExistingOne(t *testing.T) {
 	currentObjectMeta := metaObject()
 	exposedScopes := createExposedScopes(currentScope)
 	currentMaskinportenClient := minimalMaskinportenWithScopeInternalExternalClient(currentObjectMeta, exposedScopes)
-	scopeContainer := FilteredScopeContainer{}
+	scopeContainer := ScopeStash{}
 
-	scopeRegistration := toScopeRegistration(*currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], currentScope)
+	scopeRegistration := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope])
+	scopeRegistration.Name = fmt.Sprintf("nav:%s", currentScope)
+	scopeRegistration.Active = true
 	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, "arbeid", currentScope), scopeRegistration.Description)
 	assert.Equal(t, kubernetes.ToScope("arbeid", currentScope), scopeRegistration.Subscope)
 	assert.True(t, scopeRegistration.Active)
@@ -41,29 +43,31 @@ func TestScopeFiltering(t *testing.T) {
 	currentObjectMeta := metaObject()
 	currentExternals := createExposedScopes(currentScope, currentScope2, noneExistingScope)
 	currentMaskinportenClient := minimalMaskinportenWithScopeInternalExternalClient(currentObjectMeta, currentExternals)
-	scopeContainer := FilteredScopeContainer{}
+	scopeContainer := ScopeStash{}
 	actualScopeRegistrations := make([]types.ScopeRegistration, 0)
 
 	// First case:
 	// with legacy scopes used on-prem
 	// description: cluster:namespace:app.scope/api
 	// subscope: scope/api
-	scoperegistration1 := toScopeRegistration(*currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], currentScope)
-	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, "arbeid", currentScope), scoperegistration1.Description)
-	assert.Equal(t, kubernetes.ToScope("arbeid", currentScope), scoperegistration1.Subscope)
+	scopeRegistration1 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope])
+	scopeRegistration1.Name = fmt.Sprintf("nav:%s", currentScope)
+	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, "arbeid", currentScope), scopeRegistration1.Description)
+	assert.Equal(t, kubernetes.ToScope("arbeid", currentScope), scopeRegistration1.Subscope)
 
 	// Secound case new format
 	// description: cluster:team:app.scope
 	// subscope: team:app.scope
-	scoperegistration2 := toScopeRegistration(*currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope2], currentScope2)
-	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, "arbeid", currentScope2), scoperegistration2.Description)
-	assert.Equal(t, "arbeid:test.scope2", scoperegistration2.Subscope)
+	scopeRegistration2 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope2])
+	scopeRegistration2.Name = fmt.Sprintf("nav:%s", currentScope2)
+	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, "arbeid", currentScope2), scopeRegistration2.Description)
+	assert.Equal(t, "arbeid:test.scope2", scopeRegistration2.Subscope)
 
 	// add scopes owned by current application
-	actualScopeRegistrations = append(actualScopeRegistrations, scoperegistration1)
-	actualScopeRegistrations = append(actualScopeRegistrations, scoperegistration2)
+	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration1)
+	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration2)
 
-	// FilteredScopeContainer not managed by digdirator should be ignored
+	// ScopeStash not managed by digdirator should be ignored
 	actualScopeRegistrations = append(actualScopeRegistrations, types.ScopeRegistration{
 		Description: "some: random description:",
 		Name:        "nav:not/owned",
@@ -131,23 +135,4 @@ func createExposedScopes(scopeNames ...string) []naisiov1.ExposedScope {
 		})
 	}
 	return exposed
-}
-
-func toScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope, scope string) types.ScopeRegistration {
-	return types.ScopeRegistration{
-		AllowedIntegrationType:     exposedScope.AllowedIntegrations,
-		AtMaxAge:                   exposedScope.AtAgeMax,
-		Active:                     true,
-		DelegationSource:           "",
-		Name:                       fmt.Sprintf("nav:%s", scope),
-		AuthorizationMaxLifetime:   clients.MaskinportenDefaultAuthorizationMaxLifetime,
-		Description:                kubernetes.UniformResourceScopeName(&in, exposedScope.Product, exposedScope.Name),
-		Prefix:                     clients.MaskinportenScopePrefix,
-		Subscope:                   kubernetes.ToScope(exposedScope.Product, exposedScope.Name),
-		TokenType:                  types.TokenTypeSelfContained,
-		Visibility:                 types.VisibilityPublic,
-		RequiresPseudonymousTokens: false,
-		RequiresUserAuthentication: false,
-		RequiresUserConsent:        false,
-	}
 }
