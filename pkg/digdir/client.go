@@ -47,13 +47,13 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 
 func (c Client) ClientExists(desired clients.Instance, ctx context.Context) (*types.ClientRegistration, error) {
 	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.Admin.BaseURL)
-	clients := make([]types.ClientRegistration, 0)
+	clientRegistrations := make([]types.ClientRegistration, 0)
 
-	if err := c.request(ctx, http.MethodGet, endpoint, nil, &clients); err != nil {
+	if err := c.request(ctx, http.MethodGet, endpoint, nil, &clientRegistrations); err != nil {
 		return nil, fmt.Errorf("fetching list of clients from Digdir: %w", err)
 	}
 
-	for _, actual := range clients {
+	for _, actual := range clientRegistrations {
 		if clientMatches(actual, desired) {
 			desired.GetStatus().SetClientID(actual.ClientID)
 			return &actual, nil
@@ -101,12 +101,12 @@ func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose
 
 func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) {
 	endpoint := fmt.Sprintf("%s/scopes/access/all", c.Config.DigDir.Admin.BaseURL)
-	scopes := make([]types.Scope, 0)
+	s := make([]types.Scope, 0)
 
-	if err := c.request(ctx, http.MethodGet, endpoint, nil, &scopes); err != nil {
+	if err := c.request(ctx, http.MethodGet, endpoint, nil, &s); err != nil {
 		return nil, fmt.Errorf("fetching scopes: %w", err)
 	}
-	return scopes, nil
+	return s, nil
 }
 
 func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget interface{}) error {
@@ -130,7 +130,10 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 	if err != nil {
 		return fmt.Errorf("performing %s request to %s: %w", method, endpoint, err)
 	}
-	defer resp.Body.Close()
+
+	if err := resp.Body.Close(); err != nil {
+		return err
+	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -165,10 +168,10 @@ func clientMatches(actual types.ClientRegistration, desired clients.Instance) bo
 	return descriptionMatches && integrationTypeMatches
 }
 
-func (c Client) GetFilteredScopes(desired clients.Instance, ctx context.Context, exposedScopes map[string]nais_io_v1.ExposedScope) (*scopes.FilteredScopeContainer, error) {
+func (c Client) GetFilteredScopes(desired clients.Instance, ctx context.Context, exposedScopes map[string]nais_io_v1.ExposedScope) (*scopes.ScopeStash, error) {
 	endpoint := fmt.Sprintf("%s/scopes?inactive=true", c.Config.DigDir.Admin.BaseURL)
 	actualScopesRegistrations := make([]types.ScopeRegistration, 0)
-	container := scopes.FilteredScopeContainer{}
+	container := scopes.ScopeStash{}
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &actualScopesRegistrations); err != nil {
 		return nil, fmt.Errorf("fetching list of scopes from Digdir: %w", err)

@@ -407,7 +407,7 @@ func (r *Reconciler) updateInstance(ctx context.Context, instance clients.Instan
 	return updateFunc(existing)
 }
 
-func scopesExist(tx Transaction, exposedScopes map[string]v1.ExposedScope) (*scopes.FilteredScopeContainer, error) {
+func scopesExist(tx Transaction, exposedScopes map[string]v1.ExposedScope) (*scopes.ScopeStash, error) {
 	scopeContainer, err := tx.DigdirClient.GetFilteredScopes(tx.Instance, tx.Ctx, exposedScopes)
 	if err != nil {
 		return nil, fmt.Errorf("getting filterted scopes: %w", err)
@@ -415,7 +415,7 @@ func scopesExist(tx Transaction, exposedScopes map[string]v1.ExposedScope) (*sco
 	return scopeContainer, nil
 }
 
-func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.FilteredScopeContainer, tx *Transaction, exposedScopes map[string]v1.ExposedScope) error {
+func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.ScopeStash, tx *Transaction, exposedScopes map[string]v1.ExposedScope) error {
 	if len(filteredScopes.Current) > 0 {
 		for _, scope := range filteredScopes.Current {
 			tx.Logger.Debug(fmt.Sprintf("Scope - %s already exists in Digdir...", scope.ToString()))
@@ -521,7 +521,7 @@ func (r *Reconciler) updateConsumers(tx *Transaction, scope scopes.Scope) ([]typ
 	}
 
 	for _, consumer := range consumerList {
-		if consumer.Active {
+		if consumer.ShouldBeAdded {
 			response, err := activateConsumer(*tx, scope.ToString(), consumer.Orgno)
 			if err != nil {
 				return nil, fmt.Errorf("adding to ACL: %w", err)
