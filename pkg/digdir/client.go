@@ -12,6 +12,7 @@ import (
 	"github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	"gopkg.in/square/go-jose.v2"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -131,9 +132,9 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 		return fmt.Errorf("performing %s request to %s: %w", method, endpoint, err)
 	}
 
-	if err := resp.Body.Close(); err != nil {
-		return err
-	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
