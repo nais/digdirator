@@ -219,12 +219,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 		exposedScopes := instance.GetExposedScopes()
 
 		if exposedScopes != nil {
-			filteredScopes, err := scopesExist(*tx, exposedScopes)
-			if err != nil {
-				return fmt.Errorf("checking if scopes exists: %w", err)
-			}
-
-			if err := r.handleFilteredScopes(filteredScopes, tx, exposedScopes); err != nil {
+			if err := r.handleFilteredScopes(tx, exposedScopes); err != nil {
 				return fmt.Errorf("handle filtered scopes: %w", err)
 			}
 		}
@@ -414,7 +409,13 @@ func scopesExist(tx Transaction, exposedScopes map[string]naisiov1.ExposedScope)
 	return scopeContainer, nil
 }
 
-func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.ScopeStash, tx *Transaction, exposedScopes map[string]naisiov1.ExposedScope) error {
+func (r *Reconciler) handleFilteredScopes(tx *Transaction, exposedScopes map[string]naisiov1.ExposedScope) error {
+	filteredScopes, err := scopesExist(*tx, exposedScopes)
+
+	if err != nil {
+		return fmt.Errorf("checking if scopes exists: %w", err)
+	}
+
 	if len(filteredScopes.Current) > 0 {
 		for _, scope := range filteredScopes.Current {
 			tx.Logger.Debug(fmt.Sprintf("Scope - %s already exists in Digdir...", scope.ToString()))
