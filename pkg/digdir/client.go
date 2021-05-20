@@ -254,7 +254,7 @@ func (c Client) AddToScopeACL(ctx context.Context, scope, consumerOrgno string) 
 	return registration, nil
 }
 
-func (c Client) InActivateConsumer(ctx context.Context, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
+func (c Client) DeactivateConsumer(ctx context.Context, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
 	endpoint := fmt.Sprintf("%s/scopes/access/%s?scope=%s", c.Config.DigDir.Admin.BaseURL, consumerOrgno, url.QueryEscape(scope))
 	registration := &types.ConsumerRegistration{}
 

@@ -450,11 +450,11 @@ func (r *Reconciler) handleFilteredScopes(tx *Transaction, exposedScopes map[str
 			// Should be deactivated
 			if !scope.IsActive(exposedScopes) {
 				// delete/inactivate scope
-				scopeRegistration, err := r.InActivateScope(tx, scope.ToString())
+				scopeRegistration, err := r.DeactivateScope(tx, scope.ToString())
 				if err != nil {
 					return err
 				}
-				msg := fmt.Sprintf("Scope been inactivated and no consumers is granted access... %s", scopeRegistration.Name)
+				msg := fmt.Sprintf("Scope been deactivated and no consumers is granted access... %s", scopeRegistration.Name)
 				tx.Logger.Warning(msg)
 				r.reportEvent(tx, corev1.EventTypeWarning, EventSkipped, msg)
 				metrics.IncScopesDeleted(tx.Instance)
@@ -534,7 +534,7 @@ func (r *Reconciler) updateConsumers(tx *Transaction, scope scopes.Scope) ([]typ
 			registrationResponse = append(registrationResponse, *response)
 			metrics.IncScopesConsumersCreatedOrUpdated(tx.Instance, consumer.State)
 		} else {
-			response, err := inActivateConsumer(*tx, scope.ToString(), consumer.Orgno)
+			response, err := DeactivateConsumer(*tx, scope.ToString(), consumer.Orgno)
 			if err != nil {
 				return nil, fmt.Errorf("delete from ACL: %w", err)
 			}
@@ -557,12 +557,12 @@ func activateConsumer(tx Transaction, scope, consumerOrgno string) (*types.Consu
 	return response, nil
 }
 
-func inActivateConsumer(tx Transaction, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
-	response, err := tx.DigdirClient.InActivateConsumer(tx.Ctx, scope, consumerOrgno)
+func DeactivateConsumer(tx Transaction, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
+	response, err := tx.DigdirClient.DeactivateConsumer(tx.Ctx, scope, consumerOrgno)
 	if err != nil {
 		return nil, err
 	}
-	tx.Logger.WithField("inActivateConsumer", response.Scope).Info("scope acl updated, deleted consumer(s)")
+	tx.Logger.WithField("DeactivateConsumer", response.Scope).Info("scope acl updated, deleted consumer(s)")
 	return response, nil
 }
 
@@ -584,7 +584,7 @@ func (r *Reconciler) CreateScope(tx *Transaction, instance *naisiov1.Maskinporte
 	return scope, nil
 }
 
-func (r *Reconciler) InActivateScope(tx *Transaction, scope string) (*types.ScopeRegistration, error) {
+func (r *Reconciler) DeactivateScope(tx *Transaction, scope string) (*types.ScopeRegistration, error) {
 	scopeRegistration, err := tx.DigdirClient.DeleteScope(tx.Ctx, scope)
 	if err != nil {
 		return nil, fmt.Errorf("deleting scope: %w", err)
