@@ -96,9 +96,9 @@ type Scope struct {
 type Visibility string
 
 const (
-	VisibilityInternal Visibility = "INTERNAL"
-	VisibilityPrivate  Visibility = "PRIVATE"
-	VisibilityPublic   Visibility = "PUBLIC"
+	ScopeVisibilityInternal Visibility = "INTERNAL"
+	ScopeVisibilityPrivate  Visibility = "PRIVATE"
+	ScopeVisibilityPublic   Visibility = "PUBLIC"
 )
 
 type TokenType string

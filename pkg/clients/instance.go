@@ -212,7 +212,7 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 		Prefix:                     MaskinportenScopePrefix,
 		Subscope:                   kubernetes.ToScope(exposedScope.Product, exposedScope.Name),
 		TokenType:                  types.TokenTypeSelfContained,
-		Visibility:                 types.VisibilityPublic,
+		Visibility:                 types.ScopeVisibilityPublic,
 		RequiresPseudonymousTokens: false,
 		RequiresUserAuthentication: false,
 		RequiresUserConsent:        false,
