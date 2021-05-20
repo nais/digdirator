@@ -89,6 +89,7 @@ func GetSecretJwkKey(instance Instance) string {
 
 func IsUpToDate(instance Instance) (bool, error) {
 	newHash, err := instance.Hash()
+	println(newHash)
 	if err != nil {
 		return false, fmt.Errorf("calculating application hash: %w", err)
 	}

@@ -426,6 +426,7 @@ func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.ScopeStash, tx 
 					return err
 				}
 				r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedScopeInDigDir, fmt.Sprintf("Scope been updated.. %s", scopeRegistration.Name))
+				metrics.IncScopesUpdated(tx.Instance)
 			}
 
 			// should be activated
@@ -436,6 +437,7 @@ func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.ScopeStash, tx 
 					return err
 				}
 				r.reportEvent(tx, corev1.EventTypeNormal, EventActivatedScopeInDigDir, fmt.Sprintf("Scope been activated.. %s", scopeRegistration.Name))
+				metrics.IncScopesReactivated(tx.Instance)
 			}
 
 			// Update Consumers
@@ -454,6 +456,7 @@ func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.ScopeStash, tx 
 				msg := fmt.Sprintf("Scope been inactivated and no consumers is granted access... %s", scopeRegistration.Name)
 				tx.Logger.Warning(msg)
 				r.reportEvent(tx, corev1.EventTypeWarning, EventSkipped, msg)
+				metrics.IncScopesDeleted(tx.Instance)
 			}
 		}
 	}
@@ -468,6 +471,7 @@ func (r *Reconciler) handleFilteredScopes(filteredScopes *scopes.ScopeStash, tx 
 				return err
 			}
 			r.reportEvent(tx, corev1.EventTypeNormal, EventCreatedScopeInDigDir, fmt.Sprintf("Scope been created.. %s", scope.Name))
+			metrics.IncScopesCreated(tx.Instance)
 			_, err = r.updateConsumers(tx, scopes.CurrentScopeInfo(*scope, newScope))
 			if err != nil {
 				return fmt.Errorf("adding new consumers to acl: %w", err)
@@ -527,12 +531,14 @@ func (r *Reconciler) updateConsumers(tx *Transaction, scope scopes.Scope) ([]typ
 			}
 			consumerStatus = append(consumerStatus, consumer.Orgno)
 			registrationResponse = append(registrationResponse, *response)
+			metrics.IncScopesConsumersCreatedOrUpdated(tx.Instance, consumer.State)
 		} else {
 			response, err := inActivateConsumer(*tx, scope.ToString(), consumer.Orgno)
 			if err != nil {
 				return nil, fmt.Errorf("delete from ACL: %w", err)
 			}
 			registrationResponse = append(registrationResponse, *response)
+			metrics.IncScopesConsumersDeleted(tx.Instance)
 		}
 	}
 
