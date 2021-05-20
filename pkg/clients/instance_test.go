@@ -58,7 +58,6 @@ func TestIsUpToDate(t *testing.T) {
 	})
 
 	t.Run("Minimal MaskinportenClient should be up-to-date", func(t *testing.T) {
-		println("here1")
 		actual, err := clients.IsUpToDate(minimalMaskinportenClient())
 		assert.NoError(t, err)
 		assert.True(t, actual)
@@ -73,7 +72,6 @@ func TestIsUpToDate(t *testing.T) {
 	})
 
 	t.Run("Minimal MaskinportenClientWithExternalInternal should be up-to-date", func(t *testing.T) {
-		println("here2")
 		actual, err := clients.IsUpToDate(minimalMaskinportenWithScopeInternalExposedClient())
 		assert.NoError(t, err)
 		assert.True(t, actual)
