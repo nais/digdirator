@@ -54,7 +54,7 @@ func addConsumerStatus(found, swapped bool, consumerOrgno string, consumerStatus
 func (s Scope) toConsumers() map[string]Consumer {
 	consumers := make(map[string]Consumer)
 	for _, consumer := range s.CurrentScope.Consumers {
-		consumers[consumer.Orgno] = CreateConsumer(false, types.StateDenied, consumer.Orgno)
+		consumers[consumer.Orgno] = CreateConsumer(false, types.ScopeStateDenied, consumer.Orgno)
 	}
 	return consumers
 }

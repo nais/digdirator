@@ -131,9 +131,9 @@ type ScopeRegistration struct {
 type State string
 
 const (
-	StateRequested State = "REQUESTED"
-	StateApproved  State = "APPROVED"
-	StateDenied    State = "DENIED"
+	ScopeStateRequested State = "REQUESTED"
+	ScopeStateApproved  State = "APPROVED"
+	ScopeStateDenied    State = "DENIED"
 )
 
 type ConsumerRegistration struct {

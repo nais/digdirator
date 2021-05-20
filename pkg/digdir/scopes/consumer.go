@@ -36,19 +36,19 @@ func (c Consumer) addOrUpdate(found, swapped bool, consumerList []Consumer) []Co
 		// Compare exposedConsumer against digdir acl
 		if !swapped {
 			c.ShouldBeAdded = true
-			c.State = types.StateApproved
+			c.State = types.ScopeStateApproved
 			consumerList = append(consumerList, c)
 		}
 		// Keep existing, ignore consumers in denied state
-		if swapped && c.State != types.StateDenied {
+		if swapped && c.State != types.ScopeStateDenied {
 			consumerList = append(consumerList, c)
 		}
 	}
 
 	// Consumer found, check digidir response acl against consumer list to re-activate denied consumer
-	if found && swapped && c.State == types.StateDenied {
+	if found && swapped && c.State == types.ScopeStateDenied {
 		c.ShouldBeAdded = true
-		// c.State = types.StateApproved
+		// c.State = types.ScopeStateApproved
 		consumerList = append(consumerList, c)
 	}
 	return consumerList

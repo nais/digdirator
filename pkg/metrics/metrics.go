@@ -323,7 +323,7 @@ func IncScopesReactivated(instance clients.Instance) {
 func IncScopesConsumersCreatedOrUpdated(instance clients.Instance, state types.State) {
 	switch instance.(type) {
 	case *naisiov1.MaskinportenClient:
-		if state == types.StateDenied {
+		if state == types.ScopeStateDenied {
 			incWithNamespaceLabel(MaskinportenScopesConsumersUpdatedCount, instance.GetNamespace())
 		} else {
 			incWithNamespaceLabel(MaskinportenScopesConsumersCreatedCount, instance.GetNamespace())

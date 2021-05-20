@@ -49,7 +49,7 @@ func TestConsumerFilteringWithAConsumerToRemove(t *testing.T) {
 	consumerStatus, result := scope.FilterConsumers(&consumerRegistrations)
 
 	assert.Equal(t, 1, len(result))
-	assert.Equal(t, CreateConsumer(false, types.StateApproved, expectedConsumerToRemove), result[0])
+	assert.Equal(t, CreateConsumer(false, types.ScopeStateApproved, expectedConsumerToRemove), result[0])
 	assert.Equal(t, 1, len(consumerStatus))
 	assert.Equal(t, existingConsumer, consumerStatus[0])
 }
@@ -69,7 +69,7 @@ func TestConsumerFilteringWithAConsumerToAdd(t *testing.T) {
 	consumerStatus, result := scope.FilterConsumers(&consumerRegistrations)
 
 	assert.Equal(t, 1, len(result))
-	assert.Equal(t, CreateConsumer(true, types.StateApproved, expectedConsumerToAdd), result[0])
+	assert.Equal(t, CreateConsumer(true, types.ScopeStateApproved, expectedConsumerToAdd), result[0])
 	assert.Equal(t, 1, len(consumerStatus))
 	assert.Equal(t, existingConsumer, consumerStatus[0])
 	// consumer added recently get added to consumerStatus list after remote/digdir is updated with new consumer in acl
@@ -134,9 +134,9 @@ func TestConsumerFilteringWithAConsumerToAddAndToRemoveToActivateAndExisting(t *
 	assert.Equal(t, 3, len(result))
 
 	validConsumers := map[string]Consumer{
-		expectedConsumerToRemove:            CreateConsumer(false, types.StateApproved, expectedConsumerToRemove),
-		expectedConsumerToAdd:               CreateConsumer(true, types.StateApproved, expectedConsumerToAdd),
-		consumerInDeniedStateActivatedAgain: CreateConsumer(true, types.StateApproved, consumerInDeniedStateActivatedAgain),
+		expectedConsumerToRemove:            CreateConsumer(false, types.ScopeStateApproved, expectedConsumerToRemove),
+		expectedConsumerToAdd:               CreateConsumer(true, types.ScopeStateApproved, expectedConsumerToAdd),
+		consumerInDeniedStateActivatedAgain: CreateConsumer(true, types.ScopeStateApproved, consumerInDeniedStateActivatedAgain),
 	}
 
 	for _, v := range result {
