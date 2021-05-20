@@ -105,7 +105,7 @@ type TokenType string
 
 const (
 	TokenTypeSelfContained TokenType = "SELF_CONTAINED"
-	VisibilityOpaque       TokenType = "OPAQUE"
+	TokenTypeOpaque       TokenType = "OPAQUE"
 )
 
 type ScopeRegistration struct {
