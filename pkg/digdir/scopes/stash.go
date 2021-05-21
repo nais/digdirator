@@ -16,11 +16,10 @@ func (s ScopeStash) FilterScopes(actualScopesRegistrations []types.ScopeRegistra
 	for _, exposedScope := range exposedScopes {
 		scopeDoNotExist := true
 		for _, actual := range actualScopesRegistrations {
-			if scopeExistsInList(exposedScope.Product, exposedScope.Name, actual.Subscope) {
+			if scopeExists(exposedScope.Product, exposedScope.Name, actual.Subscope) {
 				scopeDoNotExist = false
-				// cluster:namespace:appnavn.scope.read
-				if scopeMatches(actual, desired, exposedScope) {
-					// match is found for already registered scope for team:namespace
+
+				if scopeIsManaged(actual, desired, exposedScope) {
 					s.Current = append(s.Current, CurrentScopeInfo(actual, exposedScope))
 				}
 				break
@@ -34,10 +33,10 @@ func (s ScopeStash) FilterScopes(actualScopesRegistrations []types.ScopeRegistra
 	return &s
 }
 
-func scopeExistsInList(exposedScopeProduct, exposedScopeName, actualScopeName string) bool {
+func scopeExists(exposedScopeProduct, exposedScopeName, actualScopeName string) bool {
 	return kubernetes.ToScope(exposedScopeProduct, exposedScopeName) == actualScopeName
 }
 
-func scopeMatches(actual types.ScopeRegistration, desired clients.Instance, scope naisiov1.ExposedScope) bool {
+func scopeIsManaged(actual types.ScopeRegistration, desired clients.Instance, scope naisiov1.ExposedScope) bool {
 	return actual.Description == kubernetes.UniformResourceScopeName(desired, scope.Product, scope.Name)
 }

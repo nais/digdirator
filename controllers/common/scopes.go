@@ -57,7 +57,7 @@ func (s *scope) process(exposedScopes map[string]naisiov1.ExposedScope) error {
 
 			if !scope.IsActive() {
 				// delete/deactivate scope
-				scopeRegistration, err := s.deactivateScope(scope.ToString())
+				scopeRegistration, err := s.deactivate(scope.ToString())
 				if err != nil {
 					return err
 				}
@@ -186,7 +186,7 @@ func (s *scope) create(newScope naisiov1.ExposedScope) (*types.ScopeRegistration
 	return registrationResponse, nil
 }
 
-func (s *scope) deactivateScope(scope string) (*types.ScopeRegistration, error) {
+func (s *scope) deactivate(scope string) (*types.ScopeRegistration, error) {
 	scopeRegistration, err := s.Tx.DigdirClient.DeleteScope(s.Tx.Ctx, scope)
 	if err != nil {
 		return nil, fmt.Errorf("deleting scope: %w", err)
