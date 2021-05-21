@@ -158,57 +158,41 @@ func TestConsumerFilteringWithAConsumerToAddAndToRemoveToActivateAndExisting(t *
 
 func TestDesiredExposedScopeHasChanges(t *testing.T) {
 
-	atMaxAge := 44
 	maskinportenIntegration := []string{clients.MaskinportenDefaultAllowedIntegrationType}
 	product := "arbeid"
-
-	// Desired changes
-	exposedScopes := map[string]naisiov1.ExposedScope{
-		"test/scope": {
-			Name:                "test/scope",
-			AtAgeMax:            atMaxAge,
-			Product:             product,
-			AllowedIntegrations: maskinportenIntegration,
-			Consumers:           []naisiov1.ExposedScopeConsumer{},
-		},
-	}
 
 	// Actual scope in digdir
 	scopeRegistrations := types.ScopeRegistration{
 		Name:                   fmt.Sprintf("nav:%s/test/scope", product),
 		Subscope:               fmt.Sprintf("%s/test/scope", product),
 		Prefix:                 "nav:",
-		AtMaxAge:               66,
+		AtMaxAge:               30,
 		AllowedIntegrationType: maskinportenIntegration,
 	}
 
 	exposedScope := naisiov1.ExposedScope{
-		Enabled:             true,
-		Name:                scopeRegistrations.Subscope,
-		AtAgeMax:            30,
-		Product:             product,
-		AllowedIntegrations: []string{"maskinporten"},
-		Consumers:           []naisiov1.ExposedScopeConsumer{},
+		Enabled:   true,
+		Name:      scopeRegistrations.Subscope,
+		Product:   product,
+		Consumers: []naisiov1.ExposedScopeConsumer{},
 	}
 
-	// AtAgeMax has changes
+	// No changes - default values is configured for costume val
 	scope := CurrentScopeInfo(scopeRegistrations, exposedScope)
-	result := scope.HasChanged(exposedScopes)
+	result := scope.HasChanged()
+	assert.False(t, result)
+
+	// AtAgeMax has changes
+	exposedScope.AtMaxAge = 33
+	scope = CurrentScopeInfo(scopeRegistrations, exposedScope)
+	result = scope.HasChanged()
 	assert.True(t, result)
 
 	// AllowedIntegrationType has changes
-	scopeRegistrations.AtMaxAge = atMaxAge
 	scopeRegistrations.AllowedIntegrationType = []string{"krr"}
 	scope = CurrentScopeInfo(scopeRegistrations, exposedScope)
-	result = scope.HasChanged(exposedScopes)
+	result = scope.HasChanged()
 	assert.True(t, result)
-
-	// No Changes
-	scopeRegistrations.AtMaxAge = atMaxAge
-	scopeRegistrations.AllowedIntegrationType = maskinportenIntegration
-	scope = CurrentScopeInfo(scopeRegistrations, exposedScope)
-	result = scope.HasChanged(exposedScopes)
-	assert.False(t, result)
 }
 
 func createScopeRegistrations(name, subscope string) []types.ScopeRegistration {
@@ -238,7 +222,7 @@ func createExposedScope(exposedConsumers []naisiov1.ExposedScopeConsumer, subsco
 		exposed = append(exposed, naisiov1.ExposedScope{
 			Enabled:             true,
 			Name:                s,
-			AtAgeMax:            30,
+			AtMaxAge:            30,
 			AllowedIntegrations: []string{"maskinporten"},
 			Consumers:           exposedConsumers,
 		})

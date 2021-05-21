@@ -2,9 +2,9 @@ package scopes
 
 import (
 	"fmt"
+	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"github.com/nais/liberator/pkg/kubernetes"
 )
 
 const NumberOfPermutation = 2
@@ -71,41 +71,25 @@ func (s Scope) ToString() string {
 	return fmt.Sprintf("%s:%s", s.ScopeRegistration.Prefix, s.ScopeRegistration.Subscope)
 }
 
-func (s Scope) HasChanged(desired map[string]naisiov1.ExposedScope) bool {
-	for d, scope := range desired {
-		if kubernetes.ToScope(scope.Product, d) == s.ScopeRegistration.Subscope {
-			switch {
-			case scope.AtAgeMax != 0 && s.ScopeRegistration.AtMaxAge != scope.AtAgeMax:
-				return true
-			case !equals(s.ScopeRegistration.AllowedIntegrationType, scope.AllowedIntegrations):
-				return true
-			}
-		}
+func (s Scope) HasChanged() bool {
+	s.CurrentScope = clients.SetDefaultScopeValues(s.CurrentScope)
+	switch {
+	case s.ScopeRegistration.AtMaxAge != s.CurrentScope.AtMaxAge:
+		return true
+	case !equals(s.ScopeRegistration.AllowedIntegrationType, s.CurrentScope.AllowedIntegrations):
+		return true
 	}
 	return false
 }
 
 // IsActive exposed scope should be active or not
-func (s Scope) IsActive(desired map[string]naisiov1.ExposedScope) bool {
-	scope, err := s.GetExposedScope(desired)
-	if err == nil {
-		return scope.Enabled
-	}
-	return false
-}
-
-func (s Scope) GetExposedScope(desired map[string]naisiov1.ExposedScope) (naisiov1.ExposedScope, error) {
-	for d, scope := range desired {
-		if kubernetes.ToScope(scope.Product, d) == s.ScopeRegistration.Subscope {
-			return scope, nil
-		}
-	}
-	return naisiov1.ExposedScope{}, fmt.Errorf("could not find scope")
+func (s Scope) IsActive() bool {
+	return s.CurrentScope.Enabled
 }
 
 // CanBeActivated Existing and inactive scope need to be activated again
-func (s Scope) CanBeActivated(desired map[string]naisiov1.ExposedScope) bool {
-	return s.IsActive(desired) && !s.ScopeRegistration.Active
+func (s Scope) CanBeActivated() bool {
+	return s.IsActive() && !s.ScopeRegistration.Active
 }
 
 func equals(actual, desired []string) bool {

@@ -196,15 +196,10 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient) types.Clie
 }
 
 func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope) types.ScopeRegistration {
-	if exposedScope.AllowedIntegrations == nil {
-		exposedScope.AllowedIntegrations = []string{MaskinportenDefaultAllowedIntegrationType}
-	}
-	if exposedScope.AtAgeMax == 0 {
-		exposedScope.AtAgeMax = MaskinportenDefaultAtAgeMax
-	}
+	exposedScope = SetDefaultScopeValues(exposedScope)
 	return types.ScopeRegistration{
 		AllowedIntegrationType:     exposedScope.AllowedIntegrations,
-		AtMaxAge:                   exposedScope.AtAgeMax,
+		AtMaxAge:                   exposedScope.AtMaxAge,
 		DelegationSource:           "",
 		Name:                       "",
 		AuthorizationMaxLifetime:   MaskinportenDefaultAuthorizationMaxLifetime,
@@ -217,4 +212,14 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 		RequiresUserAuthentication: false,
 		RequiresUserConsent:        false,
 	}
+}
+
+func SetDefaultScopeValues(exposedScope naisiov1.ExposedScope) naisiov1.ExposedScope {
+	if exposedScope.AllowedIntegrations == nil {
+		exposedScope.AllowedIntegrations = []string{MaskinportenDefaultAllowedIntegrationType}
+	}
+	if exposedScope.AtMaxAge == 0 {
+		exposedScope.AtMaxAge = MaskinportenDefaultAtAgeMax
+	}
+	return exposedScope
 }

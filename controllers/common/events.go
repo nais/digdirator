@@ -14,6 +14,7 @@ const (
 	EventSkipped                    = "Skipped"
 	EventRetrying                   = "Retrying"
 	EventActivatedScopeInDigDir     = "ActivatedScopeInDigDir"
+	EventDeactivatedScopeInDigDir   = "DeactivatedScopeInDigDir"
 	EventCreatedScopeInDigDir       = "CreatedScopeInDigDir"
 	EventUpdatedScopeInDigDir       = "UpdatedScopeInDigDir"
 	EventUpdatedACLForScopeInDigDir = "UpdatedACLForScopeInDigDir"
