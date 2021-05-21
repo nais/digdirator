@@ -38,6 +38,33 @@ gcloud auth login --update-adc
 
 ### Configuration
 
+To simulate shared and team namespace
+
+```shell script
+kubectl apply -f namespace.yml
+```
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    shared: "true"
+  managedFields:
+    - apiVersion: v1
+      manager: kube-apiserver
+      operation: Update
+  name: default
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  managedFields:
+    - apiVersion: v1
+      manager: kube-apiserver
+      operation: Update
+  name: test
+```
+
 Set up the required environment variables as per the [config](./pkg/config/config.go) 
 
 ```yaml
