@@ -220,7 +220,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 
 		if exposedScopes != nil {
 			if err := scopes.process(exposedScopes); err != nil {
-				return fmt.Errorf("processing filtered scopes: %w", err)
+				return fmt.Errorf("processing scopes: %w", err)
 			}
 		}
 	}

@@ -210,6 +210,13 @@ var AllMetrics = []prometheus.Collector{
 	MaskinportenExposedScopesTotal,
 	MaskinportenUsedScopesTotal,
 	MaskinportenScopeConsumersTotal,
+	MaskinportenScopesCreatedCount,
+	MaskinportenScopesUpdatedCount,
+	MaskinportenScopesDeletedCount,
+	MaskinportenScopesReactivatedCount,
+	MaskinportenScopesConsumersCreatedCount,
+	MaskinportenScopesConsumersUpdatedCount,
+	MaskinportenScopesConsumersDeletedCount,
 }
 
 var AllCounters = []*prometheus.CounterVec{
