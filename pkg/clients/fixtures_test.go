@@ -42,7 +42,7 @@ func minimalMaskinportenClient() *naisiov1.MaskinportenClient {
 			},
 		},
 		Status: naisiov1.DigdiratorStatus{
-			SynchronizationHash:  "94d732f6c1ff0b13",
+			SynchronizationHash:  "9829660b73e52236",
 			SynchronizationState: common.EventSynchronized,
 		},
 	}
@@ -66,7 +66,7 @@ func minimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenC
 					{
 						Name:                "my/scope",
 						Enabled:             true,
-						AtAgeMax:            30,
+						AtMaxAge:            30,
 						Product:             "arbeid",
 						AllowedIntegrations: []string{"maskinporten"},
 						Consumers: []naisiov1.ExposedScopeConsumer{
@@ -79,7 +79,7 @@ func minimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenC
 			},
 		},
 		Status: naisiov1.DigdiratorStatus{
-			SynchronizationHash:  "76cd5f86dc47f6cf",
+			SynchronizationHash:  "18a7e807ed742be3",
 			SynchronizationState: common.EventSynchronized,
 		},
 	}
