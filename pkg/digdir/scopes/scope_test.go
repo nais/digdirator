@@ -183,7 +183,8 @@ func TestDesiredExposedScopeHasChanges(t *testing.T) {
 	assert.False(t, result)
 
 	// AtAgeMax has changes
-	exposedScope.AtMaxAge = 33
+	atAgeMax := 33
+	exposedScope.AtMaxAge = &atAgeMax
 	scope = CurrentScopeInfo(scopeRegistrations, exposedScope)
 	result = scope.HasChanged()
 	assert.True(t, result)
@@ -218,11 +219,12 @@ func createExposedConsumers(consumers ...string) []naisiov1.ExposedScopeConsumer
 
 func createExposedScope(exposedConsumers []naisiov1.ExposedScopeConsumer, subscopes ...string) []naisiov1.ExposedScope {
 	exposed := make([]naisiov1.ExposedScope, 0)
+	atAgeMax := 30
 	for _, s := range subscopes {
 		exposed = append(exposed, naisiov1.ExposedScope{
 			Enabled:             true,
 			Name:                s,
-			AtMaxAge:            30,
+			AtMaxAge:            &atAgeMax,
 			AllowedIntegrations: []string{"maskinporten"},
 			Consumers:           exposedConsumers,
 		})

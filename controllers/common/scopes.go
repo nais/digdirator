@@ -110,7 +110,6 @@ func (s *scope) updateConsumers(scope scopes.Scope) ([]types.ConsumerRegistratio
 	registrationResponse := make([]types.ConsumerRegistration, 0)
 
 	if len(consumerList) == 0 {
-		s.Tx.Instance.GetStatus().SetApplicationScopeConsumer(scope.ScopeRegistration.Subscope, consumerStatus)
 		s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, fmt.Sprintf("ACL was up to date for: %s", scope.ToString()))
 		return nil, nil
 	}
@@ -135,7 +134,6 @@ func (s *scope) updateConsumers(scope scopes.Scope) ([]types.ConsumerRegistratio
 	}
 
 	s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, fmt.Sprintf("Scope ACL been updated.. %s", scope.ToString()))
-	s.Tx.Instance.GetStatus().SetApplicationScopeConsumer(scope.ScopeRegistration.Subscope, consumerStatus)
 	return registrationResponse, nil
 }
 
@@ -144,8 +142,7 @@ func (s *scope) activateConsumer(scope, consumerOrgno string) (*types.ConsumerRe
 	if err != nil {
 		return nil, err
 	}
-	msg := "scope acl updated, added consumer(s)"
-	s.Tx.Logger.Info(msg)
+	msg := fmt.Sprintf("scope acl updated, added consumer: %s", consumerOrgno)
 	s.Tx.Logger.WithField("activateConsumer", response.Scope).Info(msg)
 	return response, nil
 }
@@ -155,7 +152,7 @@ func (s *scope) deactivateConsumer(scope, consumerOrgno string) (*types.Consumer
 	if err != nil {
 		return nil, err
 	}
-	msg := "scope acl updated, deleted consumer(s)"
+	msg := fmt.Sprintf("scope acl updated, deactivated consumer: %s", consumerOrgno)
 	s.Tx.Logger.WithField("scope", response.Scope).Info(msg)
 	return response, nil
 }
@@ -201,4 +198,22 @@ func (s *scope) activate(scope scopes.Scope) (*types.ScopeRegistration, error) {
 		return nil, fmt.Errorf("acrivating scope: %w", err)
 	}
 	return scopeRegistration, nil
+}
+
+func (s *scope) Finalize(exposedScopes map[string]naisiov1.ExposedScope) error {
+	filteredScopes, err := s.Tx.DigdirClient.GetFilteredScopes(s.Tx.Instance, s.Tx.Ctx, exposedScopes)
+	if err != nil {
+		return err
+	}
+
+	if filteredScopes != nil && len(filteredScopes.Current) > 0 {
+		for _, scope := range filteredScopes.Current {
+			s.Tx.Logger.Info(fmt.Sprintf("delete annotation set, deleting scope: %s from Maskinporten... ", scope.ToString()))
+			if _, err := s.Tx.DigdirClient.DeleteScope(s.Tx.Ctx, scope.ToString()); err != nil {
+				return fmt.Errorf("inactivating scope in Maskinporten: %w", err)
+			}
+			s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventDeactivatedScopeInDigDir, "Scope inactivated in Digdir")
+		}
+	}
+	return nil
 }

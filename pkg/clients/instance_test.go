@@ -1,7 +1,6 @@
 package clients_test
 
 import (
-	"fmt"
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/secrets"
@@ -45,51 +44,45 @@ func TestGetSecretJwkKey(t *testing.T) {
 
 func TestIsUpToDate(t *testing.T) {
 	t.Run("Minimal IDPortenClient should be up-to-date", func(t *testing.T) {
-		expected := minimalIDPortenClient().GetStatus().GetSynchronizationHash()
-		actual, err := calculateHash(minimalIDPortenClient())
+		actual, err := clients.IsUpToDate(minimalIDPortenClient())
 		assert.NoError(t, err)
-		assert.Equal(t, expected, actual)
+		assert.True(t, actual)
 	})
 
 	t.Run("IDPortenClient with changed value should not be up-to-date", func(t *testing.T) {
 		client := minimalIDPortenClient()
-		expected := client.GetStatus().GetSynchronizationHash()
 		client.Spec.ClientURI = "changed"
-		actual, err := calculateHash(client)
+		actual, err := clients.IsUpToDate(client)
 		assert.NoError(t, err)
-		assert.NotEqual(t, expected, actual)
+		assert.False(t, actual)
 	})
 
 	t.Run("Minimal MaskinportenClient should be up-to-date", func(t *testing.T) {
-		expected := minimalMaskinportenClient().GetStatus().GetSynchronizationHash()
-		actual, err := calculateHash(minimalMaskinportenClient())
+		actual, err := clients.IsUpToDate(minimalMaskinportenClient())
 		assert.NoError(t, err)
-		assert.Equal(t, expected, actual)
+		assert.True(t, actual)
 	})
 
 	t.Run("MaskinportenClient with changed value should not be up-to-date", func(t *testing.T) {
-		expected := minimalMaskinportenClient().GetStatus().GetSynchronizationHash()
 		client := minimalMaskinportenClient()
 		client.Spec.SecretName = "changed"
-		actual, err := calculateHash(client)
+		actual, err := clients.IsUpToDate(client)
 		assert.NoError(t, err)
-		assert.NotEqual(t, expected, actual)
+		assert.False(t, actual)
 	})
 
 	t.Run("Minimal MaskinportenClientWithExternalInternal should be up-to-date", func(t *testing.T) {
-		expected := minimalMaskinportenWithScopeInternalExposedClient().GetStatus().GetSynchronizationHash()
-		actual, err := calculateHash(minimalMaskinportenWithScopeInternalExposedClient())
+		actual, err := clients.IsUpToDate(minimalMaskinportenWithScopeInternalExposedClient())
 		assert.NoError(t, err)
-		assert.Equal(t, expected, actual)
+		assert.True(t, actual)
 	})
 
 	t.Run("MaskinportenClientWithExternalInternal with changed value should not be up-to-date", func(t *testing.T) {
 		client := minimalMaskinportenWithScopeInternalExposedClient()
-		expected := client.GetStatus().GetSynchronizationHash()
 		client.Spec.SecretName = "changed"
-		actual, err := calculateHash(client)
+		actual, err := clients.IsUpToDate(client)
 		assert.NoError(t, err)
-		assert.NotEqual(t, expected, actual)
+		assert.False(t, actual)
 	})
 }
 
@@ -171,12 +164,4 @@ func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 	assert.Len(t, registration.Scopes, 1)
 
 	assert.Equal(t, types.TokenEndpointAuthMethodPrivateKeyJwt, registration.TokenEndpointAuthMethod)
-}
-
-func calculateHash(instance clients.Instance) (string, error) {
-	newHash, err := instance.Hash()
-	if err != nil {
-		return "", fmt.Errorf("calculating application hash: %w", err)
-	}
-	return newHash, nil
 }

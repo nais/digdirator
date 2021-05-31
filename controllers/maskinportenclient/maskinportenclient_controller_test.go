@@ -173,7 +173,7 @@ func TestMaskinportenControllerWithNewExternalScope(t *testing.T) {
 		UnusedSecretName: "scope-unused-secret",
 	}
 
-	existingScope := "arbeid/test/scope"
+	existingScope := "test/scope"
 
 	// set up preconditions for cluster
 	clusterFixtures := fixtures.New(cli, cfg).MinimalScopesConfig("test/scope").WithNamespace()
@@ -200,14 +200,14 @@ func TestMaskinportenControllerWithNewExternalScope(t *testing.T) {
 	err := cli.Update(context.Background(), instance)
 	assert.NoError(t, err)
 
-	applicationScope := instance.Status.GetApplicationScopes()
+	applicationScopes := instance.GetExposedScopes()
 	assert.Equal(t, test.ClientID, instance.Status.ClientID, "client ID should still match")
-	assert.Equal(t, 1, len(instance.Status.GetApplicationScopes()), "Scope list should contain actual 1 scope")
-	assert.NotEmpty(t, applicationScope[existingScope], "Scope contain orgnumbers")
-	assert.Equal(t, 2, len(applicationScope[existingScope]), " OrganizationNumbers should contain 2 active consumers")
+	assert.Equal(t, 1, len(applicationScopes), "Scope list should contain actual 1 scope")
+	assert.NotEmpty(t, applicationScopes[existingScope], "Scope contain orgnumbers")
+	assert.Equal(t, 2, len(applicationScopes[existingScope].Consumers), " OrganizationNumbers should contain 2 active consumers")
 	validOrgnos := map[string]string{test.ExposedConsumerOrgno: test.ExposedConsumerOrgno, "101010101": "101010101"}
-	for _, v := range applicationScope[existingScope] {
-		if _, ok := validOrgnos[v]; ok {
+	for _, v := range applicationScopes[existingScope].Consumers {
+		if _, ok := validOrgnos[v.Orgno]; ok {
 			assert.True(t, ok, "Map should contain match")
 		}
 	}
