@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/metrics"
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	finalizer2 "github.com/nais/liberator/pkg/finalizer"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -61,6 +62,18 @@ func (f finalizer) Process() (ctrl.Result, error) {
 			return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
 		}
 		f.reportEvent(f.Transaction, corev1.EventTypeNormal, EventDeletedInDigDir, "Client deleted in Digdir")
+	}
+
+	switch instance := f.Instance.(type) {
+	case *naisiov1.MaskinportenClient:
+		exposedScopes := instance.GetExposedScopes()
+		scopes := f.Reconciler.scopes(f.Transaction)
+
+		if exposedScopes != nil && shouldDelete {
+			if err := scopes.Finalize(exposedScopes); err != nil {
+				return ctrl.Result{}, fmt.Errorf("deleting scope from Maskinporten: %w", err)
+			}
+		}
 	}
 
 	err = f.updateInstance(f.Ctx, f.Instance, func(existing clients.Instance) error {
