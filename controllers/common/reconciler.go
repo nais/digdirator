@@ -175,6 +175,19 @@ func (r *Reconciler) inSharedNamespace(tx *Transaction) (bool, error) {
 }
 
 func (r *Reconciler) process(tx *Transaction) error {
+
+	switch instance := tx.Instance.(type) {
+	case *naisiov1.MaskinportenClient:
+		exposedScopes := instance.GetExposedScopes()
+		scopes := r.scopes(tx)
+
+		if exposedScopes != nil {
+			if err := scopes.process(exposedScopes); err != nil {
+				return fmt.Errorf("processing scopes: %w", err)
+			}
+		}
+	}
+
 	instanceClient, err := tx.DigdirClient.ClientExists(tx.Instance, tx.Ctx)
 	if err != nil {
 		return fmt.Errorf("checking if client exists: %w", err)
@@ -211,18 +224,6 @@ func (r *Reconciler) process(tx *Transaction) error {
 
 	if len(tx.Instance.GetStatus().GetClientID()) == 0 {
 		tx.Instance.GetStatus().SetClientID(instanceClient.ClientID)
-	}
-
-	switch instance := tx.Instance.(type) {
-	case *naisiov1.MaskinportenClient:
-		exposedScopes := instance.GetExposedScopes()
-		scopes := r.scopes(tx)
-
-		if exposedScopes != nil {
-			if err := scopes.process(exposedScopes); err != nil {
-				return fmt.Errorf("processing scopes: %w", err)
-			}
-		}
 	}
 
 	if !clients.ShouldUpdateSecrets(tx.Instance) {
