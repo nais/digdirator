@@ -102,7 +102,7 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 	spec := naisiov1.MaskinportenClientSpec{
 		SecretName: c.SecretName,
 		Scopes: naisiov1.MaskinportenScope{
-			UsedScope: []naisiov1.UsedScope{
+			ConsumedScopes: []naisiov1.ConsumedScope{
 				{
 					Name: "not/used",
 				},
@@ -121,6 +121,7 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 }
 
 func (c ClusterFixtures) WithMaskinportenScopesClient(scope string) ClusterFixtures {
+	atMaxAge := 30
 	key := types.NamespacedName{
 		Namespace: c.NamespaceName,
 		Name:      c.DigdirClientName,
@@ -129,7 +130,7 @@ func (c ClusterFixtures) WithMaskinportenScopesClient(scope string) ClusterFixtu
 	spec := naisiov1.MaskinportenClientSpec{
 		SecretName: c.SecretName,
 		Scopes: naisiov1.MaskinportenScope{
-			UsedScope: []naisiov1.UsedScope{
+			ConsumedScopes: []naisiov1.ConsumedScope{
 				{
 					Name: "not/used",
 				},
@@ -137,7 +138,7 @@ func (c ClusterFixtures) WithMaskinportenScopesClient(scope string) ClusterFixtu
 			ExposedScopes: []naisiov1.ExposedScope{
 				{
 					Name:                scope,
-					AtMaxAge:            30,
+					AtMaxAge:            &atMaxAge,
 					AllowedIntegrations: []string{"maskinporten"},
 					Product:             "arbeid",
 					Consumers: []naisiov1.ExposedScopeConsumer{

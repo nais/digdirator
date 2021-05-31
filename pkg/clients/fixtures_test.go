@@ -34,7 +34,7 @@ func minimalMaskinportenClient() *naisiov1.MaskinportenClient {
 		},
 		Spec: naisiov1.MaskinportenClientSpec{
 			Scopes: naisiov1.MaskinportenScope{
-				UsedScope: []naisiov1.UsedScope{
+				ConsumedScopes: []naisiov1.ConsumedScope{
 					{
 						Name: "some-scope",
 					},
@@ -49,6 +49,7 @@ func minimalMaskinportenClient() *naisiov1.MaskinportenClient {
 }
 
 func minimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenClient {
+	atMaxAge := 30
 	return &naisiov1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "test-app",
@@ -57,7 +58,7 @@ func minimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenC
 		},
 		Spec: naisiov1.MaskinportenClientSpec{
 			Scopes: naisiov1.MaskinportenScope{
-				UsedScope: []naisiov1.UsedScope{
+				ConsumedScopes: []naisiov1.ConsumedScope{
 					{
 						Name: "some-scope",
 					},
@@ -66,7 +67,7 @@ func minimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenC
 					{
 						Name:                "my/scope",
 						Enabled:             true,
-						AtMaxAge:            30,
+						AtMaxAge:            &atMaxAge,
 						Product:             "arbeid",
 						AllowedIntegrations: []string{"maskinporten"},
 						Consumers: []naisiov1.ExposedScopeConsumer{

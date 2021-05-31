@@ -101,7 +101,7 @@ func minimalMaskinportenWithScopeInternalExternalClient(meta metav1.ObjectMeta, 
 		ObjectMeta: meta,
 		Spec: naisiov1.MaskinportenClientSpec{
 			Scopes: naisiov1.MaskinportenScope{
-				UsedScope: []naisiov1.UsedScope{
+				ConsumedScopes: []naisiov1.ConsumedScope{
 					{
 						Name: "some.scope",
 					},

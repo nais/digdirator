@@ -285,13 +285,13 @@ func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistrat
 }
 
 func (r *Reconciler) filterValidScopes(tx *Transaction, registration types.ClientRegistration) (*types.ClientRegistration, error) {
-	var desiredScopes []naisiov1.UsedScope
+	var desiredScopes []naisiov1.ConsumedScope
 
 	switch v := tx.Instance.(type) {
 	case *naisiov1.IDPortenClient:
 		return &registration, nil
 	case *naisiov1.MaskinportenClient:
-		desiredScopes = v.Spec.Scopes.UsedScope
+		desiredScopes = v.Spec.Scopes.ConsumedScopes
 	}
 
 	accessibleScopes, err := tx.DigdirClient.GetAccessibleScopes(tx.Ctx)

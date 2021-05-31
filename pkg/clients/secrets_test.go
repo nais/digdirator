@@ -43,7 +43,7 @@ func TestSecretData_IDPortenClient(t *testing.T) {
 func TestSecretData_MaskinportenClient(t *testing.T) {
 	client := minimalMaskinportenClient()
 	client.Spec.Scopes = naisiov1.MaskinportenScope{
-		UsedScope: []naisiov1.UsedScope{
+		ConsumedScopes: []naisiov1.ConsumedScope{
 			{Name: "scope:one"},
 			{Name: "scope:two"},
 		},

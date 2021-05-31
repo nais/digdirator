@@ -10,7 +10,7 @@ import (
 
 func TestFilterScopes(t *testing.T) {
 	desired := v1.MaskinportenScope{
-		UsedScope: []v1.UsedScope{
+		ConsumedScopes: []v1.ConsumedScope{
 			{
 				Name: "valid-scope",
 			},
@@ -38,7 +38,7 @@ func TestFilterScopes(t *testing.T) {
 		},
 	}
 
-	filteredScopes := clients.FilterScopes(desired.UsedScope, accessibleScopes)
+	filteredScopes := clients.FilterScopes(desired.ConsumedScopes, accessibleScopes)
 
 	assert.Len(t, filteredScopes.Valid, 1)
 	assert.Contains(t, filteredScopes.Valid, "valid-scope")

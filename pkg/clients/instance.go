@@ -190,7 +190,7 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient) types.Clie
 		RedirectURIs:            nil,
 		RefreshTokenLifetime:    0,
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
-		Scopes:                  in.GetUsedScopes(),
+		Scopes:                  in.GetConsumedScopes(),
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
 }
@@ -199,7 +199,7 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 	exposedScope = SetDefaultScopeValues(exposedScope)
 	return types.ScopeRegistration{
 		AllowedIntegrationType:     exposedScope.AllowedIntegrations,
-		AtMaxAge:                   exposedScope.AtMaxAge,
+		AtMaxAge:                   *exposedScope.AtMaxAge,
 		DelegationSource:           "",
 		Name:                       "",
 		AuthorizationMaxLifetime:   MaskinportenDefaultAuthorizationMaxLifetime,
@@ -218,8 +218,9 @@ func SetDefaultScopeValues(exposedScope naisiov1.ExposedScope) naisiov1.ExposedS
 	if exposedScope.AllowedIntegrations == nil {
 		exposedScope.AllowedIntegrations = []string{MaskinportenDefaultAllowedIntegrationType}
 	}
-	if exposedScope.AtMaxAge == 0 {
-		exposedScope.AtMaxAge = MaskinportenDefaultAtAgeMax
+	if exposedScope.AtMaxAge == nil {
+		atAgeMax := MaskinportenDefaultAtAgeMax
+		exposedScope.AtMaxAge = &atAgeMax
 	}
 	return exposedScope
 }

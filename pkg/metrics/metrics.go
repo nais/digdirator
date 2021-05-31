@@ -129,9 +129,9 @@ var (
 			Name: "maskinporten_exposed_scope_total",
 		},
 	)
-	MaskinportenUsedScopesTotal = prometheus.NewGauge(
+	MaskinportenConsumedScopesTotal = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Name: "maskinporten_used_scope_total",
+			Name: "maskinporten_consumed_scope_total",
 		},
 	)
 	MaskinportenScopeConsumersTotal = prometheus.NewGauge(
@@ -208,7 +208,7 @@ var AllMetrics = []prometheus.Collector{
 	MaskinportenClientsRotatedCount,
 	MaskinportenClientsDeletedCount,
 	MaskinportenExposedScopesTotal,
-	MaskinportenUsedScopesTotal,
+	MaskinportenConsumedScopesTotal,
 	MaskinportenScopeConsumersTotal,
 	MaskinportenScopesCreatedCount,
 	MaskinportenScopesUpdatedCount,
@@ -415,29 +415,30 @@ func (m metrics) Refresh(ctx context.Context) {
 }
 
 func setTotalForMaskinportenScopes(maskinportenClients []naisiov1.MaskinportenClient) {
-
-	var totalExposed int
-	var totalUsed int
-	var totalConsumers int
+	var exposedTotal int
+	var consumedTotal int
 
 	for _, c := range maskinportenClients {
 
-		if c.Spec.Scopes.UsedScope != nil {
-			totalUsed = totalUsed + len(c.Spec.Scopes.UsedScope)
+		if c.Spec.Scopes.ConsumedScopes != nil {
+			consumedTotal = consumedTotal + len(c.Spec.Scopes.ConsumedScopes)
 		}
 
 		if c.Spec.Scopes.ExposedScopes != nil {
-			totalExposed = totalExposed + len(c.Spec.Scopes.ExposedScopes)
-			for _, e := range c.Spec.Scopes.ExposedScopes {
-				if e.Consumers != nil {
-					totalConsumers = totalConsumers + len(e.Consumers)
-				}
-			}
+			exposedTotal = exposedTotal + len(c.Spec.Scopes.ExposedScopes)
+			setTotalConsumersOfScope(c)
 		}
 	}
+	MaskinportenExposedScopesTotal.Set(float64(exposedTotal))
+	MaskinportenConsumedScopesTotal.Set(float64(consumedTotal))
+}
 
-	MaskinportenExposedScopesTotal.Set(float64(totalExposed))
-	MaskinportenUsedScopesTotal.Set(float64(totalUsed))
-	MaskinportenScopeConsumersTotal.Set(float64(totalConsumers))
-
+func setTotalConsumersOfScope(client naisiov1.MaskinportenClient) {
+	var consumersTotal int
+	for _, e := range client.Spec.Scopes.ExposedScopes {
+		if e.Consumers != nil {
+			consumersTotal = consumersTotal + len(e.Consumers)
+		}
+	}
+	MaskinportenScopeConsumersTotal.Set(float64(consumersTotal))
 }
