@@ -129,14 +129,14 @@ var (
 			Name: "maskinporten_exposed_scope_total",
 		},
 	)
-	MaskinportenConsumedScopesTotal = prometheus.NewGauge(
+	MaskinportenExternalScopesConsumedTotal = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Name: "maskinporten_consumed_scope_total",
+			Name: "maskinporten_external_scopes_consumed_total",
 		},
 	)
 	MaskinportenScopeConsumersTotal = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Name: "maskinporten_scope_consumer_total",
+			Name: "maskinporten_scope_consumers_total",
 		},
 	)
 	MaskinportenScopesCreatedCount = prometheus.NewCounterVec(
@@ -208,7 +208,7 @@ var AllMetrics = []prometheus.Collector{
 	MaskinportenClientsRotatedCount,
 	MaskinportenClientsDeletedCount,
 	MaskinportenExposedScopesTotal,
-	MaskinportenConsumedScopesTotal,
+	MaskinportenExternalScopesConsumedTotal,
 	MaskinportenScopeConsumersTotal,
 	MaskinportenScopesCreatedCount,
 	MaskinportenScopesUpdatedCount,
@@ -417,6 +417,7 @@ func (m metrics) Refresh(ctx context.Context) {
 func setTotalForMaskinportenScopes(maskinportenClients []naisiov1.MaskinportenClient) {
 	var exposedTotal int
 	var consumedTotal int
+	var consumersTotal int
 
 	for _, c := range maskinportenClients {
 
@@ -426,19 +427,18 @@ func setTotalForMaskinportenScopes(maskinportenClients []naisiov1.MaskinportenCl
 
 		if c.Spec.Scopes.ExposedScopes != nil {
 			exposedTotal = exposedTotal + len(c.Spec.Scopes.ExposedScopes)
-			setTotalConsumersOfScope(c)
+			setTotalConsumersOfScope(c, &consumersTotal)
 		}
 	}
 	MaskinportenExposedScopesTotal.Set(float64(exposedTotal))
-	MaskinportenConsumedScopesTotal.Set(float64(consumedTotal))
+	MaskinportenExternalScopesConsumedTotal.Set(float64(consumedTotal))
+	MaskinportenScopeConsumersTotal.Set(float64(consumersTotal))
 }
 
-func setTotalConsumersOfScope(client naisiov1.MaskinportenClient) {
-	var consumersTotal int
+func setTotalConsumersOfScope(client naisiov1.MaskinportenClient, consumersTotal *int) {
 	for _, e := range client.Spec.Scopes.ExposedScopes {
 		if e.Consumers != nil {
-			consumersTotal = consumersTotal + len(e.Consumers)
+			*consumersTotal = *consumersTotal + len(e.Consumers)
 		}
 	}
-	MaskinportenScopeConsumersTotal.Set(float64(consumersTotal))
 }
