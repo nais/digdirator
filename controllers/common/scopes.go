@@ -210,10 +210,10 @@ func (s *scope) Finalize(exposedScopes map[string]naisiov1.ExposedScope) error {
 		for _, scope := range filteredScopes.Current {
 			s.Tx.Logger.Info(fmt.Sprintf("delete annotation set, deleting scope: %s from Maskinporten... ", scope.ToString()))
 			if _, err := s.Tx.DigdirClient.DeleteScope(s.Tx.Ctx, scope.ToString()); err != nil {
-				return fmt.Errorf("inactivating scope in Maskinporten: %w", err)
+				return fmt.Errorf("deactivate scope in Maskinporten: %w", err)
 			}
 			metrics.IncScopesDeleted(s.Tx.Instance)
-			s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventDeactivatedScopeInDigDir, "Scope inactivated in Digdir")
+			s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventDeactivatedScopeInDigDir, "Scope deactivated in Digdir")
 		}
 	}
 	return nil
