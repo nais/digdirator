@@ -9,8 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	finalizer2 "github.com/nais/liberator/pkg/finalizer"
 	"github.com/nais/liberator/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
@@ -151,7 +150,7 @@ func (r *Reconciler) shouldSkip(tx *Transaction) bool {
 	if clients.HasSkipAnnotation(tx.Instance) {
 		msg := fmt.Sprintf("Resource contains '%s' annotation. Skipping processing...", annotations.SkipKey)
 		tx.Logger.Debug(msg)
-		r.reportEvent(tx, corev1.EventTypeWarning, v1.EventSkipped, msg)
+		r.reportEvent(tx, corev1.EventTypeWarning, naisiov1.EventSkipped, msg)
 		return true
 	}
 	return false
@@ -167,8 +166,8 @@ func (r *Reconciler) inSharedNamespace(tx *Transaction) (bool, error) {
 			msg := fmt.Sprintf("Resource should not exist in shared namespace '%s'. Skipping...", tx.Instance.GetNamespace())
 			tx.Logger.Debug(msg)
 			clients.SetAnnotation(tx.Instance, annotations.SkipKey, strconv.FormatBool(true))
-			r.reportEvent(tx, corev1.EventTypeWarning, v1.EventNotInTeamNamespace, msg)
-			r.reportEvent(tx, corev1.EventTypeWarning, v1.EventSkipped, msg)
+			r.reportEvent(tx, corev1.EventTypeWarning, naisiov1.EventNotInTeamNamespace, msg)
+			r.reportEvent(tx, corev1.EventTypeWarning, naisiov1.EventSkipped, msg)
 			return true, nil
 		}
 	}
@@ -176,6 +175,19 @@ func (r *Reconciler) inSharedNamespace(tx *Transaction) (bool, error) {
 }
 
 func (r *Reconciler) process(tx *Transaction) error {
+
+	switch instance := tx.Instance.(type) {
+	case *naisiov1.MaskinportenClient:
+		exposedScopes := instance.GetExposedScopes()
+		scopes := r.scopes(tx)
+
+		if exposedScopes != nil {
+			if err := scopes.process(exposedScopes); err != nil {
+				return fmt.Errorf("processing scopes: %w", err)
+			}
+		}
+	}
+
 	instanceClient, err := tx.DigdirClient.ClientExists(tx.Instance, tx.Ctx)
 	if err != nil {
 		return fmt.Errorf("checking if client exists: %w", err)
@@ -184,12 +196,11 @@ func (r *Reconciler) process(tx *Transaction) error {
 	registrationPayload := clients.ToClientRegistration(tx.Instance)
 
 	switch tx.Instance.(type) {
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		filteredPayload, err := r.filterValidScopes(tx, registrationPayload)
 		if err != nil {
 			return err
 		}
-
 		registrationPayload = *filteredPayload
 	}
 
@@ -275,13 +286,13 @@ func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistrat
 }
 
 func (r *Reconciler) filterValidScopes(tx *Transaction, registration types.ClientRegistration) (*types.ClientRegistration, error) {
-	var desiredScopes []v1.MaskinportenScope
+	var desiredScopes []naisiov1.ConsumedScope
 
 	switch v := tx.Instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		return &registration, nil
-	case *nais_io_v1.MaskinportenClient:
-		desiredScopes = v.Spec.Scopes
+	case *naisiov1.MaskinportenClient:
+		desiredScopes = v.Spec.Scopes.ConsumedScopes
 	}
 
 	accessibleScopes, err := tx.DigdirClient.GetAccessibleScopes(tx.Ctx)
@@ -375,10 +386,10 @@ func (r *Reconciler) updateInstance(ctx context.Context, instance clients.Instan
 
 	existing := func(instance clients.Instance) clients.Instance {
 		switch instance.(type) {
-		case *nais_io_v1.IDPortenClient:
-			return &nais_io_v1.IDPortenClient{}
-		case *nais_io_v1.MaskinportenClient:
-			return &nais_io_v1.MaskinportenClient{}
+		case *naisiov1.IDPortenClient:
+			return &naisiov1.IDPortenClient{}
+		case *naisiov1.MaskinportenClient:
+			return &naisiov1.MaskinportenClient{}
 		}
 		return nil
 	}(instance)

@@ -70,6 +70,20 @@ func TestIsUpToDate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.False(t, actual)
 	})
+
+	t.Run("Minimal MaskinportenClientWithExternalInternal should be up-to-date", func(t *testing.T) {
+		actual, err := clients.IsUpToDate(minimalMaskinportenWithScopeInternalExposedClient())
+		assert.NoError(t, err)
+		assert.True(t, actual)
+	})
+
+	t.Run("MaskinportenClientWithExternalInternal with changed value should not be up-to-date", func(t *testing.T) {
+		client := minimalMaskinportenWithScopeInternalExposedClient()
+		client.Spec.SecretName = "changed"
+		actual, err := clients.IsUpToDate(client)
+		assert.NoError(t, err)
+		assert.False(t, actual)
+	})
 }
 
 func TestToClientRegistration_IDPortenClient(t *testing.T) {

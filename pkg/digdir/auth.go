@@ -67,12 +67,15 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 
 func (c Client) claims() customClaims {
 	var clientID string
+	var scopes string
 
 	switch c.instance.(type) {
 	case *nais_io_v1.IDPortenClient:
 		clientID = c.Config.DigDir.IDPorten.ClientID
+		scopes = c.Config.DigDir.IDPorten.Scopes
 	case *nais_io_v1.MaskinportenClient:
 		clientID = c.Config.DigDir.Maskinporten.ClientID
+		scopes = c.Config.DigDir.Maskinporten.Scopes
 	}
 
 	return customClaims{
@@ -84,7 +87,7 @@ func (c Client) claims() customClaims {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ID:        uuid.New().String(),
 		},
-		Scope: c.Config.DigDir.Auth.Scopes,
+		Scope: scopes,
 	}
 }
 

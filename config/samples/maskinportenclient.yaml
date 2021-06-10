@@ -3,8 +3,16 @@ apiVersion: nais.io/v1
 kind: MaskinportenClient
 metadata:
   name: my-app
-  namespace: default
+  namespace: aura
 spec:
   secretName: my-secret
   scopes:
-    - name: "nav:test/api"
+    exposes:
+      # nav:arbeid:digdirator.test.read
+      - name: "digdirator.test.read"
+        enabled: true
+        product: "arbeid"
+        consumers:
+          - orgno: "889640782"
+    consumes:
+      - name: "nav:test/api"

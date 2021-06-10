@@ -28,7 +28,21 @@ An example of resources is available in [config/samples/idportenclient.yaml](con
 kubectl apply -f <path to CRDs from liberator>
 ```
 
+### AuthN & AuthZ
+
+Login to google and authenticate as a service account
+
+```shell script
+gcloud auth login --update-adc
+```
+
 ### Configuration
+
+To simulate shared and team namespace
+
+```shell script
+kubectl label ns default shared=true; kubectl create ns test
+```
 
 Set up the required environment variables as per the [config](./pkg/config/config.go) 
 
@@ -40,22 +54,25 @@ digdir:
     base-url: "base URL for digdir admin API"
   auth:
     audience: "audience for JWT assertion"
-    scopes: "space separated list of scopes for JWT assertion"
   idporten:
     base-url: "base URL endpoint for idporten API"
     client-id: "client ID / issuer for JWT assertion"
+    scopes: "space separated list of scopes for JWT assertion"
     cert-chain-secret-name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
     cert-chain-secret-version: "Secret version for the secret in Google Secret Manager."
     kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
   maskinporten:
     base-url: "base URL endpoint for maskinporten API"
     client-id: "client ID / issuer for JWT assertion"
+    scopes: "space separated list of scopes for JWT assertion"
     cert-chain-secret-name: "Secret name in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir."
     cert-chain-secret-version: "Secret version for the secret in Google Secret Manager."
     kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
 cluster-name: local
 development-mode: true
 project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
+features:
+  maskinporten: true
 ```
 
 Then, assuming you have a Kubernetes cluster running locally (e.g. using [minikube](https://github.com/kubernetes/minikube)):

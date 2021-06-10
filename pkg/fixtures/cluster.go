@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -20,8 +20,8 @@ import (
 type ClusterFixtures struct {
 	client.Client
 	Config
-	idPortenClient     *nais_io_v1.IDPortenClient
-	maskinportenClient *nais_io_v1.MaskinportenClient
+	idPortenClient     *naisiov1.IDPortenClient
+	maskinportenClient *naisiov1.MaskinportenClient
 	pod                *corev1.Pod
 	podEnvFrom         *corev1.Pod
 	unusedSecret       *corev1.Secret
@@ -52,6 +52,10 @@ func (c ClusterFixtures) MinimalConfig(clientType string) ClusterFixtures {
 	}
 }
 
+func (c ClusterFixtures) MinimalScopesConfig(scope string) ClusterFixtures {
+	return c.WithPods().WithMaskinportenScopesClient(scope).WithUnusedSecret(clients.MaskinportenTypeLabelValue)
+}
+
 func (c ClusterFixtures) WithNamespace() ClusterFixtures {
 	c.namespace = &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
@@ -71,14 +75,14 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 		Name:      c.DigdirClientName,
 	}
 
-	spec := nais_io_v1.IDPortenClientSpec{
+	spec := naisiov1.IDPortenClientSpec{
 		ClientURI:              "clienturi",
 		RedirectURI:            "https://my-app.nais.io",
 		SecretName:             c.SecretName,
 		FrontchannelLogoutURI:  "frontChannelLogoutURI",
 		PostLogoutRedirectURIs: []string{"postLogoutRedirectURI"},
 	}
-	c.idPortenClient = &nais_io_v1.IDPortenClient{
+	c.idPortenClient = &naisiov1.IDPortenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        key.Name,
 			Namespace:   key.Namespace,
@@ -95,13 +99,63 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 		Name:      c.DigdirClientName,
 	}
 
-	spec := nais_io_v1.MaskinportenClientSpec{
+	spec := naisiov1.MaskinportenClientSpec{
 		SecretName: c.SecretName,
-		Scopes: []nais_io_v1.MaskinportenScope{
-			{Name: "scopes"},
+		Scopes: naisiov1.MaskinportenScope{
+			ConsumedScopes: []naisiov1.ConsumedScope{
+				{
+					Name: "not/used",
+				},
+			},
 		},
 	}
-	c.maskinportenClient = &nais_io_v1.MaskinportenClient{
+	c.maskinportenClient = &naisiov1.MaskinportenClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        key.Name,
+			Namespace:   key.Namespace,
+			ClusterName: "test-cluster",
+		},
+		Spec: spec,
+	}
+	return c
+}
+
+func (c ClusterFixtures) WithMaskinportenScopesClient(scope string) ClusterFixtures {
+	atMaxAge := 30
+	key := types.NamespacedName{
+		Namespace: c.NamespaceName,
+		Name:      c.DigdirClientName,
+	}
+
+	spec := naisiov1.MaskinportenClientSpec{
+		SecretName: c.SecretName,
+		Scopes: naisiov1.MaskinportenScope{
+			ConsumedScopes: []naisiov1.ConsumedScope{
+				{
+					Name: "not/used",
+				},
+			},
+			ExposedScopes: []naisiov1.ExposedScope{
+				{
+					Name:                scope,
+					AtMaxAge:            &atMaxAge,
+					AllowedIntegrations: []string{"maskinporten"},
+					Product:             "arbeid",
+					Consumers: []naisiov1.ExposedScopeConsumer{
+						{
+							Name:  "KPL",
+							Orgno: "101010101",
+						},
+						{
+							Name:  "ALB",
+							Orgno: "111111111",
+						},
+					},
+				},
+			},
+		},
+	}
+	c.maskinportenClient = &naisiov1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        key.Name,
 			Namespace:   key.Namespace,
@@ -280,7 +334,7 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 				Namespace: c.NamespaceName,
 				Name:      c.DigdirClientName,
 			},
-			Object: &nais_io_v1.IDPortenClient{},
+			Object: &naisiov1.IDPortenClient{},
 		})
 	}
 	if c.maskinportenClient != nil {
@@ -289,7 +343,7 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 				Namespace: c.NamespaceName,
 				Name:      c.DigdirClientName,
 			},
-			Object: &nais_io_v1.MaskinportenClient{},
+			Object: &naisiov1.MaskinportenClient{},
 		})
 	}
 

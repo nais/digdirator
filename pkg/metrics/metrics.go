@@ -3,7 +3,8 @@ package metrics
 import (
 	"context"
 	"github.com/nais/digdirator/pkg/clients"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"github.com/nais/digdirator/pkg/digdir/types"
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
@@ -20,7 +21,8 @@ var (
 	IDPortenClientsTotal = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "idporten_client_total",
-		})
+		},
+	)
 	IDPortenSecretsTotal = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "idporten_client_secrets_total",
@@ -72,7 +74,8 @@ var (
 	MaskinportenClientsTotal = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "maskinporten_client_total",
-		})
+		},
+	)
 	MaskinportenSecretsTotal = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "maskinporten_client_secrets_total",
@@ -121,6 +124,70 @@ var (
 		},
 		[]string{labelNamespace},
 	)
+	MaskinportenExposedScopesTotal = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "maskinporten_exposed_scope_total",
+		},
+	)
+	MaskinportenExternalScopesConsumedTotal = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "maskinporten_external_scopes_consumed_total",
+		},
+	)
+	MaskinportenScopeConsumersTotal = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "maskinporten_scope_consumers_total",
+		},
+	)
+	MaskinportenScopesCreatedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "maskinporten_scope_created_count",
+			Help: "Number of maskinporten scopes successfully created",
+		},
+		[]string{labelNamespace},
+	)
+	MaskinportenScopesUpdatedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "maskinporten_scope_updated_count",
+			Help: "Number of maskinporten scopes successfully updated",
+		},
+		[]string{labelNamespace},
+	)
+	MaskinportenScopesDeletedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "maskinporten_scope_deleted_count",
+			Help: "Number of maskinporten scopes successfully deleted",
+		},
+		[]string{labelNamespace},
+	)
+	MaskinportenScopesReactivatedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "maskinporten_scope_reactivated_count",
+			Help: "Number of maskinporten scopes successfully reactivated",
+		},
+		[]string{labelNamespace},
+	)
+	MaskinportenScopesConsumersCreatedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "maskinporten_scope_consumer_created_count",
+			Help: "Number of maskinporten scope consumers successfully created",
+		},
+		[]string{labelNamespace},
+	)
+	MaskinportenScopesConsumersUpdatedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "maskinporten_scope_consumer_updated_count",
+			Help: "Number of maskinporten scope consumers successfully updated",
+		},
+		[]string{labelNamespace},
+	)
+	MaskinportenScopesConsumersDeletedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "maskinporten_scope_consumer_deleted_count",
+			Help: "Number of maskinporten scope consumers successfully deleted",
+		},
+		[]string{labelNamespace},
+	)
 )
 
 var AllMetrics = []prometheus.Collector{
@@ -140,6 +207,16 @@ var AllMetrics = []prometheus.Collector{
 	MaskinportenClientsUpdatedCount,
 	MaskinportenClientsRotatedCount,
 	MaskinportenClientsDeletedCount,
+	MaskinportenExposedScopesTotal,
+	MaskinportenExternalScopesConsumedTotal,
+	MaskinportenScopeConsumersTotal,
+	MaskinportenScopesCreatedCount,
+	MaskinportenScopesUpdatedCount,
+	MaskinportenScopesDeletedCount,
+	MaskinportenScopesReactivatedCount,
+	MaskinportenScopesConsumersCreatedCount,
+	MaskinportenScopesConsumersUpdatedCount,
+	MaskinportenScopesConsumersDeletedCount,
 }
 
 var AllCounters = []*prometheus.CounterVec{
@@ -155,6 +232,13 @@ var AllCounters = []*prometheus.CounterVec{
 	MaskinportenClientsUpdatedCount,
 	MaskinportenClientsRotatedCount,
 	MaskinportenClientsDeletedCount,
+	MaskinportenScopesCreatedCount,
+	MaskinportenScopesUpdatedCount,
+	MaskinportenScopesDeletedCount,
+	MaskinportenScopesReactivatedCount,
+	MaskinportenScopesConsumersCreatedCount,
+	MaskinportenScopesConsumersUpdatedCount,
+	MaskinportenScopesConsumersDeletedCount,
 }
 
 func incWithNamespaceLabel(metric *prometheus.CounterVec, namespace string) {
@@ -163,55 +247,101 @@ func incWithNamespaceLabel(metric *prometheus.CounterVec, namespace string) {
 
 func IncClientsProcessed(instance clients.Instance) {
 	switch instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsProcessedCount, instance.GetNamespace())
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsProcessedCount, instance.GetNamespace())
 	}
 }
 
 func IncClientsFailedProcessing(instance clients.Instance) {
 	switch instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsFailedProcessingCount, instance.GetNamespace())
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsFailedProcessingCount, instance.GetNamespace())
 	}
 }
 
 func IncClientsCreated(instance clients.Instance) {
 	switch instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsCreatedCount, instance.GetNamespace())
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsCreatedCount, instance.GetNamespace())
 	}
 }
 
 func IncClientsUpdated(instance clients.Instance) {
 	switch instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsUpdatedCount, instance.GetNamespace())
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsUpdatedCount, instance.GetNamespace())
 	}
 }
 
 func IncClientsRotated(instance clients.Instance) {
 	switch instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsRotatedCount, instance.GetNamespace())
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsRotatedCount, instance.GetNamespace())
 	}
 }
 
 func IncClientsDeleted(instance clients.Instance) {
 	switch instance.(type) {
-	case *nais_io_v1.IDPortenClient:
+	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsDeletedCount, instance.GetNamespace())
-	case *nais_io_v1.MaskinportenClient:
+	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsDeletedCount, instance.GetNamespace())
+	}
+}
+
+func IncScopesCreated(instance clients.Instance) {
+	switch instance.(type) {
+	case *naisiov1.MaskinportenClient:
+		incWithNamespaceLabel(MaskinportenScopesCreatedCount, instance.GetNamespace())
+	}
+}
+
+func IncScopesUpdated(instance clients.Instance) {
+	switch instance.(type) {
+	case *naisiov1.MaskinportenClient:
+		incWithNamespaceLabel(MaskinportenScopesUpdatedCount, instance.GetNamespace())
+	}
+}
+
+func IncScopesDeleted(instance clients.Instance) {
+	switch instance.(type) {
+	case *naisiov1.MaskinportenClient:
+		incWithNamespaceLabel(MaskinportenScopesDeletedCount, instance.GetNamespace())
+	}
+}
+
+func IncScopesReactivated(instance clients.Instance) {
+	switch instance.(type) {
+	case *naisiov1.MaskinportenClient:
+		incWithNamespaceLabel(MaskinportenScopesDeletedCount, instance.GetNamespace())
+	}
+}
+
+func IncScopesConsumersCreatedOrUpdated(instance clients.Instance, state types.State) {
+	switch instance.(type) {
+	case *naisiov1.MaskinportenClient:
+		if state == types.ScopeStateDenied {
+			incWithNamespaceLabel(MaskinportenScopesConsumersUpdatedCount, instance.GetNamespace())
+		} else {
+			incWithNamespaceLabel(MaskinportenScopesConsumersCreatedCount, instance.GetNamespace())
+		}
+	}
+}
+
+func IncScopesConsumersDeleted(instance clients.Instance) {
+	switch instance.(type) {
+	case *naisiov1.MaskinportenClient:
+		incWithNamespaceLabel(MaskinportenScopesConsumersDeletedCount, instance.GetNamespace())
 	}
 }
 
@@ -246,10 +376,10 @@ func (m metrics) Refresh(ctx context.Context) {
 	exp := 10 * time.Second
 
 	var idportenSecretList corev1.SecretList
-	var idportenClientsList nais_io_v1.IDPortenClientList
+	var idportenClientsList naisiov1.IDPortenClientList
 
 	var maskinportenSecretList corev1.SecretList
-	var maskinportenClientsList nais_io_v1.MaskinportenClientList
+	var maskinportenClientsList naisiov1.MaskinportenClientList
 
 	m.InitWithNamespaceLabels()
 
@@ -259,14 +389,14 @@ func (m metrics) Refresh(ctx context.Context) {
 		if err = m.reader.List(ctx, &idportenSecretList, client.MatchingLabels{
 			clients.TypeLabelKey: clients.IDPortenTypeLabelValue,
 		}); err != nil {
-			log.Errorf("failed to list secrets: %v", err)
+			log.Errorf("failed to list idporten secrets: %v", err)
 		}
 		IDPortenSecretsTotal.Set(float64(len(idportenSecretList.Items)))
 
 		if err = m.reader.List(ctx, &maskinportenSecretList, client.MatchingLabels{
 			clients.TypeLabelKey: clients.MaskinportenTypeLabelValue,
 		}); err != nil {
-			log.Errorf("failed to list secrets: %v", err)
+			log.Errorf("failed to list maskinporten secrets: %v", err)
 		}
 		MaskinportenSecretsTotal.Set(float64(len(maskinportenSecretList.Items)))
 
@@ -276,8 +406,39 @@ func (m metrics) Refresh(ctx context.Context) {
 		IDPortenClientsTotal.Set(float64(len(idportenClientsList.Items)))
 
 		if err = m.reader.List(ctx, &maskinportenClientsList); err != nil {
-			log.Errorf("failed to list idporten clients: %v", err)
+			log.Errorf("failed to list maskinporten clients: %v", err)
 		}
 		MaskinportenClientsTotal.Set(float64(len(maskinportenClientsList.Items)))
+
+		setTotalForMaskinportenScopes(maskinportenClientsList.Items)
+	}
+}
+
+func setTotalForMaskinportenScopes(maskinportenClients []naisiov1.MaskinportenClient) {
+	var exposedTotal int
+	var consumedTotal int
+	var consumersTotal int
+
+	for _, c := range maskinportenClients {
+
+		if c.Spec.Scopes.ConsumedScopes != nil {
+			consumedTotal = consumedTotal + len(c.Spec.Scopes.ConsumedScopes)
+		}
+
+		if c.Spec.Scopes.ExposedScopes != nil {
+			exposedTotal = exposedTotal + len(c.Spec.Scopes.ExposedScopes)
+			setTotalConsumersOfScope(c, &consumersTotal)
+		}
+	}
+	MaskinportenExposedScopesTotal.Set(float64(exposedTotal))
+	MaskinportenExternalScopesConsumedTotal.Set(float64(consumedTotal))
+	MaskinportenScopeConsumersTotal.Set(float64(consumersTotal))
+}
+
+func setTotalConsumersOfScope(client naisiov1.MaskinportenClient, consumersTotal *int) {
+	for _, e := range client.Spec.Scopes.ExposedScopes {
+		if e.Consumers != nil {
+			*consumersTotal = *consumersTotal + len(e.Consumers)
+		}
 	}
 }

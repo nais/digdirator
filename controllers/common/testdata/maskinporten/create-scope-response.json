@@ -1,0 +1,18 @@
+{
+  "name": "nav:test/scope",
+  "active": true,
+  "prefix": "nav",
+  "subscope": "arbeid/test/scope",
+  "description": "testcluster:testnamespace:testapp.arbeid/test/scope",
+  "visibility": "PUBLIC",
+  "last_updated": "2021-01-13T10:53:56.301+01:00",
+  "at_max_age": 0,
+  "created": "2021-01-13T10:53:56.301+01:00",
+  "owner_orgno": "889640782",
+  "token_type": "SELF_CONTAINED",
+  "requires_user_consent": false,
+  "requires_user_authentication": false,
+  "accessible_for_all": false,
+  "delegation_source": "",
+  "allowed_integration_types": ["maskinporten"]
+}

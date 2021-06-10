@@ -6,7 +6,7 @@ import (
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/secrets"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -42,9 +42,11 @@ func TestSecretData_IDPortenClient(t *testing.T) {
 
 func TestSecretData_MaskinportenClient(t *testing.T) {
 	client := minimalMaskinportenClient()
-	client.Spec.Scopes = []nais_io_v1.MaskinportenScope{
-		{Name: "scope:one"},
-		{Name: "scope:two"},
+	client.Spec.Scopes = naisiov1.MaskinportenScope{
+		ConsumedScopes: []naisiov1.ConsumedScope{
+			{Name: "scope:one"},
+			{Name: "scope:two"},
+		},
 	}
 
 	jwk, err := crypto.GenerateJwk()

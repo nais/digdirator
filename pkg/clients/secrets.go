@@ -52,6 +52,6 @@ func maskinportenClientSecretData(in *nais_io_v1.MaskinportenClient, jwk jose.JS
 		secrets.MaskinportenJwkKey:          string(jwkJson),
 		secrets.MaskinportenWellKnownURLKey: wellKnownURL,
 		secrets.MaskinportenClientIDKey:     in.GetStatus().GetClientID(),
-		secrets.MaskinportenScopesKey:       strings.Join(in.GetScopes(), " "),
+		secrets.MaskinportenScopesKey:       strings.Join(in.GetConsumedScopes(), " "),
 	}, nil
 }

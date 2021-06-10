@@ -1,0 +1,42 @@
+[
+  {
+    "scope": "nav:pensjon/v3/alderspensjon",
+    "state": "APPROVED",
+    "created": "2020-06-10T09:15:30+02:00",
+    "consumer_orgno": "916833520",
+    "last_updated": "2020-06-10T09:15:30+02:00",
+    "owner_orgno": "889640782"
+  },
+  {
+    "scope": "nav:pensjon/v3/alderspensjon",
+    "state": "APPROVED",
+    "created": "2020-02-17T14:24:02+01:00",
+    "consumer_orgno": "938708606",
+    "last_updated": "2020-02-17T14:24:02+01:00",
+    "owner_orgno": "889640782"
+  },
+  {
+    "scope": "nav:pensjon/v3/alderspensjon",
+    "state": "APPROVED",
+    "created": "2020-02-06T12:08:54+01:00",
+    "consumer_orgno": "958995369",
+    "last_updated": "2020-02-06T12:08:54+01:00",
+    "owner_orgno": "889640782"
+  },
+  {
+    "scope": "nav:pensjon/v3/alderspensjon",
+    "state": "APPROVED",
+    "created": "2019-12-12T09:08:07+01:00",
+    "consumer_orgno": "982583462",
+    "last_updated": "2019-12-12T09:08:07+01:00",
+    "owner_orgno": "889640782"
+  },
+  {
+    "scope": "nav:pensjon/v3/alderspensjon",
+    "state": "APPROVED",
+    "created": "2019-12-12T09:08:07+01:00",
+    "consumer_orgno": "982759412",
+    "last_updated": "2019-12-12T09:08:07+01:00",
+    "owner_orgno": "889640782"
+  }
+]

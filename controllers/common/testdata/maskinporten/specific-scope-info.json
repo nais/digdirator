@@ -1,0 +1,23 @@
+{
+  "accessible_for_all": true,
+  "active": true,
+  "allowed_integration_types": [
+    "maskinporten"
+  ],
+  "at_max_age": 0,
+  "authorization_max_lifetime": 0,
+  "created": "2020-02-06T12:08:54+01:00",
+  "delegation_source": "string",
+  "description": "no-match",
+  "last_updated": "2020-02-06T12:08:54+01:00",
+  "long_description": "string",
+  "name": "no-match",
+  "owner_orgno": "no-match",
+  "prefix": "nav:",
+  "requires_pseudonymous_tokens": true,
+  "requires_user_authentication": true,
+  "requires_user_consent": true,
+  "subscope": "no/match",
+  "token_type": "SELF_CONTAINED",
+  "visibility": "INTERNAL"
+}

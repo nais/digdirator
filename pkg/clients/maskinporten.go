@@ -10,7 +10,7 @@ type FilteredScopes struct {
 	Invalid []string
 }
 
-func FilterScopes(desired []v1.MaskinportenScope, accesibleScopes []types.Scope) FilteredScopes {
+func FilterScopes(desired []v1.ConsumedScope, accesibleScopes []types.Scope) FilteredScopes {
 	validScopes := make([]string, 0)
 	invalidScopes := make([]string, 0)
 
@@ -28,7 +28,7 @@ func FilterScopes(desired []v1.MaskinportenScope, accesibleScopes []types.Scope)
 	}
 }
 
-func scopeIsAccessible(scope v1.MaskinportenScope, accessibleScopes []types.Scope) bool {
+func scopeIsAccessible(scope v1.ConsumedScope, accessibleScopes []types.Scope) bool {
 	for _, accessible := range accessibleScopes {
 		if scope.Name == accessible.Scope && accessible.State == types.ScopeAccessApproved {
 			return true
