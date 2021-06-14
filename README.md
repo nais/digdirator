@@ -1,6 +1,6 @@
 # digdirator
 
-Digdirator is a Kubernetes cluster operator for automated registration and lifecycle management of ID-porten clients.
+Digdirator is a Kubernetes cluster operator for automated registration and lifecycle management of ID-porten and Maskinporten clients (integrations) with feature Maskinporten Scopes (APIS).
 
 ## CRD
 
