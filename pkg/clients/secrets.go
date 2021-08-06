@@ -2,12 +2,13 @@ package clients
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/secrets"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/spf13/viper"
 	"gopkg.in/square/go-jose.v2"
-	"strings"
 )
 
 func SecretData(instance Instance, jwk jose.JSONWebKey) (map[string]string, error) {
@@ -38,7 +39,7 @@ func idPortenClientSecretData(in *nais_io_v1.IDPortenClient, jwk jose.JSONWebKey
 		secrets.IDPortenJwkKey:          string(jwkJson),
 		secrets.IDPortenWellKnownURLKey: wellKnownURL,
 		secrets.IDPortenClientIDKey:     in.GetStatus().GetClientID(),
-		secrets.IDPortenRedirectURIKey:  in.Spec.RedirectURI,
+		secrets.IDPortenRedirectURIKey:  string(in.Spec.RedirectURI),
 	}, nil
 }
 

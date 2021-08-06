@@ -2,6 +2,8 @@ package clients
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/nais/digdirator/pkg/annotations"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/secrets"
@@ -10,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"reflect"
 )
 
 const (
@@ -143,25 +144,25 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegist
 		in.Spec.ClientURI = IDPortenDefaultClientURI
 	}
 	if in.Spec.PostLogoutRedirectURIs == nil || len(in.Spec.PostLogoutRedirectURIs) == 0 {
-		in.Spec.PostLogoutRedirectURIs = []string{IDPortenDefaultPostLogoutRedirectURI}
+		in.Spec.PostLogoutRedirectURIs = []naisiov1.IDPortenURI{IDPortenDefaultPostLogoutRedirectURI}
 	}
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
 		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
 		ClientName:                        types.DefaultClientName,
-		ClientURI:                         in.Spec.ClientURI,
+		ClientURI:                         string(in.Spec.ClientURI),
 		Description:                       kubernetes.UniformResourceName(&in),
 		FrontchannelLogoutSessionRequired: true,
-		FrontchannelLogoutURI:             in.Spec.FrontchannelLogoutURI,
+		FrontchannelLogoutURI:             string(in.Spec.FrontchannelLogoutURI),
 		GrantTypes: []types.GrantType{
 			types.GrantTypeAuthorizationCode,
 			types.GrantTypeRefreshToken,
 		},
 		IntegrationType:        types.IntegrationTypeIDPorten,
-		PostLogoutRedirectURIs: in.Spec.PostLogoutRedirectURIs,
+		PostLogoutRedirectURIs: postLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
 		RedirectURIs: []string{
-			in.Spec.RedirectURI,
+			string(in.Spec.RedirectURI),
 		},
 		RefreshTokenLifetime: *in.Spec.SessionLifetime,
 		RefreshTokenUsage:    types.RefreshTokenUsageReuse,
@@ -212,6 +213,16 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 		RequiresUserAuthentication: false,
 		RequiresUserConsent:        false,
 	}
+}
+
+func postLogoutRedirectURIs(uris []naisiov1.IDPortenURI) []string {
+	result := make([]string, 0)
+
+	for _, uri := range uris {
+		result = append(result, string(uri))
+	}
+
+	return result
 }
 
 func SetDefaultScopeValues(exposedScope naisiov1.ExposedScope) naisiov1.ExposedScope {

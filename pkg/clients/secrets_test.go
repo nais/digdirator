@@ -2,6 +2,8 @@ package clients_test
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
@@ -9,7 +11,6 @@ import (
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestSecretData_IDPortenClient(t *testing.T) {
@@ -35,7 +36,7 @@ func TestSecretData_IDPortenClient(t *testing.T) {
 			assert.Equal(t, client.Status.ClientID, stringData[secrets.IDPortenClientIDKey])
 		})
 		t.Run("Secret Data should contain "+secrets.IDPortenRedirectURIKey, func(t *testing.T) {
-			assert.Equal(t, client.Spec.RedirectURI, stringData[secrets.IDPortenRedirectURIKey])
+			assert.Equal(t, string(client.Spec.RedirectURI), stringData[secrets.IDPortenRedirectURIKey])
 		})
 	})
 }
