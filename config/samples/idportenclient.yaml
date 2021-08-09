@@ -3,7 +3,7 @@ apiVersion: nais.io/v1
 kind: IDPortenClient
 metadata:
   name: my-app
-  namespace: default
+  namespace: myteam
 spec:
   clientURI: "https://min-app.nav.no"
   redirectURI: https://min-app.nav.no/oauth2/callback
