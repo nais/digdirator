@@ -232,21 +232,22 @@ func (r *Reconciler) process(tx *Transaction) error {
 		return nil
 	}
 
+	var jwk *jose.JSONWebKey
+	jwk, err = crypto.GenerateJwk()
+	if err != nil {
+		return fmt.Errorf("generating new JWK for client: %w", err)
+	}
+
 	secretsClient := r.secrets(tx)
 	managedSecrets, err := secretsClient.GetManaged()
 	if err != nil {
 		return fmt.Errorf("getting managed secrets: %w", err)
 	}
 
-	previousSecretName := tx.Instance.GetStatus().GetSynchronizationSecretName()
+	previousSecrets := append(managedSecrets.Used.Items, managedSecrets.Unused.Items...)
 
-	jwk, err := crypto.GenerateJwk()
-	if err != nil {
-		return fmt.Errorf("generating new JWK for client: %w", err)
-	}
-
-	if len(previousSecretName) > 0 {
-		jwk, err = crypto.GetPreviousJwkFromSecret(managedSecrets, previousSecretName, clients.GetSecretJwkKey(tx.Instance))
+	if len(previousSecrets) > 0 {
+		jwk, err = crypto.GetPreviousJwkFromSecret(managedSecrets, clients.GetSecretJwkKey(tx.Instance))
 		if err != nil {
 			return err
 		}

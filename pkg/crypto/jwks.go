@@ -26,17 +26,21 @@ func MergeJwks(jwk jose.JSONWebKey, secretsInUse v1.SecretList, secretKey string
 	return &jose.JSONWebKeySet{Keys: unique(keys)}, nil
 }
 
-func GetPreviousJwkFromSecret(managedSecrets *kubernetes.SecretLists, previousSecretName, secretKey string) (*jose.JSONWebKey, error) {
-	var err error
+func GetPreviousJwkFromSecret(managedSecrets *kubernetes.SecretLists, secretKey string) (*jose.JSONWebKey, error) {
+	var newestSecret v1.Secret
+
 	for _, secret := range append(managedSecrets.Used.Items, managedSecrets.Unused.Items...) {
-		if secret.Name == previousSecretName {
-			key, err := getJWKFromSecret(secret, secretKey)
-			if err == nil || key != nil {
-				return key, nil
-			}
+		if secret.CreationTimestamp.After(newestSecret.CreationTimestamp.Time) {
+			newestSecret = secret
 		}
 	}
-	return nil, fmt.Errorf("getting jwk from secret '%s': %w", previousSecretName, err)
+
+	key, err := getJWKFromSecret(newestSecret, secretKey)
+	if err == nil && key != nil {
+		return key, nil
+	}
+
+	return nil, fmt.Errorf("getting jwk from secret: %w", err)
 }
 
 func KeyIDsFromJwks(jwks *jose.JSONWebKeySet) []string {
