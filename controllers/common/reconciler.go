@@ -207,9 +207,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 	if instanceClient != nil {
 		instanceClient, err = r.updateClient(tx, registrationPayload, instanceClient.ClientID)
 		if err != nil {
-			tx.Logger.Errorf("failed to update; ignoring: %+v", err)
-			// TODO: reenable
-			// return err
+			return err
 		}
 
 		r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedInDigDir, "Client is updated")
@@ -232,32 +230,23 @@ func (r *Reconciler) process(tx *Transaction) error {
 		return nil
 	}
 
+	jwk, err := crypto.GenerateJwk()
+	if err != nil {
+		return fmt.Errorf("generating new JWK for client: %w", err)
+	}
+
 	secretsClient := r.secrets(tx)
 	managedSecrets, err := secretsClient.GetManaged()
 	if err != nil {
 		return fmt.Errorf("getting managed secrets: %w", err)
 	}
 
-	previousSecretName := tx.Instance.GetStatus().GetSynchronizationSecretName()
-
-	jwk, err := crypto.GenerateJwk()
-	if err != nil {
-		return fmt.Errorf("generating new JWK for client: %w", err)
+	if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
+		return err
 	}
 
-	if len(previousSecretName) > 0 {
-		jwk, err = crypto.GetPreviousJwkFromSecret(managedSecrets, previousSecretName, clients.GetSecretJwkKey(tx.Instance))
-		if err != nil {
-			return err
-		}
-	} else {
-		if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
-			return err
-		}
-
-		r.reportEvent(tx, corev1.EventTypeNormal, EventRotatedInDigDir, "Client credentials is rotated")
-		metrics.IncClientsRotated(tx.Instance)
-	}
+	r.reportEvent(tx, corev1.EventTypeNormal, EventRotatedInDigDir, "Client credentials is rotated")
+	metrics.IncClientsRotated(tx.Instance)
 
 	if err := secretsClient.CreateOrUpdate(*jwk); err != nil {
 		return fmt.Errorf("creating or updating secret: %w", err)
