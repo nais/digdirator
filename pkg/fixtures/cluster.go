@@ -46,17 +46,14 @@ func New(cli client.Client, config Config) ClusterFixtures {
 
 func (c ClusterFixtures) MinimalConfig(clientType string) ClusterFixtures {
 	if clientType == clients.IDPortenTypeLabelValue {
-		// FIXME: return c.WithPods().WithIDPortenClient().WithUnusedSecret(clients.IDPortenTypeLabelValue)
-		return c.WithPods().WithIDPortenClient()
+		return c.WithPods().WithIDPortenClient().WithUnusedSecret(clients.IDPortenTypeLabelValue)
 	} else {
-		// FIXME: return c.WithPods().WithMaskinportenClient().WithUnusedSecret(clients.MaskinportenTypeLabelValue)
-		return c.WithPods().WithMaskinportenClient()
+		return c.WithPods().WithMaskinportenClient().WithUnusedSecret(clients.MaskinportenTypeLabelValue)
 	}
 }
 
 func (c ClusterFixtures) MinimalScopesConfig(scope string) ClusterFixtures {
-	// FIXME: return c.WithPods().WithMaskinportenScopesClient(scope).WithUnusedSecret(clients.MaskinportenTypeLabelValue)
-	return c.WithPods().WithMaskinportenScopesClient(scope)
+	return c.WithPods().WithMaskinportenScopesClient(scope).WithUnusedSecret(clients.MaskinportenTypeLabelValue)
 }
 
 func (c ClusterFixtures) WithNamespace() ClusterFixtures {
