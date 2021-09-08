@@ -42,7 +42,7 @@ jobs:
           pwd
       - name: Bump version in nais-yaml
         env:
-          DEPLOY_KEY: ${{ secrets.NAIS_YAML_DEPLOY_KEY }}
+          DEPLOY_KEY: ${{ secrets.SRVNAIS_REPO_PUSH_PAT }}
           GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no"
         run: |
           eval "$(ssh-agent -s)"
@@ -50,8 +50,8 @@ jobs:
           mkdir -p $NAIS_YAML
           git clone git@github.com:navikt/nais-yaml.git $NAIS_YAML
           cd $NAIS_YAML
-          git config user.email "aura@nav.no"
-          git config user.name "NAIS deploy pipeline"
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
           sed -E -i "s#image: ghcr.io/nais/digdirator.+#image: ${IMAGE}#" vars/global.yaml
           git add .
           git --no-pager diff --cached
