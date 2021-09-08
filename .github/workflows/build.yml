@@ -10,7 +10,7 @@ jobs:
     name: Checkout code and setup node
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Generate image environment variable
         run: |
           version=$(./version.sh)
@@ -32,24 +32,26 @@ jobs:
     needs: build
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
+        with:
+          path: digdirator
+      - uses: actions/checkout@v2
+        with:
+          repository: navikt/nais-yaml
+          token: ${{ secrets.SRVNAIS_REPO_PUSH_PAT }}
+          path: nais-yaml
       - name: Generate image environment variable
         run: |
+          cd digdirator
           version=$(./version.sh)
           echo "version=${version}" >> $GITHUB_ENV
           echo "IMAGE=${image}:${version}" >> $GITHUB_ENV
-          echo "NAIS_YAML=${GITHUB_WORKSPACE}/nais-yaml" >> $GITHUB_ENV
-          pwd
       - name: Bump version in nais-yaml
         env:
           DEPLOY_KEY: ${{ secrets.SRVNAIS_REPO_PUSH_PAT }}
           GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no"
         run: |
-          eval "$(ssh-agent -s)"
-          ssh-add - <<< "${DEPLOY_KEY}"
-          mkdir -p $NAIS_YAML
-          git clone git@github.com:navikt/nais-yaml.git $NAIS_YAML
-          cd $NAIS_YAML
+          cd nais-yaml
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
           sed -E -i "s#image: ghcr.io/nais/digdirator.+#image: ${IMAGE}#" vars/global.yaml
