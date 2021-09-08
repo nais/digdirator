@@ -47,9 +47,6 @@ jobs:
           echo "version=${version}" >> $GITHUB_ENV
           echo "IMAGE=${image}:${version}" >> $GITHUB_ENV
       - name: Bump version in nais-yaml
-        env:
-          DEPLOY_KEY: ${{ secrets.SRVNAIS_REPO_PUSH_PAT }}
-          GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no"
         run: |
           cd nais-yaml
           git config user.name "$GITHUB_ACTOR"
