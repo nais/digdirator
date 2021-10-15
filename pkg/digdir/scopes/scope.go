@@ -72,7 +72,7 @@ func (s Scope) ToString() string {
 }
 
 func (s Scope) HasChanged() bool {
-	s.CurrentScope = clients.SetDefaultScopeValues(s.CurrentScope)
+	clients.SetDefaultScopeValues(&s.CurrentScope)
 	switch {
 	case s.ScopeRegistration.AtMaxAge != *s.CurrentScope.AtMaxAge:
 		return true
