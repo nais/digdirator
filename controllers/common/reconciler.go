@@ -62,8 +62,8 @@ func NewReconciler(
 	}
 }
 
-func (r *Reconciler) Reconcile(req ctrl.Request, instance clients.Instance) (ctrl.Result, error) {
-	tx, err := r.prepare(req, instance)
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance clients.Instance) (ctrl.Result, error) {
+	tx, err := r.prepare(ctx, req, instance)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -116,7 +116,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request, instance clients.Instance) (ctr
 	return r.complete(tx)
 }
 
-func (r *Reconciler) prepare(req ctrl.Request, instance clients.Instance) (*Transaction, error) {
+func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance clients.Instance) (*Transaction, error) {
 	instanceType := clients.GetInstanceType(instance)
 	correlationID := uuid.New().String()
 
@@ -124,8 +124,6 @@ func (r *Reconciler) prepare(req ctrl.Request, instance clients.Instance) (*Tran
 		instanceType:    req.NamespacedName,
 		"correlationID": correlationID,
 	})
-
-	ctx := context.Background()
 
 	if err := r.Reader.Get(ctx, req.NamespacedName, instance); err != nil {
 		return nil, err

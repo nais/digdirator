@@ -45,6 +45,7 @@ func (s Scope) FilterConsumers(acl *[]types.ConsumerRegistration) ([]string, []C
 	return consumerStatus, differance
 }
 
+// Is here for feature ref. tracking all consumers for a scope
 func addConsumerStatus(found, swapped bool, consumerOrgno string, consumerStatus *[]string) {
 	if found && !swapped {
 		*consumerStatus = append(*consumerStatus, consumerOrgno)
@@ -72,7 +73,7 @@ func (s Scope) ToString() string {
 }
 
 func (s Scope) HasChanged() bool {
-	s.CurrentScope = clients.SetDefaultScopeValues(s.CurrentScope)
+	clients.SetDefaultScopeValues(&s.CurrentScope)
 	switch {
 	case s.ScopeRegistration.AtMaxAge != *s.CurrentScope.AtMaxAge:
 		return true

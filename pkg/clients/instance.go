@@ -197,7 +197,7 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient) types.Clie
 }
 
 func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope) types.ScopeRegistration {
-	exposedScope = SetDefaultScopeValues(exposedScope)
+	SetDefaultScopeValues(&exposedScope)
 	return types.ScopeRegistration{
 		AllowedIntegrationType:     exposedScope.AllowedIntegrations,
 		AtMaxAge:                   *exposedScope.AtMaxAge,
@@ -225,7 +225,7 @@ func postLogoutRedirectURIs(uris []naisiov1.IDPortenURI) []string {
 	return result
 }
 
-func SetDefaultScopeValues(exposedScope naisiov1.ExposedScope) naisiov1.ExposedScope {
+func SetDefaultScopeValues(exposedScope *naisiov1.ExposedScope) {
 	if exposedScope.AllowedIntegrations == nil {
 		exposedScope.AllowedIntegrations = []string{MaskinportenDefaultAllowedIntegrationType}
 	}
@@ -233,5 +233,4 @@ func SetDefaultScopeValues(exposedScope naisiov1.ExposedScope) naisiov1.ExposedS
 		atAgeMax := MaskinportenDefaultAtAgeMax
 		exposedScope.AtMaxAge = &atAgeMax
 	}
-	return exposedScope
 }
