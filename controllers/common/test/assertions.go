@@ -12,20 +12,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/nais/digdirator/pkg/clients"
 )
 
-func ResourceExists(cli client.Client, key client.ObjectKey, instance runtime.Object) func() bool {
+func ResourceExists(cli client.Client, key client.ObjectKey, instance client.Object) func() bool {
 	return func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		return !errors.IsNotFound(err)
 	}
 }
 
-func ResourceDoesNotExist(cli client.Client, key client.ObjectKey, instance runtime.Object) func() bool {
+func ResourceDoesNotExist(cli client.Client, key client.ObjectKey, instance client.Object) func() bool {
 	return func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		return errors.IsNotFound(err)

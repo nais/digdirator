@@ -7,7 +7,6 @@ import (
 
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/nais/digdirator/pkg/clients"
 
@@ -37,7 +36,7 @@ type Config struct {
 
 type resource struct {
 	client.ObjectKey
-	runtime.Object
+	client.Object
 }
 
 func New(cli client.Client, config Config) ClusterFixtures {

@@ -112,18 +112,22 @@ func generateCertChain() ([]*x509.Certificate, error) {
 	rootTemplate := certificateTemplate(rootSubject)
 	intermediateTemplate := certificateTemplate(intermediateSubject)
 	certificateTemplate := certificateTemplate(certificateSubject)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate RSA keypair: %w", err)
+	}
 
-	root, err := generateCertificate(rootTemplate, rootTemplate)
+	root, err := generateCertificate(rootTemplate, rootTemplate, privateKey)
 	if err != nil {
 		return nil, err
 	}
 
-	intermediate, err := generateCertificate(intermediateTemplate, root)
+	intermediate, err := generateCertificate(intermediateTemplate, root, privateKey)
 	if err != nil {
 		return nil, err
 	}
 
-	certificate, err := generateCertificate(certificateTemplate, intermediate)
+	certificate, err := generateCertificate(certificateTemplate, intermediate, privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -135,11 +139,7 @@ func generateCertChain() ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-func generateCertificate(template, parent *x509.Certificate) (*x509.Certificate, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate RSA keypair: %w", err)
-	}
+func generateCertificate(template, parent *x509.Certificate, privateKey *rsa.PrivateKey) (*x509.Certificate, error) {
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, parent, privateKey.Public(), privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate the certificate for key: %w", err)
