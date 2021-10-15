@@ -1,9 +1,6 @@
 name: Build Dependabot PR
 
-on: [pull_request_target]
-
-env:
-  image: ghcr.io/${{ github.repository }}
+on: [pull_request]
 
 jobs:
   build:
@@ -12,11 +9,6 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - name: Generate image environment variable
-        run: |
-          version=$(./version.sh)
-          echo "version=${version}" >> $GITHUB_ENV
-          echo "IMAGE=${image}:${version}" >> $GITHUB_ENV
       - name: Build the Docker image
         run: |
-          docker build --pull --tag ${IMAGE} .
+          docker build .
