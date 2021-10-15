@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.15 as builder
+FROM golang:1.17 as builder
 
 ENV os "linux"
 ENV arch "amd64"
