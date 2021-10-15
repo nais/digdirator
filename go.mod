@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/zapr v0.4.0
 	github.com/google/uuid v1.1.2
 	github.com/mitchellh/mapstructure v1.4.2
-	github.com/nais/liberator v0.0.0-20210806113649-57927b602b1f
+	github.com/nais/liberator v0.0.0-20211014102649-30695ad5b14c
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5
@@ -76,8 +76,8 @@ require (
 	gopkg.in/ini.v1 v1.63.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/apiextensions-apiserver v0.21.3 // indirect
-	k8s.io/component-base v0.21.3 // indirect
+	k8s.io/apiextensions-apiserver v0.21.5 // indirect
+	k8s.io/component-base v0.21.5 // indirect
 	k8s.io/klog/v2 v2.8.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7 // indirect
 	k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471 // indirect
