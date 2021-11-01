@@ -17,8 +17,8 @@ require (
 	go.uber.org/zap v1.19.1
 	google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6
 	gopkg.in/square/go-jose.v2 v2.6.0
-	k8s.io/api v0.22.2
-	k8s.io/apimachinery v0.22.2
+	k8s.io/api v0.22.3
+	k8s.io/apimachinery v0.22.3
 	k8s.io/client-go v0.22.2
 	sigs.k8s.io/controller-runtime v0.10.2
 )
