@@ -2,13 +2,14 @@ package common
 
 import (
 	"fmt"
-	"github.com/nais/digdirator/pkg/clients"
-	"github.com/nais/digdirator/pkg/metrics"
+
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	finalizer2 "github.com/nais/liberator/pkg/finalizer"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/metrics"
 )
 
 const (
@@ -26,7 +27,7 @@ func (r Reconciler) finalizer(transaction *Transaction) finalizer {
 }
 
 func (f finalizer) Register() (ctrl.Result, error) {
-	if !finalizer2.HasFinalizer(f.Instance, FinalizerName) {
+	if !controllerutil.ContainsFinalizer(f.Instance, FinalizerName) {
 		f.Logger.Info("finalizer for object not found, registering...")
 
 		err := f.updateInstance(f.Ctx, f.Instance, func(existing clients.Instance) error {
@@ -42,7 +43,7 @@ func (f finalizer) Register() (ctrl.Result, error) {
 }
 
 func (f finalizer) Process() (ctrl.Result, error) {
-	if !finalizer2.HasFinalizer(f.Instance, FinalizerName) {
+	if !controllerutil.ContainsFinalizer(f.Instance, FinalizerName) {
 		return ctrl.Result{}, nil
 	}
 
