@@ -1,35 +1,40 @@
 package scopes
 
 import (
-	"github.com/nais/digdirator/pkg/clients"
-	"github.com/nais/digdirator/pkg/digdir/types"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
+
+	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/digdir/types"
 )
 
 type ScopeStash struct {
-	Current  []Scope
 	ToCreate []naisiov1.ExposedScope
+	ToUpdate []Scope
 }
 
-func (s ScopeStash) FilterScopes(actualScopesRegistrations []types.ScopeRegistration, desired clients.Instance, exposedScopes map[string]naisiov1.ExposedScope) *ScopeStash {
-	for _, exposedScope := range exposedScopes {
-		scopeDoNotExist := true
-		for _, actual := range actualScopesRegistrations {
-			if scopeExists(exposedScope.Product, exposedScope.Name, actual.Subscope) {
-				scopeDoNotExist = false
+func (s ScopeStash) FilterScopes(actualScopes []types.ScopeRegistration, client clients.Instance, desiredScopes map[string]naisiov1.ExposedScope) *ScopeStash {
+	for _, desired := range desiredScopes {
+		exists := false
 
-				if scopeIsManaged(actual, desired, exposedScope) {
-					s.Current = append(s.Current, CurrentScopeInfo(actual, exposedScope))
-				}
-				break
+		for _, actual := range actualScopes {
+			if !scopeExists(desired.Product, desired.Name, actual.Subscope) {
+				continue
 			}
+
+			exists = true
+			if scopeIsManaged(client, actual, desired) {
+				s.ToUpdate = append(s.ToUpdate, CurrentScopeInfo(actual, desired))
+			}
+
+			break
 		}
-		if scopeDoNotExist {
-			// scope do not exist, will be created
-			s.ToCreate = append(s.ToCreate, exposedScope)
+
+		if !exists {
+			s.ToCreate = append(s.ToCreate, desired)
 		}
 	}
+
 	return &s
 }
 
@@ -37,6 +42,6 @@ func scopeExists(exposedScopeProduct, exposedScopeName, actualScopeName string) 
 	return kubernetes.ToScope(exposedScopeProduct, exposedScopeName) == actualScopeName
 }
 
-func scopeIsManaged(actual types.ScopeRegistration, desired clients.Instance, scope naisiov1.ExposedScope) bool {
-	return actual.Description == kubernetes.UniformResourceScopeName(desired, scope.Product, scope.Name)
+func scopeIsManaged(client clients.Instance, actual types.ScopeRegistration, scope naisiov1.ExposedScope) bool {
+	return actual.Description == kubernetes.UniformResourceScopeName(client, scope.Product, scope.Name)
 }

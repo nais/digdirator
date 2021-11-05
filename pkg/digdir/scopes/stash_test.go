@@ -2,13 +2,15 @@ package scopes
 
 import (
 	"fmt"
-	"github.com/nais/digdirator/pkg/clients"
-	"github.com/nais/digdirator/pkg/digdir/types"
+	"testing"
+
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
+
+	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/digdir/types"
 )
 
 func TestScopeFilteringWithNewScopeAndOneExistingOne(t *testing.T) {
@@ -31,9 +33,9 @@ func TestScopeFilteringWithNewScopeAndOneExistingOne(t *testing.T) {
 	result := *scopeContainer.FilterScopes(actualScopeRegistrations, currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes())
 
 	assert.Equal(t, 0, len(result.ToCreate))
-	assert.Equal(t, 1, len(result.Current))
-	assert.Equal(t, currentScope, result.Current[0].CurrentScope.Name)
-	assert.True(t, result.Current[0].CurrentScope.Enabled)
+	assert.Equal(t, 1, len(result.ToUpdate))
+	assert.Equal(t, currentScope, result.ToUpdate[0].CurrentScope.Name)
+	assert.True(t, result.ToUpdate[0].CurrentScope.Enabled)
 }
 
 func TestScopeFiltering(t *testing.T) {
@@ -82,14 +84,14 @@ func TestScopeFiltering(t *testing.T) {
 	assert.Equal(t, 1, len(scopesToCreate.Consumers))
 
 	// Scopes existing, owned and used by current application
-	assert.Equal(t, 2, len(result.Current))
+	assert.Equal(t, 2, len(result.ToUpdate))
 
 	validRegistrations := map[string]string{
 		currentScope:  currentScope,
 		currentScope2: currentScope2,
 	}
 
-	for _, v := range result.Current {
+	for _, v := range result.ToUpdate {
 		if _, ok := validRegistrations[v.ScopeRegistration.Name]; ok {
 			assert.True(t, ok, "Map should be a valid list of current scopes")
 		}
