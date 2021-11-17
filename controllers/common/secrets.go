@@ -2,7 +2,7 @@ package common
 
 import (
 	"fmt"
-	"github.com/nais/digdirator/pkg/clients"
+
 	"github.com/nais/liberator/pkg/kubernetes"
 	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -10,6 +10,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/nais/digdirator/pkg/clients"
 )
 
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch

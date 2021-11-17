@@ -2,15 +2,17 @@ package metrics
 
 import (
 	"context"
-	"github.com/nais/digdirator/pkg/clients"
-	"github.com/nais/digdirator/pkg/digdir/types"
+	"time"
+
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
+
+	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/digdir/types"
 )
 
 const (
@@ -385,7 +387,6 @@ func (m metrics) Refresh(ctx context.Context) {
 
 	t := time.NewTicker(exp)
 	for range t.C {
-		log.Debug("Refreshing metrics from cluster")
 		if err = m.reader.List(ctx, &idportenSecretList, client.MatchingLabels{
 			clients.TypeLabelKey: clients.IDPortenTypeLabelValue,
 		}); err != nil {

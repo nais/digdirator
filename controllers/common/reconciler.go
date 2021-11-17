@@ -32,10 +32,9 @@ import (
 const RequeueInterval = 10 * time.Second
 
 type Reconciler struct {
-	Client client.Client
-	Reader client.Reader
-	Scheme *runtime.Scheme
-
+	Client     client.Client
+	Reader     client.Reader
+	Scheme     *runtime.Scheme
 	Recorder   record.EventRecorder
 	Config     *config.Config
 	Signer     jose.Signer
@@ -155,7 +154,7 @@ func (r *Reconciler) shouldSkip(tx *Transaction) bool {
 }
 
 func (r *Reconciler) inSharedNamespace(tx *Transaction) (bool, error) {
-	sharedNs, err := kubernetes.ListSharedNamespaces(tx.Ctx, r.Reader)
+	sharedNs, err := kubernetes.ListSharedNamespaces(tx.Ctx, r.Client)
 	if err != nil {
 		return false, err
 	}
