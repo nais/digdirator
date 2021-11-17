@@ -4,24 +4,49 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/nais/digdirator/pkg/clients"
-	"github.com/nais/digdirator/pkg/config"
-	"github.com/nais/digdirator/pkg/digdir/scopes"
-	"github.com/nais/digdirator/pkg/digdir/types"
-	"github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"github.com/nais/liberator/pkg/kubernetes"
-	"gopkg.in/square/go-jose.v2"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"github.com/nais/liberator/pkg/kubernetes"
+	"gopkg.in/square/go-jose.v2"
+
+	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/digdir/scopes"
+	"github.com/nais/digdirator/pkg/digdir/types"
+	"github.com/nais/digdirator/pkg/retry"
 )
 
 const (
 	httpRequestTimeout = 30 * time.Second
+	retryInitialDelay  = 1 * time.Second
+	retryMaxAttempts   = 5
 )
+
+var (
+	ServerError = errors.New("ServerError")
+	ClientError = errors.New("ClientError")
+)
+
+type Error struct {
+	Err     error
+	Status  string
+	Message string
+}
+
+func (in *Error) Error() string {
+	return fmt.Sprintf("HTTP %s: %s", in.Status, in.Message)
+}
+
+func (in *Error) Unwrap() error {
+	return in.Err
+}
 
 type Client struct {
 	HttpClient *http.Client
@@ -111,45 +136,64 @@ func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) 
 }
 
 func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget interface{}) error {
-	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
-	defer cancel()
+	retryable := func(ctx context.Context) error {
+		ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
+		defer cancel()
 
-	token, err := c.getAuthToken(ctx)
-	if err != nil {
-		return fmt.Errorf("getting token from digdir: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewBuffer(payload))
-	if err != nil {
-		return fmt.Errorf("creating client %s request: %w", method, err)
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := c.HttpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("performing %s request to %s: %w", method, endpoint, err)
-	}
-
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("reading server response: %w", err)
-	}
-
-	if resp.StatusCode >= 400 {
-		return fmt.Errorf("server responded with %s: %s", resp.Status, body)
-	}
-
-	if unmarshalTarget != nil {
-		if err := json.Unmarshal(body, &unmarshalTarget); err != nil {
-			return fmt.Errorf("unmarshalling: %w", err)
+		token, err := c.getAuthToken(ctx)
+		if err != nil {
+			return fmt.Errorf("getting token from digdir: %w", err)
 		}
+
+		req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewBuffer(payload))
+		if err != nil {
+			return fmt.Errorf("creating client %s request: %w", method, err)
+		}
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
+		req.Header.Add("Content-Type", "application/json")
+
+		resp, err := c.HttpClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("performing %s request to %s: %w", method, endpoint, err)
+		}
+
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(resp.Body)
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("reading server response: %w", err)
+		}
+
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			err = &Error{
+				Err:     ClientError,
+				Message: string(body),
+				Status:  resp.Status,
+			}
+		} else if resp.StatusCode >= 500 {
+			err = &Error{
+				Err:     ServerError,
+				Message: string(body),
+				Status:  resp.Status,
+			}
+		}
+		if err != nil {
+			return retry.RetryableError(err)
+		}
+
+		if unmarshalTarget != nil {
+			if err := json.Unmarshal(body, &unmarshalTarget); err != nil {
+				return fmt.Errorf("unmarshalling: %w", err)
+			}
+		}
+		return nil
 	}
-	return nil
+
+	return retry.Fibonacci(retryInitialDelay).
+		WithMaxAttempts(retryMaxAttempts).
+		Do(ctx, retryable)
 }
 
 func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance clients.Instance) Client {

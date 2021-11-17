@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -333,8 +334,25 @@ func (r *Reconciler) handleError(tx *Transaction, err error) (ctrl.Result, error
 	r.reportEvent(tx, corev1.EventTypeWarning, EventFailedSynchronization, "Failed to synchronize client")
 
 	metrics.IncClientsFailedProcessing(tx.Instance)
-	r.reportEvent(tx, corev1.EventTypeNormal, EventRetrying, "Retrying synchronization")
-	return ctrl.Result{RequeueAfter: RequeueInterval}, nil
+
+	var digdirErr *digdir.Error
+	requeue := true
+
+	if errors.As(err, &digdirErr) {
+		if errors.Is(err, digdir.ServerError) {
+			r.reportEvent(tx, corev1.EventTypeNormal, EventRetrying, digdirErr.Message)
+		} else if errors.Is(err, digdir.ClientError) {
+			r.reportEvent(tx, corev1.EventTypeWarning, EventSkipped, digdirErr.Message)
+			requeue = false
+		}
+	}
+
+	if requeue {
+		tx.Logger.Infof("requeuing failed reconciliation after %s", RequeueInterval)
+		return ctrl.Result{RequeueAfter: RequeueInterval}, nil
+	}
+
+	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
