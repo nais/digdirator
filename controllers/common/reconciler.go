@@ -198,26 +198,39 @@ func (r *Reconciler) process(tx *Transaction) error {
 		registrationPayload = *filteredPayload
 	}
 
-	if instanceClient != nil {
-		instanceClient, err = r.updateClient(tx, registrationPayload, instanceClient.ClientID)
-		if err != nil {
-			return err
-		}
+	var clientID string
 
-		r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedInDigDir, "Client is updated")
-		metrics.IncClientsUpdated(tx.Instance)
+	if instanceClient != nil {
+		clientID = instanceClient.ClientID
+
+		instanceClient, err = r.updateClient(tx, registrationPayload, clientID)
+		if err != nil {
+			switch tx.Instance.(type) {
+			case *naisiov1.IDPortenClient:
+				tx.Logger.Errorf("failed to update; ignoring: %+v", err)
+				// FIXME(tronghn): reenable when idporten self service issues are resolved
+				// return err
+			default:
+				return err
+			}
+		} else {
+			r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedInDigDir, "Client is updated")
+			metrics.IncClientsUpdated(tx.Instance)
+		}
 	} else {
 		instanceClient, err = r.createClient(tx, registrationPayload)
 		if err != nil {
 			return err
 		}
 
+		clientID = instanceClient.ClientID
+
 		r.reportEvent(tx, corev1.EventTypeNormal, EventCreatedInDigDir, "Client is registered")
 		metrics.IncClientsCreated(tx.Instance)
 	}
 
 	if len(tx.Instance.GetStatus().GetClientID()) == 0 {
-		tx.Instance.GetStatus().SetClientID(instanceClient.ClientID)
+		tx.Instance.GetStatus().SetClientID(clientID)
 	}
 
 	if !clients.ShouldUpdateSecrets(tx.Instance) {
@@ -235,7 +248,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 		return fmt.Errorf("getting managed secrets: %w", err)
 	}
 
-	if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
+	if err := r.registerJwk(tx, *jwk, *managedSecrets, clientID); err != nil {
 		return err
 	}
 
