@@ -156,7 +156,7 @@ func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient) {
 				in.Spec.Scopes = defaultValidIdportenScopes
 			}
 		case string(types.IntegrationTypeKrr):
-			if in.Spec.Scopes == nil {
+			if len(in.Spec.Scopes) == 0 {
 				in.Spec.Scopes = defaultValidKrrScopes
 			}
 		}
