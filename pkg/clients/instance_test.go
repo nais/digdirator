@@ -165,3 +165,10 @@ func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 
 	assert.Equal(t, types.TokenEndpointAuthMethodPrivateKeyJwt, registration.TokenEndpointAuthMethod)
 }
+
+func TestToClientRegistration_IntegrationType(t *testing.T) {
+	client := minimalIDPortenClient()
+	client.Spec.IntegrationType = string(types.IntegrationTypeApiKlient)
+	registration := clients.ToClientRegistration(client)
+	assert.Equal(t, types.IntegrationTypeApiKlient, registration.IntegrationType)
+}

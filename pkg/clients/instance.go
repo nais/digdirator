@@ -146,6 +146,9 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegist
 	if in.Spec.PostLogoutRedirectURIs == nil || len(in.Spec.PostLogoutRedirectURIs) == 0 {
 		in.Spec.PostLogoutRedirectURIs = []naisiov1.IDPortenURI{IDPortenDefaultPostLogoutRedirectURI}
 	}
+	if in.Spec.IntegrationType == "" {
+		in.Spec.IntegrationType = string(types.IntegrationTypeIDPorten)
+	}
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
@@ -159,7 +162,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegist
 			types.GrantTypeAuthorizationCode,
 			types.GrantTypeRefreshToken,
 		},
-		IntegrationType:        types.IntegrationTypeIDPorten,
+		IntegrationType:        types.IntegrationType(in.Spec.IntegrationType),
 		PostLogoutRedirectURIs: postLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
 		RedirectURIs: []string{
 			string(in.Spec.RedirectURI),
