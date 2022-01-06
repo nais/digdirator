@@ -416,6 +416,8 @@ github.com/nais/liberator v0.0.0-20220106105036-a8c9e2e98d39 h1:g5Ps3Ipv6z1Di7Bh
 github.com/nais/liberator v0.0.0-20220106105036-a8c9e2e98d39/go.mod h1:AjfPx+WVWt8qKe1IFOSAAH5Im4qD5pMnxzw+SDn3rP8=
 github.com/nais/liberator v0.0.0-20220106112531-7da53bec4b4f h1:Vs9D0j9V4PJeL0QthEWkDd+g0Oho1Anke12/J9dXsuY=
 github.com/nais/liberator v0.0.0-20220106112531-7da53bec4b4f/go.mod h1:AjfPx+WVWt8qKe1IFOSAAH5Im4qD5pMnxzw+SDn3rP8=
+github.com/nais/liberator v0.0.0-20220106113917-a92eee5d935d h1:bHzaih8tf3EQnhqPp/LBzXcb1oqfaTHnwgoX0NSembU=
+github.com/nais/liberator v0.0.0-20220106113917-a92eee5d935d/go.mod h1:AjfPx+WVWt8qKe1IFOSAAH5Im4qD5pMnxzw+SDn3rP8=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWbfPhv4DMiApHyliiK5xCTNVSPiaAs=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
