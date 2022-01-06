@@ -131,7 +131,10 @@ func SetAnnotation(instance Instance, key, value string) {
 	}
 }
 
-func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegistration {
+func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient) {
+	var defaultValidIdportenScopes = []string{"openid", "profile"}
+	var defaultValidKrrScopes = []string{"krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read"}
+
 	if in.Spec.AccessTokenLifetime == nil {
 		lifetime := IDPortenDefaultAccessTokenLifetimeSeconds
 		in.Spec.AccessTokenLifetime = &lifetime
@@ -146,6 +149,27 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegist
 	if in.Spec.PostLogoutRedirectURIs == nil || len(in.Spec.PostLogoutRedirectURIs) == 0 {
 		in.Spec.PostLogoutRedirectURIs = []naisiov1.IDPortenURI{IDPortenDefaultPostLogoutRedirectURI}
 	}
+	if in.Spec.IntegrationType != "" {
+		switch in.Spec.IntegrationType {
+		case string(types.IntegrationTypeIDPorten):
+			if len(in.Spec.Scopes) == 0 {
+				in.Spec.Scopes = defaultValidIdportenScopes
+			}
+		case string(types.IntegrationTypeKrr):
+			if len(in.Spec.Scopes) == 0 {
+				in.Spec.Scopes = defaultValidKrrScopes
+			}
+		}
+	}
+
+	if in.Spec.IntegrationType == "" {
+		in.Spec.IntegrationType = string(types.IntegrationTypeIDPorten)
+		in.Spec.Scopes = defaultValidIdportenScopes
+	}
+}
+
+func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegistration {
+	SetIDportenClientDefaultValues(&in)
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
@@ -159,16 +183,14 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegist
 			types.GrantTypeAuthorizationCode,
 			types.GrantTypeRefreshToken,
 		},
-		IntegrationType:        types.IntegrationTypeIDPorten,
+		IntegrationType:        types.IntegrationType(in.Spec.IntegrationType),
 		PostLogoutRedirectURIs: postLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
 		RedirectURIs: []string{
 			string(in.Spec.RedirectURI),
 		},
-		RefreshTokenLifetime: *in.Spec.SessionLifetime,
-		RefreshTokenUsage:    types.RefreshTokenUsageReuse,
-		Scopes: []string{
-			"openid", "profile",
-		},
+		RefreshTokenLifetime:    *in.Spec.SessionLifetime,
+		RefreshTokenUsage:       types.RefreshTokenUsageReuse,
+		Scopes:                  in.Spec.Scopes,
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
 }

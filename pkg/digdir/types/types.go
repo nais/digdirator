@@ -32,6 +32,7 @@ const (
 	IntegrationTypeApiKlient    IntegrationType = "api_klient"
 	IntegrationTypeIDPorten     IntegrationType = "idporten"
 	IntegrationTypeMaskinporten IntegrationType = "maskinporten"
+	IntegrationTypeKrr          IntegrationType = "krr"
 	IntegrationTypeUnknown      IntegrationType = "unknown"
 )
 
