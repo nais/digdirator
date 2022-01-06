@@ -171,4 +171,9 @@ func TestToClientRegistration_IntegrationType(t *testing.T) {
 	client.Spec.IntegrationType = string(types.IntegrationTypeApiKlient)
 	registration := clients.ToClientRegistration(client)
 	assert.Equal(t, types.IntegrationTypeApiKlient, registration.IntegrationType)
+
+	client.Spec.IntegrationType = string(types.IntegrationTypeKrr)
+	registration = clients.ToClientRegistration(client)
+	assert.Equal(t, types.IntegrationTypeKrr, registration.IntegrationType)
+	assert.Equal(t, []string{"krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read"}, registration.Scopes)
 }
