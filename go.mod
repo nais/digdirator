@@ -5,7 +5,7 @@ go 1.17
 require (
 	cloud.google.com/go/kms v1.1.0
 	cloud.google.com/go/secretmanager v1.0.0
-	github.com/go-logr/zapr v0.4.0
+	github.com/go-logr/zapr v1.2.2
 	github.com/google/uuid v1.3.0
 	github.com/mitchellh/mapstructure v1.4.2
 	github.com/nais/liberator v0.0.0-20220106113917-a92eee5d935d
@@ -31,7 +31,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/go-logr/logr v0.4.0 // indirect
+	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
