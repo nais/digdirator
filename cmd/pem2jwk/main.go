@@ -1,22 +1,27 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gopkg.in/square/go-jose.v2"
-	"io/ioutil"
-	"strings"
 )
 
 const (
 	CertChainPath = "cert-chain-path"
 	PublicKeyPath = "public-key-path"
+	Output        = "output"
 )
 
 func init() {
@@ -28,6 +33,7 @@ func init() {
 
 	flag.String(CertChainPath, "chain.pem", "The certificate chain including the certificate itself, in PEM format.")
 	flag.String(PublicKeyPath, "publickey.pem", "The public key associated with the certificate, in PEM format.")
+	flag.String(Output, "public.jwk", "Path to output the resulting JWK to.")
 
 	flag.Parse()
 
@@ -50,12 +56,27 @@ func main() {
 
 	jwk := convertToPublicJwk(certificates, publicKey)
 
-	json, err := jwk.MarshalJSON()
+	src, err := jwk.MarshalJSON()
 	if err != nil {
 		panic(fmt.Errorf("while marshalling json: %w", err))
 	}
 
-	fmt.Println(string(json))
+	dst := &bytes.Buffer{}
+	if err := json.Indent(dst, src, "", "  "); err != nil {
+		panic(err)
+	}
+
+	outputPath := viper.GetString(Output)
+	file, err := os.Create(outputPath)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	_, err = file.Write(dst.Bytes())
+	if err != nil {
+		panic(fmt.Errorf("writing to output: %w", err))
+	}
 }
 
 func parseCertificates() ([]*x509.Certificate, error) {
@@ -107,11 +128,13 @@ func convertToPublicJwk(certificates []*x509.Certificate, publicKey interface{})
 
 	jwk := jose.JSONWebKey{
 		Key:                         publicKey,
+		Algorithm:                   string(jose.RS256),
 		KeyID:                       keyId,
 		Use:                         "sig",
 		Certificates:                certificates,
 		CertificateThumbprintSHA1:   x5tSHA1[:],
 		CertificateThumbprintSHA256: x5tSHA256[:],
+		// TODO - set `exp` (epoch time) for JWK expiry for DigDir's APIs
 	}
 
 	return jwk
