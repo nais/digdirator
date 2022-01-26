@@ -168,12 +168,50 @@ func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 
 func TestToClientRegistration_IntegrationType(t *testing.T) {
 	client := minimalIDPortenClient()
-	client.Spec.IntegrationType = string(types.IntegrationTypeApiKlient)
-	registration := clients.ToClientRegistration(client)
-	assert.Equal(t, types.IntegrationTypeApiKlient, registration.IntegrationType)
 
-	client.Spec.IntegrationType = string(types.IntegrationTypeKrr)
-	registration = clients.ToClientRegistration(client)
-	assert.Equal(t, types.IntegrationTypeKrr, registration.IntegrationType)
-	assert.Equal(t, []string{"krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read"}, registration.Scopes)
+	for _, test := range []struct {
+		name                     string
+		specifiedIntegrationType string
+		wantIntegrationType      types.IntegrationType
+		wantScopes               []string
+	}{
+		{
+			name:                "No integrationType specified then return default IntegrationType and scope",
+			wantIntegrationType: types.IntegrationTypeIDPorten,
+			wantScopes:          []string{"openid", "profile"},
+		},
+		{
+			name:                     "IntegrationType idporten specified then return specified IntegrationType and and matching scope",
+			specifiedIntegrationType: string(types.IntegrationTypeIDPorten),
+			wantIntegrationType:      types.IntegrationTypeIDPorten,
+			wantScopes:               []string{"openid", "profile"},
+		},
+		{
+			name:                     "IntegrationType api_klient specified then return specified IntegrationType and and matching scope (if any)",
+			specifiedIntegrationType: string(types.IntegrationTypeApiKlient),
+			wantIntegrationType:      types.IntegrationTypeApiKlient,
+		},
+		{
+			name:                     "IntegrationType krr specified then return specified IntegrationType and and matching scope",
+			specifiedIntegrationType: string(types.IntegrationTypeKrr),
+			wantIntegrationType:      types.IntegrationTypeKrr,
+			wantScopes:               []string{"krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read"},
+		},
+		{
+			name:                     "Unknown IntegrationType (should not happen)",
+			specifiedIntegrationType: string(types.IntegrationTypeUnknown),
+			wantIntegrationType:      types.IntegrationTypeUnknown,
+		},
+	} {
+		if len(test.specifiedIntegrationType) > 0 {
+			client.Spec.IntegrationType = test.specifiedIntegrationType
+		}
+
+		actual := clients.ToClientRegistration(client)
+
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.wantIntegrationType, actual.IntegrationType)
+			assert.Equal(t, test.wantScopes, actual.Scopes)
+		})
+	}
 }
