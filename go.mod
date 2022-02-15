@@ -3,7 +3,7 @@ module github.com/nais/digdirator
 go 1.17
 
 require (
-	cloud.google.com/go/kms v1.2.0
+	cloud.google.com/go/kms v1.3.0
 	cloud.google.com/go/secretmanager v1.2.0
 	github.com/go-logr/zapr v1.2.2
 	github.com/google/uuid v1.3.0
