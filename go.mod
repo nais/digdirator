@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	cloud.google.com/go/kms v1.2.0
-	cloud.google.com/go/secretmanager v1.1.0
+	cloud.google.com/go/secretmanager v1.2.0
 	github.com/go-logr/zapr v1.2.2
 	github.com/google/uuid v1.3.0
 	github.com/mitchellh/mapstructure v1.4.3
@@ -16,7 +16,7 @@ require (
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.21.0
-	google.golang.org/genproto v0.0.0-20220204002441-d6cc3cc0770e
+	google.golang.org/genproto v0.0.0-20220207164111-0872dc986b00
 	gopkg.in/square/go-jose.v2 v2.6.0
 	k8s.io/api v0.23.3
 	k8s.io/apimachinery v0.23.3
@@ -72,7 +72,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/api v0.67.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/grpc v1.43.0 // indirect
+	google.golang.org/grpc v1.44.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
