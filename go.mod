@@ -5,7 +5,7 @@ go 1.17
 require (
 	cloud.google.com/go/kms v1.3.0
 	cloud.google.com/go/secretmanager v1.2.0
-	github.com/go-logr/zapr v1.2.2
+	github.com/go-logr/zapr v1.2.3
 	github.com/google/uuid v1.3.0
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/nais/liberator v0.0.0-20220126074744-5ebdc533133e
