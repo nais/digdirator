@@ -32,6 +32,11 @@ func (in Backoff) WithMaxAttempts(attempts int) Backoff {
 	return in
 }
 
+func (in Backoff) WithMaxDuration(timeout time.Duration) Backoff {
+	in.b = retry.WithMaxDuration(timeout, in.b)
+	return in
+}
+
 func (in Backoff) Do(ctx context.Context, f retry.RetryFunc) error {
 	return retry.Do(ctx, in.b, f)
 }
