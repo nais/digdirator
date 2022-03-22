@@ -8,13 +8,13 @@ require (
 	github.com/go-logr/zapr v1.2.3
 	github.com/google/uuid v1.3.0
 	github.com/mitchellh/mapstructure v1.4.3
-	github.com/nais/liberator v0.0.0-20220126074744-5ebdc533133e
+	github.com/nais/liberator v0.0.0-20220316064829-bd3bfc332ea7
 	github.com/prometheus/client_golang v1.12.1
 	github.com/sethvargo/go-retry v0.2.3
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.10.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	go.uber.org/zap v1.21.0
 	google.golang.org/genproto v0.0.0-20220222213610-43724f9ea8cf
 	gopkg.in/square/go-jose.v2 v2.6.0
