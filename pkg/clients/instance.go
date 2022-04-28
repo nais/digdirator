@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/nais/digdirator/pkg/annotations"
-	"github.com/nais/digdirator/pkg/digdir/types"
-	"github.com/nais/digdirator/pkg/secrets"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/nais/digdirator/pkg/annotations"
+	"github.com/nais/digdirator/pkg/digdir/types"
+	"github.com/nais/digdirator/pkg/secrets"
 )
 
 const (
@@ -100,17 +101,6 @@ func ShouldUpdateSecrets(instance Instance) bool {
 	return instance.GetStatus().GetSynchronizationSecretName() != GetSecretName(instance)
 }
 
-func HasSkipAnnotation(instance Instance) bool {
-	switch v := instance.(type) {
-	case *naisiov1.IDPortenClient:
-		return annotations.HasSkipAnnotation(v)
-	case *naisiov1.MaskinportenClient:
-		return annotations.HasSkipAnnotation(v)
-	default:
-		return false
-	}
-}
-
 func HasDeleteAnnotation(instance Instance) bool {
 	switch v := instance.(type) {
 	case *naisiov1.IDPortenClient:
@@ -119,15 +109,6 @@ func HasDeleteAnnotation(instance Instance) bool {
 		return annotations.HasDeleteAnnotation(v)
 	default:
 		return false
-	}
-}
-
-func SetAnnotation(instance Instance, key, value string) {
-	switch v := instance.(type) {
-	case *naisiov1.IDPortenClient:
-		annotations.Set(v, key, value)
-	case *naisiov1.MaskinportenClient:
-		annotations.Set(v, key, value)
 	}
 }
 

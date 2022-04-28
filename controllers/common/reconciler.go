@@ -5,13 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	finalizer2 "github.com/nais/liberator/pkg/finalizer"
+	libfinalizer "github.com/nais/liberator/pkg/finalizer"
 	"github.com/nais/liberator/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/square/go-jose.v2"
@@ -21,7 +20,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/nais/digdirator/pkg/annotations"
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
@@ -72,32 +70,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 		tx.Logger.Infof("finished processing request")
 	}()
 
-	if r.shouldSkip(tx) {
-		tx.Logger.Info("skipping processing of this resource")
-		return ctrl.Result{}, nil
-	}
-
 	finalizer := r.finalizer(tx)
 
-	if finalizer2.IsBeingDeleted(tx.Instance) {
+	if libfinalizer.IsBeingDeleted(tx.Instance) {
 		return finalizer.Process()
 	}
 
-	if !finalizer2.HasFinalizer(tx.Instance, FinalizerName) {
+	if !libfinalizer.HasFinalizer(tx.Instance, FinalizerName) {
 		return finalizer.Register()
-	}
-
-	inSharedNamespace, err := r.inSharedNamespace(tx)
-
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if inSharedNamespace {
-		if err := r.Client.Update(tx.Ctx, tx.Instance); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to update resource with skip flag: %w", err)
-		}
-		return ctrl.Result{}, nil
 	}
 
 	if isUpToDate, err := clients.IsUpToDate(tx.Instance); isUpToDate {
@@ -142,34 +122,6 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 		&digdirClient,
 	)
 	return &transaction, nil
-}
-
-func (r *Reconciler) shouldSkip(tx *Transaction) bool {
-	if clients.HasSkipAnnotation(tx.Instance) {
-		msg := fmt.Sprintf("Resource contains '%s' annotation. Skipping processing...", annotations.SkipKey)
-		tx.Logger.Debug(msg)
-		r.reportEvent(tx, corev1.EventTypeWarning, naisiov1.EventSkipped, msg)
-		return true
-	}
-	return false
-}
-
-func (r *Reconciler) inSharedNamespace(tx *Transaction) (bool, error) {
-	sharedNs, err := kubernetes.ListSharedNamespaces(tx.Ctx, r.Client)
-	if err != nil {
-		return false, err
-	}
-	for _, ns := range sharedNs.Items {
-		if ns.Name == tx.Instance.GetNamespace() {
-			msg := fmt.Sprintf("Resource should not exist in shared namespace '%s'. Skipping...", tx.Instance.GetNamespace())
-			tx.Logger.Debug(msg)
-			clients.SetAnnotation(tx.Instance, annotations.SkipKey, strconv.FormatBool(true))
-			r.reportEvent(tx, corev1.EventTypeWarning, naisiov1.EventNotInTeamNamespace, msg)
-			r.reportEvent(tx, corev1.EventTypeWarning, naisiov1.EventSkipped, msg)
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 func (r *Reconciler) process(tx *Transaction) error {

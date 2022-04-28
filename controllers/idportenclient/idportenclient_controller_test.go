@@ -2,7 +2,6 @@ package idportenclient_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 
@@ -141,27 +140,4 @@ func secretAssertions(t *testing.T) func(*corev1.Secret, clients.Instance) {
 		assert.Empty(t, actual.Data[secrets.MaskinportenScopesKey])
 		assert.Empty(t, actual.Data[secrets.MaskinportenWellKnownURLKey])
 	}
-}
-
-func TestReconciler_CreateIDPortenClient_ShouldNotProcessInSharedNamespace(t *testing.T) {
-	appName := "shared-namespace-idporten"
-	sharedNamespace := "shared"
-	secretName := fmt.Sprintf("%s-%s", appName, test.AlreadyInUseSecret)
-	cfg := fixtures.Config{
-		DigdirClientName: appName,
-		SecretName:       secretName,
-		UnusedSecretName: test.UnusedSecret,
-		NamespaceName:    sharedNamespace,
-	}
-
-	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig(clients.IDPortenTypeLabelValue).WithSharedNamespace()
-
-	if err := clusterFixtures.Setup(); err != nil {
-		t.Fatalf("failed to set up cluster fixtures: %v", err)
-	}
-	key := client.ObjectKey{
-		Name:      appName,
-		Namespace: sharedNamespace,
-	}
-	test.AssertApplicationShouldNotProcess(t, cli, key, &nais_io_v1.IDPortenClient{})
 }

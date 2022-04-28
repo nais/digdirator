@@ -2,7 +2,6 @@ package maskinportenclient_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 
@@ -140,29 +139,6 @@ func secretAssertions(t *testing.T) func(*corev1.Secret, clients.Instance) {
 		assert.Empty(t, actual.Data[secrets.IDPortenRedirectURIKey])
 		assert.Empty(t, actual.Data[secrets.IDPortenWellKnownURLKey])
 	}
-}
-
-func TestReconciler_CreateMaskinportenClient_ShouldNotProcessInSharedNamespace(t *testing.T) {
-	appName := "shared-namespace-maskinporten"
-	sharedNamespace := "shared"
-	secretName := fmt.Sprintf("%s-%s", appName, test.AlreadyInUseSecret)
-	cfg := fixtures.Config{
-		DigdirClientName: appName,
-		SecretName:       secretName,
-		UnusedSecretName: test.UnusedSecret,
-		NamespaceName:    sharedNamespace,
-	}
-
-	clusterFixtures := fixtures.New(cli, cfg).MinimalConfig(clients.MaskinportenTypeLabelValue).WithSharedNamespace()
-
-	if err := clusterFixtures.Setup(); err != nil {
-		t.Fatalf("failed to set up cluster fixtures: %v", err)
-	}
-	key := client.ObjectKey{
-		Name:      appName,
-		Namespace: sharedNamespace,
-	}
-	test.AssertApplicationShouldNotProcess(t, cli, key, &naisiov1.MaskinportenClient{})
 }
 
 func TestMaskinportenControllerWithNewExternalScope(t *testing.T) {

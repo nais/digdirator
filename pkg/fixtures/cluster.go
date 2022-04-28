@@ -379,19 +379,3 @@ func allExists(ctx context.Context, cli client.Client, resources []resource) (bo
 	}
 	return true, nil
 }
-
-func (c ClusterFixtures) WithSharedNamespace() ClusterFixtures {
-	c.namespace = &corev1.Namespace{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Namespace",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: c.NamespaceName,
-			Labels: map[string]string{
-				"shared": "true",
-			},
-		},
-	}
-	return c
-}

@@ -38,12 +38,6 @@ gcloud auth login --update-adc
 
 ### Configuration
 
-To simulate shared and team namespace
-
-```shell script
-kubectl label ns default shared=true; kubectl create ns test
-```
-
 Set up the required environment variables as per the [config](./pkg/config/config.go) 
 
 ```yaml
