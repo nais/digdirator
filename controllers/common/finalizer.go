@@ -55,9 +55,8 @@ func (f finalizer) Process() (ctrl.Result, error) {
 	}
 
 	clientExists := clientRegistration != nil
-	shouldDelete := clients.HasDeleteAnnotation(f.Instance)
 
-	if clientExists && shouldDelete {
+	if clientExists {
 		f.Logger.Info("delete annotation set, deleting client from DigDir...")
 		if err := f.DigdirClient.Delete(f.Ctx, f.Instance.GetStatus().GetClientID()); err != nil {
 			return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
@@ -70,7 +69,7 @@ func (f finalizer) Process() (ctrl.Result, error) {
 		exposedScopes := instance.GetExposedScopes()
 		scopes := f.Reconciler.scopes(f.Transaction)
 
-		if exposedScopes != nil && shouldDelete {
+		if exposedScopes != nil {
 			if err := scopes.Finalize(exposedScopes); err != nil {
 				return ctrl.Result{}, fmt.Errorf("deleting scope from Maskinporten: %w", err)
 			}

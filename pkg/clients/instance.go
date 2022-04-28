@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/nais/digdirator/pkg/annotations"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/secrets"
 )
@@ -99,17 +98,6 @@ func IsUpToDate(instance Instance) (bool, error) {
 
 func ShouldUpdateSecrets(instance Instance) bool {
 	return instance.GetStatus().GetSynchronizationSecretName() != GetSecretName(instance)
-}
-
-func HasDeleteAnnotation(instance Instance) bool {
-	switch v := instance.(type) {
-	case *naisiov1.IDPortenClient:
-		return annotations.HasDeleteAnnotation(v)
-	case *naisiov1.MaskinportenClient:
-		return annotations.HasDeleteAnnotation(v)
-	default:
-		return false
-	}
 }
 
 func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient) {
