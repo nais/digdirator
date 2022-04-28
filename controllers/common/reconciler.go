@@ -203,20 +203,13 @@ func (r *Reconciler) process(tx *Transaction) error {
 	if instanceClient != nil {
 		clientID = instanceClient.ClientID
 
-		instanceClient, err = r.updateClient(tx, registrationPayload, clientID)
+		_, err = r.updateClient(tx, registrationPayload, clientID)
 		if err != nil {
-			switch tx.Instance.(type) {
-			case *naisiov1.IDPortenClient:
-				tx.Logger.Errorf("failed to update; ignoring: %+v", err)
-				// FIXME(tronghn): reenable when idporten self service issues are resolved
-				// return err
-			default:
-				return err
-			}
-		} else {
-			r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedInDigDir, "Client is updated")
-			metrics.IncClientsUpdated(tx.Instance)
+			return err
 		}
+
+		r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedInDigDir, "Client is updated")
+		metrics.IncClientsUpdated(tx.Instance)
 	} else {
 		instanceClient, err = r.createClient(tx, registrationPayload)
 		if err != nil {
