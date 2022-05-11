@@ -16,6 +16,10 @@ import (
 
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch
 
+const (
+	StakaterReloaderKeyAnnotation = "reloader.stakater.com/match"
+)
+
 type secretsClient struct {
 	*Transaction
 	Reconciler
@@ -36,6 +40,9 @@ func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
 	labels := clients.MakeLabels(s.Instance)
 
 	objectMeta := kubernetes.ObjectMeta(s.secretName, s.Instance.GetNamespace(), labels)
+	objectMeta.SetAnnotations(map[string]string{
+		StakaterReloaderKeyAnnotation: "true",
+	})
 
 	stringData, err := clients.SecretData(s.Instance, jwk)
 	if err != nil {

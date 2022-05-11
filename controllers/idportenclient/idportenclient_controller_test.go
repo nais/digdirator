@@ -129,6 +129,13 @@ func secretAssertions(t *testing.T) func(*corev1.Secret, clients.Instance) {
 		assert.NotEmpty(t, actualLabels, "Labels should not be empty")
 		assert.Equal(t, expectedLabels, actualLabels, "Labels should be set")
 
+		actualAnnotations := actual.GetAnnotations()
+		expectedAnnotations := map[string]string{
+			common.StakaterReloaderKeyAnnotation: "true",
+		}
+		assert.NotEmpty(t, actualAnnotations, "Annotations should not be empty")
+		assert.Equal(t, expectedAnnotations, actualAnnotations, "Annotations should be set")
+
 		assert.Equal(t, corev1.SecretTypeOpaque, actual.Type, "Secret type should be Opaque")
 		assert.NotEmpty(t, actual.Data[secrets.IDPortenClientIDKey])
 		assert.NotEmpty(t, actual.Data[secrets.IDPortenJwkKey])
