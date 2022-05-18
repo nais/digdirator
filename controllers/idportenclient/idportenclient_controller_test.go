@@ -142,10 +142,16 @@ func secretAssertions(t *testing.T) func(*corev1.Secret, clients.Instance) {
 		assert.NotEmpty(t, actual.Data[secrets.IDPortenJwkKey])
 		assert.NotEmpty(t, actual.Data[secrets.IDPortenRedirectURIKey])
 		assert.NotEmpty(t, actual.Data[secrets.IDPortenWellKnownURLKey])
+		assert.NotEmpty(t, actual.Data[secrets.IDPortenIssuerKey])
+		assert.NotEmpty(t, actual.Data[secrets.IDPortenJwksUriKey])
+		assert.NotEmpty(t, actual.Data[secrets.IDPortenTokenEndpointKey])
 
 		assert.Empty(t, actual.Data[secrets.MaskinportenJwkKey])
 		assert.Empty(t, actual.Data[secrets.MaskinportenClientIDKey])
 		assert.Empty(t, actual.Data[secrets.MaskinportenScopesKey])
 		assert.Empty(t, actual.Data[secrets.MaskinportenWellKnownURLKey])
+		assert.Empty(t, actual.Data[secrets.MaskinportenIssuerKey])
+		assert.Empty(t, actual.Data[secrets.MaskinportenJwksUriKey])
+		assert.Empty(t, actual.Data[secrets.MaskinportenTokenEndpointKey])
 	}
 }

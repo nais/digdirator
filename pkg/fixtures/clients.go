@@ -22,6 +22,7 @@ func MinimalIDPortenClient() *naisiov1.IDPortenClient {
 		Status: naisiov1.DigdiratorStatus{
 			SynchronizationHash:  "8b5ebee90b513411",
 			SynchronizationState: common.EventSynchronized,
+			ClientID:             "test-idporten",
 		},
 	}
 }
@@ -45,6 +46,7 @@ func MinimalMaskinportenClient() *naisiov1.MaskinportenClient {
 		Status: naisiov1.DigdiratorStatus{
 			SynchronizationHash:  "9829660b73e52236",
 			SynchronizationState: common.EventSynchronized,
+			ClientID:             "test-maskinporten",
 		},
 	}
 }
@@ -83,6 +85,7 @@ func MinimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenC
 		Status: naisiov1.DigdiratorStatus{
 			SynchronizationHash:  "18a7e807ed742be3",
 			SynchronizationState: common.EventSynchronized,
+			ClientID:             "test-maskinporten",
 		},
 	}
 }

@@ -31,16 +31,37 @@ func TestIDPortenClientSecretData(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, string(expected), stringData[secrets.IDPortenJwkKey])
 		})
-		t.Run("Secret Data should contain "+secrets.IDPortenWellKnownURLKey, func(t *testing.T) {
-			expected := "https://idporten.example.com/.well-known/openid-configuration"
-			assert.Equal(t, expected, stringData[secrets.IDPortenWellKnownURLKey])
-		})
-		t.Run("Secret Data should contain "+secrets.IDPortenClientIDKey, func(t *testing.T) {
-			assert.Equal(t, client.Status.ClientID, stringData[secrets.IDPortenClientIDKey])
-		})
-		t.Run("Secret Data should contain "+secrets.IDPortenRedirectURIKey, func(t *testing.T) {
-			assert.Equal(t, string(client.Spec.RedirectURI), stringData[secrets.IDPortenRedirectURIKey])
-		})
+
+		for _, test := range []struct {
+			key      string
+			expected string
+		}{
+			{
+				key:      secrets.IDPortenClientIDKey,
+				expected: "test-idporten",
+			},
+			{
+				key:      secrets.IDPortenWellKnownURLKey,
+				expected: "https://idporten.example.com/.well-known/openid-configuration",
+			},
+			{
+				key:      secrets.IDPortenIssuerKey,
+				expected: "https://idporten.example.com/",
+			},
+			{
+				key:      secrets.IDPortenJwksUriKey,
+				expected: "https://idporten.example.com/jwk",
+			},
+			{
+				key:      secrets.IDPortenTokenEndpointKey,
+				expected: "https://idporten.example.com/token",
+			},
+		} {
+			t.Run("Secret Data should contain "+test.key, func(t *testing.T) {
+				assert.NotEmpty(t, stringData[test.key])
+				assert.Equal(t, test.expected, stringData[test.key])
+			})
+		}
 	})
 }
 
@@ -67,16 +88,41 @@ func TestMaskinportenClientSecretData(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, string(expected), stringData[secrets.MaskinportenJwkKey])
 		})
-		t.Run("Secret Data should contain "+secrets.MaskinportenWellKnownURLKey, func(t *testing.T) {
-			expected := "https://maskinporten.example.com/.well-known/oauth-authorization-server"
-			assert.Equal(t, expected, stringData[secrets.MaskinportenWellKnownURLKey])
-		})
-		t.Run("Secret Data should contain "+secrets.MaskinportenClientIDKey, func(t *testing.T) {
-			assert.Equal(t, client.Status.ClientID, stringData[secrets.MaskinportenClientIDKey])
-		})
-		t.Run("Secret Data should contain "+secrets.MaskinportenScopesKey+" with a single string of scopes separated by space", func(t *testing.T) {
-			assert.Equal(t, "scope:one scope:two", stringData[secrets.MaskinportenScopesKey])
-		})
+
+		for _, test := range []struct {
+			key      string
+			expected string
+		}{
+			{
+				key:      secrets.MaskinportenClientIDKey,
+				expected: "test-maskinporten",
+			},
+			{
+				key:      secrets.MaskinportenWellKnownURLKey,
+				expected: "https://maskinporten.example.com/.well-known/oauth-authorization-server",
+			},
+			{
+				key:      secrets.MaskinportenIssuerKey,
+				expected: "https://maskinporten.example.com/",
+			},
+			{
+				key:      secrets.MaskinportenJwksUriKey,
+				expected: "https://maskinporten.example.com/jwk",
+			},
+			{
+				key:      secrets.MaskinportenTokenEndpointKey,
+				expected: "https://maskinporten.example.com/token",
+			},
+			{
+				key:      secrets.MaskinportenScopesKey,
+				expected: "scope:one scope:two",
+			},
+		} {
+			t.Run("Secret Data should contain "+test.key, func(t *testing.T) {
+				assert.NotEmpty(t, stringData[test.key])
+				assert.Equal(t, test.expected, stringData[test.key])
+			})
+		}
 	})
 }
 
