@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -12,6 +13,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/secrets"
 )
 
 // +kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;delete;update;patch
@@ -44,7 +47,7 @@ func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
 		StakaterReloaderKeyAnnotation: "true",
 	})
 
-	stringData, err := clients.SecretData(s.Instance, jwk, s.Config)
+	stringData, err := secretData(s.Instance, jwk, s.Config)
 	if err != nil {
 		return fmt.Errorf("while creating secret data: %w", err)
 	}
@@ -102,4 +105,22 @@ func (s secretsClient) DeleteUnused(unused corev1.SecretList) error {
 		}
 	}
 	return nil
+}
+
+func secretData(instance clients.Instance, jwk jose.JSONWebKey, config *config.Config) (map[string]string, error) {
+	var stringData map[string]string
+	var err error
+
+	switch v := instance.(type) {
+	case *nais_io_v1.IDPortenClient:
+		stringData, err = secrets.IDPortenClientSecretData(v, jwk, config)
+	case *nais_io_v1.MaskinportenClient:
+		stringData, err = secrets.MaskinportenClientSecretData(v, jwk, config)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return stringData, nil
 }

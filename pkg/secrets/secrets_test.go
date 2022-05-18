@@ -1,4 +1,4 @@
-package clients_test
+package secrets_test
 
 import (
 	"encoding/json"
@@ -8,21 +8,21 @@ import (
 	"github.com/nais/liberator/pkg/oauth"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
+	"github.com/nais/digdirator/pkg/fixtures"
 	"github.com/nais/digdirator/pkg/secrets"
 )
 
-func TestSecretData_IDPortenClient(t *testing.T) {
-	client := minimalIDPortenClient()
+func TestIDPortenClientSecretData(t *testing.T) {
+	client := fixtures.MinimalIDPortenClient()
 
 	jwk, err := crypto.GenerateJwk()
 	assert.NoError(t, err)
 
 	cfg := makeConfig()
 
-	stringData, err := clients.SecretData(client, *jwk, cfg)
+	stringData, err := secrets.IDPortenClientSecretData(client, *jwk, cfg)
 	assert.NoError(t, err, "should not error")
 
 	t.Run("StringData should contain expected fields and values", func(t *testing.T) {
@@ -44,8 +44,8 @@ func TestSecretData_IDPortenClient(t *testing.T) {
 	})
 }
 
-func TestSecretData_MaskinportenClient(t *testing.T) {
-	client := minimalMaskinportenClient()
+func TestMaskinportenClientSecretData(t *testing.T) {
+	client := fixtures.MinimalMaskinportenClient()
 	client.Spec.Scopes = naisiov1.MaskinportenScope{
 		ConsumedScopes: []naisiov1.ConsumedScope{
 			{Name: "scope:one"},
@@ -58,7 +58,7 @@ func TestSecretData_MaskinportenClient(t *testing.T) {
 
 	cfg := makeConfig()
 
-	stringData, err := clients.SecretData(client, *jwk, cfg)
+	stringData, err := secrets.MaskinportenClientSecretData(client, *jwk, cfg)
 	assert.NoError(t, err, "should not error")
 
 	t.Run("StringData should contain expected fields and values", func(t *testing.T) {

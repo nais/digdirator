@@ -1,56 +1,59 @@
 package clients_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/digdir/types"
+	"github.com/nais/digdirator/pkg/fixtures"
 	"github.com/nais/digdirator/pkg/secrets"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGetIntegrationType(t *testing.T) {
-	idPortenClient := minimalIDPortenClient()
+	idPortenClient := fixtures.MinimalIDPortenClient()
 	assert.Equal(t, types.IntegrationTypeIDPorten, clients.GetIntegrationType(idPortenClient))
 
-	maskinportenClient := minimalMaskinportenClient()
+	maskinportenClient := fixtures.MinimalMaskinportenClient()
 	assert.Equal(t, types.IntegrationTypeMaskinporten, clients.GetIntegrationType(maskinportenClient))
 }
 
 func TestGetInstanceType(t *testing.T) {
-	idPortenClient := minimalIDPortenClient()
+	idPortenClient := fixtures.MinimalIDPortenClient()
 	assert.Equal(t, "*nais_io_v1.IDPortenClient", clients.GetInstanceType(idPortenClient))
 
-	maskinportenClient := minimalMaskinportenClient()
+	maskinportenClient := fixtures.MinimalMaskinportenClient()
 	assert.Equal(t, "*nais_io_v1.MaskinportenClient", clients.GetInstanceType(maskinportenClient))
 }
 
 func TestGetSecretName(t *testing.T) {
-	idPortenClient := minimalIDPortenClient()
+	idPortenClient := fixtures.MinimalIDPortenClient()
 	idPortenClient.Spec.SecretName = "idporten-secret"
 	assert.Equal(t, "idporten-secret", clients.GetSecretName(idPortenClient))
 
-	maskinportenClient := minimalMaskinportenClient()
+	maskinportenClient := fixtures.MinimalMaskinportenClient()
 	maskinportenClient.Spec.SecretName = "maskinporten-secret"
 	assert.Equal(t, "maskinporten-secret", clients.GetSecretName(maskinportenClient))
 }
 
 func TestGetSecretJwkKey(t *testing.T) {
-	idPortenClient := minimalIDPortenClient()
+	idPortenClient := fixtures.MinimalIDPortenClient()
 	assert.Equal(t, secrets.IDPortenJwkKey, clients.GetSecretJwkKey(idPortenClient))
 
-	maskinportenClient := minimalMaskinportenClient()
+	maskinportenClient := fixtures.MinimalMaskinportenClient()
 	assert.Equal(t, secrets.MaskinportenJwkKey, clients.GetSecretJwkKey(maskinportenClient))
 }
 
 func TestIsUpToDate(t *testing.T) {
 	t.Run("Minimal IDPortenClient should be up-to-date", func(t *testing.T) {
-		actual, err := clients.IsUpToDate(minimalIDPortenClient())
+		actual, err := clients.IsUpToDate(fixtures.MinimalIDPortenClient())
 		assert.NoError(t, err)
 		assert.True(t, actual)
 	})
 
 	t.Run("IDPortenClient with changed value should not be up-to-date", func(t *testing.T) {
-		client := minimalIDPortenClient()
+		client := fixtures.MinimalIDPortenClient()
 		client.Spec.ClientURI = "changed"
 		actual, err := clients.IsUpToDate(client)
 		assert.NoError(t, err)
@@ -58,13 +61,13 @@ func TestIsUpToDate(t *testing.T) {
 	})
 
 	t.Run("Minimal MaskinportenClient should be up-to-date", func(t *testing.T) {
-		actual, err := clients.IsUpToDate(minimalMaskinportenClient())
+		actual, err := clients.IsUpToDate(fixtures.MinimalMaskinportenClient())
 		assert.NoError(t, err)
 		assert.True(t, actual)
 	})
 
 	t.Run("MaskinportenClient with changed value should not be up-to-date", func(t *testing.T) {
-		client := minimalMaskinportenClient()
+		client := fixtures.MinimalMaskinportenClient()
 		client.Spec.SecretName = "changed"
 		actual, err := clients.IsUpToDate(client)
 		assert.NoError(t, err)
@@ -72,13 +75,13 @@ func TestIsUpToDate(t *testing.T) {
 	})
 
 	t.Run("Minimal MaskinportenClientWithExternalInternal should be up-to-date", func(t *testing.T) {
-		actual, err := clients.IsUpToDate(minimalMaskinportenWithScopeInternalExposedClient())
+		actual, err := clients.IsUpToDate(fixtures.MinimalMaskinportenWithScopeInternalExposedClient())
 		assert.NoError(t, err)
 		assert.True(t, actual)
 	})
 
 	t.Run("MaskinportenClientWithExternalInternal with changed value should not be up-to-date", func(t *testing.T) {
-		client := minimalMaskinportenWithScopeInternalExposedClient()
+		client := fixtures.MinimalMaskinportenWithScopeInternalExposedClient()
 		client.Spec.SecretName = "changed"
 		actual, err := clients.IsUpToDate(client)
 		assert.NoError(t, err)
@@ -87,7 +90,7 @@ func TestIsUpToDate(t *testing.T) {
 }
 
 func TestToClientRegistration_IDPortenClient(t *testing.T) {
-	client := minimalIDPortenClient()
+	client := fixtures.MinimalIDPortenClient()
 	registration := clients.ToClientRegistration(client)
 
 	assert.Equal(t, clients.IDPortenDefaultAccessTokenLifetimeSeconds, registration.AccessTokenLifetime)
@@ -129,7 +132,7 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 }
 
 func TestToClientRegistration_MaskinportenClient(t *testing.T) {
-	client := minimalMaskinportenClient()
+	client := fixtures.MinimalMaskinportenClient()
 	registration := clients.ToClientRegistration(client)
 
 	assert.Equal(t, clients.IDPortenDefaultAccessTokenLifetimeSeconds, registration.AccessTokenLifetime)
@@ -167,7 +170,7 @@ func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 }
 
 func TestToClientRegistration_IntegrationType(t *testing.T) {
-	client := minimalIDPortenClient()
+	client := fixtures.MinimalIDPortenClient()
 
 	for _, test := range []struct {
 		name                     string

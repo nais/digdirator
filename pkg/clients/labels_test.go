@@ -1,13 +1,16 @@
 package clients_test
 
 import (
-	"github.com/nais/digdirator/pkg/clients"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/fixtures"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMakeLabels_IDPortenClient(t *testing.T) {
-	client := minimalIDPortenClient()
+	client := fixtures.MinimalIDPortenClient()
 
 	actual := clients.MakeLabels(client)
 
@@ -18,7 +21,7 @@ func TestMakeLabels_IDPortenClient(t *testing.T) {
 }
 
 func TestMakeLabels_MaskinportenClient(t *testing.T) {
-	client := minimalMaskinportenClient()
+	client := fixtures.MinimalMaskinportenClient()
 
 	actual := clients.MakeLabels(client)
 

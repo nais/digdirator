@@ -1,12 +1,13 @@
-package clients_test
+package fixtures
 
 import (
-	"github.com/nais/digdirator/controllers/common"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/nais/digdirator/controllers/common"
 )
 
-func minimalIDPortenClient() *naisiov1.IDPortenClient {
+func MinimalIDPortenClient() *naisiov1.IDPortenClient {
 	return &naisiov1.IDPortenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "test-app",
@@ -25,7 +26,7 @@ func minimalIDPortenClient() *naisiov1.IDPortenClient {
 	}
 }
 
-func minimalMaskinportenClient() *naisiov1.MaskinportenClient {
+func MinimalMaskinportenClient() *naisiov1.MaskinportenClient {
 	return &naisiov1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "test-app",
@@ -48,7 +49,7 @@ func minimalMaskinportenClient() *naisiov1.MaskinportenClient {
 	}
 }
 
-func minimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenClient {
+func MinimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenClient {
 	atMaxAge := 30
 	return &naisiov1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{
