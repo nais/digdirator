@@ -46,17 +46,15 @@ Set up the required environment variables as per the [config](./pkg/config/confi
 digdir:
   admin:
     base-url: "base URL for digdir admin API"
-  auth:
-    audience: "audience for JWT assertion"
   idporten:
-    base-url: "base URL endpoint for idporten API"
+    well-known-url: "URL to ID-porten well-known discovery metadata document."
     client-id: "client ID / issuer for JWT assertion"
     scopes: "space separated list of scopes for JWT assertion"
     cert-chain-secret-name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
     cert-chain-secret-version: "Secret version for the secret in Google Secret Manager."
     kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
   maskinporten:
-    base-url: "base URL endpoint for maskinporten API"
+    well-known-url: "URL to Maskinporten well-known discovery metadata document."
     client-id: "client ID / issuer for JWT assertion"
     scopes: "space separated list of scopes for JWT assertion"
     cert-chain-secret-name: "Secret name in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir."

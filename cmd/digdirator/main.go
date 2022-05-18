@@ -66,6 +66,13 @@ func run() error {
 		return err
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+	cfg, err = cfg.WithProviderMetadata(ctx)
+	if err != nil {
+		return err
+	}
+
 	zapLogger, err := setupZapLogger()
 	if err != nil {
 		return err
@@ -82,7 +89,7 @@ func run() error {
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
 
-	ctx := context.Background()
+	ctx = context.Background()
 
 	setupLog.Info("instantiating secret manager client")
 	secretManagerClient, err := google.NewSecretManagerClient(ctx)
@@ -235,15 +242,14 @@ func setupConfig() (*config.Config, error) {
 		config.ClusterName,
 		config.ProjectID,
 		config.DigDirAdminBaseURL,
-		config.DigDirAuthAudience,
 		config.DigDirIDportenClientID,
 		config.DigDirMaskinportenClientID,
 		config.DigDirIDportenCertChainSecretName,
 		config.DigDirMaskinportenCertChainSecretName,
 		config.DigDirIDportenScopes,
 		config.DigDirMaskinportenScopes,
-		config.DigDirIDPortenBaseURL,
-		config.DigDirMaskinportenBaseURL,
+		config.DigDirIDPortenWellKnownURL,
+		config.DigDirMaskinportenWellKnownURL,
 		config.DigDirIDportenKmsKeyPath,
 		config.DigDirMaskinportenKmsKeyPath,
 	}); err != nil {

@@ -12,13 +12,22 @@ type HandlerType string
 const (
 	IDPortenHandlerType     HandlerType = "idporten"
 	MaskinportenHandlerType HandlerType = "maskinporten"
+
+	metadataResponseTemplate = `{
+  "issuer": "http://%[1]s",
+  "jwks_uri": "http://%[1]s/jwks",
+  "token_endpoint": "http://%[1]s/token"
+}`
 )
 
 func DigdirHandler(clientID string, handlerType HandlerType, scope string, orgno string) http.HandlerFunc {
 	var clientExists = false
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.URL.Path == "/idporten-oidc-provider/token":
+		case r.URL.Path == "/.well-known/openid-configuration" || r.URL.Path == "/.well-known/oauth-authorization-server":
+			response := fmt.Sprintf(metadataResponseTemplate, r.Host)
+			_, _ = w.Write([]byte(response))
+		case r.URL.Path == "/token":
 			response := `{ "access_token": "token" }`
 			_, _ = w.Write([]byte(response))
 		// GET (list) clients

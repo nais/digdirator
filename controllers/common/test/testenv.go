@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -86,7 +87,13 @@ func SetupTestEnv(clientID, scope, exposedConsumerOrgno string, handlerType Hand
 	httpClient := testServer.Client()
 	digdiratorConfig.ClusterName = "test-cluster"
 	digdiratorConfig.DigDir.Admin.BaseURL = testServer.URL
-	digdiratorConfig.DigDir.IDPorten.BaseURL = testServer.URL
+	digdiratorConfig.DigDir.IDPorten.WellKnownURL = testServer.URL + "/.well-known/openid-configuration"
+	digdiratorConfig.DigDir.Maskinporten.WellKnownURL = testServer.URL + "/.well-known/oauth-authorization-server"
+
+	digdiratorConfig, err = digdiratorConfig.WithProviderMetadata(context.Background())
+	if err != nil {
+		return nil, nil, err
+	}
 
 	commonReconciler := common.NewReconciler(
 		mgr.GetClient(),

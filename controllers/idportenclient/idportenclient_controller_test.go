@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,7 +24,7 @@ var cli client.Client
 func TestMain(m *testing.M) {
 	testEnv, testEnvClient, err := test.SetupTestEnv(test.ClientID, "", "", test.IDPortenHandlerType)
 	if err != nil {
-		os.Exit(1)
+		log.Fatal(err)
 	}
 	cli = *testEnvClient
 	code := m.Run()

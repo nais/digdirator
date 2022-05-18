@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"testing"
 
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"github.com/nais/liberator/pkg/oauth"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/secrets"
-	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSecretData_IDPortenClient(t *testing.T) {
@@ -19,7 +20,9 @@ func TestSecretData_IDPortenClient(t *testing.T) {
 	jwk, err := crypto.GenerateJwk()
 	assert.NoError(t, err)
 
-	stringData, err := clients.SecretData(client, *jwk)
+	cfg := makeConfig()
+
+	stringData, err := clients.SecretData(client, *jwk, cfg)
 	assert.NoError(t, err, "should not error")
 
 	t.Run("StringData should contain expected fields and values", func(t *testing.T) {
@@ -29,7 +32,7 @@ func TestSecretData_IDPortenClient(t *testing.T) {
 			assert.Equal(t, string(expected), stringData[secrets.IDPortenJwkKey])
 		})
 		t.Run("Secret Data should contain "+secrets.IDPortenWellKnownURLKey, func(t *testing.T) {
-			expected := viper.GetString(config.DigDirIDPortenBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
+			expected := "https://idporten.example.com/.well-known/openid-configuration"
 			assert.Equal(t, expected, stringData[secrets.IDPortenWellKnownURLKey])
 		})
 		t.Run("Secret Data should contain "+secrets.IDPortenClientIDKey, func(t *testing.T) {
@@ -53,7 +56,9 @@ func TestSecretData_MaskinportenClient(t *testing.T) {
 	jwk, err := crypto.GenerateJwk()
 	assert.NoError(t, err)
 
-	stringData, err := clients.SecretData(client, *jwk)
+	cfg := makeConfig()
+
+	stringData, err := clients.SecretData(client, *jwk, cfg)
 	assert.NoError(t, err, "should not error")
 
 	t.Run("StringData should contain expected fields and values", func(t *testing.T) {
@@ -63,7 +68,7 @@ func TestSecretData_MaskinportenClient(t *testing.T) {
 			assert.Equal(t, string(expected), stringData[secrets.MaskinportenJwkKey])
 		})
 		t.Run("Secret Data should contain "+secrets.MaskinportenWellKnownURLKey, func(t *testing.T) {
-			expected := viper.GetString(config.DigDirMaskinportenBaseURL) + "/.well-known/oauth-authorization-server"
+			expected := "https://maskinporten.example.com/.well-known/oauth-authorization-server"
 			assert.Equal(t, expected, stringData[secrets.MaskinportenWellKnownURLKey])
 		})
 		t.Run("Secret Data should contain "+secrets.MaskinportenClientIDKey, func(t *testing.T) {
@@ -73,4 +78,31 @@ func TestSecretData_MaskinportenClient(t *testing.T) {
 			assert.Equal(t, "scope:one scope:two", stringData[secrets.MaskinportenScopesKey])
 		})
 	})
+}
+
+func makeConfig() *config.Config {
+	return &config.Config{
+		DigDir: config.DigDir{
+			IDPorten: config.IDPorten{
+				WellKnownURL: "https://idporten.example.com/.well-known/openid-configuration",
+				Metadata: oauth.MetadataOpenID{
+					MetadataCommon: oauth.MetadataCommon{
+						Issuer:        "https://idporten.example.com/",
+						JwksURI:       "https://idporten.example.com/jwk",
+						TokenEndpoint: "https://idporten.example.com/token",
+					},
+				},
+			},
+			Maskinporten: config.Maskinporten{
+				WellKnownURL: "https://maskinporten.example.com/.well-known/oauth-authorization-server",
+				Metadata: oauth.MetadataOAuth{
+					MetadataCommon: oauth.MetadataCommon{
+						Issuer:        "https://maskinporten.example.com/",
+						JwksURI:       "https://maskinporten.example.com/jwk",
+						TokenEndpoint: "https://maskinporten.example.com/token",
+					},
+				},
+			},
+		},
+	}
 }

@@ -4,22 +4,22 @@ import (
 	"fmt"
 	"strings"
 
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"gopkg.in/square/go-jose.v2"
+
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/secrets"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"github.com/spf13/viper"
-	"gopkg.in/square/go-jose.v2"
 )
 
-func SecretData(instance Instance, jwk jose.JSONWebKey) (map[string]string, error) {
+func SecretData(instance Instance, jwk jose.JSONWebKey, config *config.Config) (map[string]string, error) {
 	var stringData map[string]string
 	var err error
 
 	switch v := instance.(type) {
 	case *nais_io_v1.IDPortenClient:
-		stringData, err = idPortenClientSecretData(v, jwk)
+		stringData, err = idPortenClientSecretData(v, jwk, config)
 	case *nais_io_v1.MaskinportenClient:
-		stringData, err = maskinportenClientSecretData(v, jwk)
+		stringData, err = maskinportenClientSecretData(v, jwk, config)
 	}
 
 	if err != nil {
@@ -29,8 +29,8 @@ func SecretData(instance Instance, jwk jose.JSONWebKey) (map[string]string, erro
 	return stringData, nil
 }
 
-func idPortenClientSecretData(in *nais_io_v1.IDPortenClient, jwk jose.JSONWebKey) (map[string]string, error) {
-	wellKnownURL := viper.GetString(config.DigDirIDPortenBaseURL) + "/idporten-oidc-provider/.well-known/openid-configuration"
+func idPortenClientSecretData(in *nais_io_v1.IDPortenClient, jwk jose.JSONWebKey, config *config.Config) (map[string]string, error) {
+	wellKnownURL := config.DigDir.IDPorten.WellKnownURL
 	jwkJson, err := jwk.MarshalJSON()
 	if err != nil {
 		return nil, fmt.Errorf("marshalling JWK: %w", err)
@@ -43,8 +43,8 @@ func idPortenClientSecretData(in *nais_io_v1.IDPortenClient, jwk jose.JSONWebKey
 	}, nil
 }
 
-func maskinportenClientSecretData(in *nais_io_v1.MaskinportenClient, jwk jose.JSONWebKey) (map[string]string, error) {
-	wellKnownURL := viper.GetString(config.DigDirMaskinportenBaseURL) + "/.well-known/oauth-authorization-server"
+func maskinportenClientSecretData(in *nais_io_v1.MaskinportenClient, jwk jose.JSONWebKey, config *config.Config) (map[string]string, error) {
+	wellKnownURL := config.DigDir.Maskinporten.WellKnownURL
 	jwkJson, err := jwk.MarshalJSON()
 	if err != nil {
 		return nil, fmt.Errorf("marshalling JWK: %w", err)

@@ -1,11 +1,13 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"sort"
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
+	"github.com/nais/liberator/pkg/oauth"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -22,7 +24,6 @@ type Config struct {
 
 type DigDir struct {
 	Admin        Admin        `json:"admin"`
-	Auth         Auth         `json:"auth"`
 	IDPorten     IDPorten     `json:"idporten"`
 	Maskinporten Maskinporten `json:"maskinporten"`
 }
@@ -31,26 +32,24 @@ type Admin struct {
 	BaseURL string `json:"base-url"`
 }
 
-type Auth struct {
-	Audience string `json:"audience"`
-}
-
 type IDPorten struct {
-	BaseURL                string `json:"base-url"`
+	WellKnownURL           string `json:"well-known-url"`
 	KmsKeyPath             string `json:"kms-key-path"`
 	ClientID               string `json:"client-id"`
 	Scopes                 string `json:"scopes"`
 	CertChainSecretName    string `json:"cert-chain-secret-name"`
 	CertChainSecretVersion string `json:"cert-chain-secret-version"`
+	Metadata               oauth.MetadataOpenID
 }
 
 type Maskinporten struct {
-	BaseURL                string `json:"base-url"`
+	WellKnownURL           string `json:"well-known-url"`
 	KmsKeyPath             string `json:"kms-key-path"`
 	ClientID               string `json:"client-id"`
 	Scopes                 string `json:"scopes"`
 	CertChainSecretName    string `json:"cert-chain-secret-name"`
 	CertChainSecretVersion string `json:"cert-chain-secret-version"`
+	Metadata               oauth.MetadataOAuth
 }
 
 type Features struct {
@@ -63,7 +62,6 @@ const (
 	ProjectID                                = "project-id"
 	DevelopmentMode                          = "development-mode"
 	DigDirAdminBaseURL                       = "digdir.admin.base-url"
-	DigDirAuthAudience                       = "digdir.auth.audience"
 	DigDirIDportenClientID                   = "digdir.idporten.client-id"
 	DigDirIDportenScopes                     = "digdir.idporten.scopes"
 	DigDirIDportenCertChainSecretName        = "digdir.idporten.cert-chain-secret-name"
@@ -74,8 +72,8 @@ const (
 	DigDirMaskinportenCertChainSecretVersion = "digdir.maskinporten.cert-chain-secret-version"
 	DigDirIDportenKmsKeyPath                 = "digdir.idporten.kms-key-path"
 	DigDirMaskinportenKmsKeyPath             = "digdir.maskinporten.kms-key-path"
-	DigDirIDPortenBaseURL                    = "digdir.idporten.base-url"
-	DigDirMaskinportenBaseURL                = "digdir.maskinporten.base-url"
+	DigDirIDPortenWellKnownURL               = "digdir.idporten.well-known-url"
+	DigDirMaskinportenWellKnownURL           = "digdir.maskinporten.well-known-url"
 	FeaturesMaskinporten                     = "features.maskinporten"
 )
 
@@ -97,7 +95,6 @@ func init() {
 	flag.String(ProjectID, "", "The gcp project to fetch cert chain secret for the cluster.")
 	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
 	flag.String(DigDirAdminBaseURL, "", "Base URL endpoint for interacting with Digdir Client Registration API")
-	flag.String(DigDirAuthAudience, "", "Audience for JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirIDportenClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirIDportenKmsKeyPath, "", "Full path to key including version in Google Cloud KMS.")
 	flag.String(DigDirIDportenCertChainSecretName, "", "Secret name in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir.")
@@ -108,8 +105,8 @@ func init() {
 	flag.String(DigDirMaskinportenCertChainSecretVersion, "", "Secret version for the secret in Google Secret Manager.")
 	flag.String(DigDirMaskinportenScopes, "", "List of scopes for JWT assertion when authenticating to DigDir with Maskinporten.")
 	flag.String(DigDirIDportenScopes, "", "List of scopes for JWT assertion when authenticating to DigDir with IDporten.")
-	flag.String(DigDirMaskinportenBaseURL, "", "Base URL endpoint for interacting with Maskinporten API.")
-	flag.String(DigDirIDPortenBaseURL, "", "Base URL endpoint for interacting with IDPorten API.")
+	flag.String(DigDirMaskinportenWellKnownURL, "", "URL to Maskinporten well-known discovery metadata document.")
+	flag.String(DigDirIDPortenWellKnownURL, "", "URL to ID-porten well-known discovery metadata document.")
 	flag.Bool(FeaturesMaskinporten, false, "Feature toggle for maskinporten")
 }
 
@@ -162,6 +159,23 @@ func (c Config) Validate(required []string) error {
 		return errors.New("missing configuration values")
 	}
 	return nil
+}
+
+func (c Config) WithProviderMetadata(ctx context.Context) (*Config, error) {
+	idportenMetadata, err := oauth.Metadata(c.DigDir.IDPorten.WellKnownURL).OpenID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	maskinportenMetadata, err := oauth.Metadata(c.DigDir.Maskinporten.WellKnownURL).OAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	c.DigDir.IDPorten.Metadata = *idportenMetadata
+	c.DigDir.Maskinporten.Metadata = *maskinportenMetadata
+
+	return &c, nil
 }
 
 func decoderHook(dc *mapstructure.DecoderConfig) {

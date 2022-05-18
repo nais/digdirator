@@ -44,7 +44,7 @@ func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
 		StakaterReloaderKeyAnnotation: "true",
 	})
 
-	stringData, err := clients.SecretData(s.Instance, jwk)
+	stringData, err := clients.SecretData(s.Instance, jwk, s.Config)
 	if err != nil {
 		return fmt.Errorf("while creating secret data: %w", err)
 	}

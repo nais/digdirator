@@ -4,16 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/nais/digdirator/pkg/crypto"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"gopkg.in/square/go-jose.v2/jwt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"gopkg.in/square/go-jose.v2/jwt"
+
+	"github.com/nais/digdirator/pkg/crypto"
 )
 
 const (
@@ -36,7 +38,7 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 		return nil, fmt.Errorf("generating JWT for ID-porten auth: %w", err)
 	}
 
-	endpoint := c.Config.DigDir.IDPorten.BaseURL + "/idporten-oidc-provider/token"
+	endpoint := c.Config.DigDir.IDPorten.Metadata.TokenEndpoint
 
 	req, err := authRequest(ctx, endpoint, token)
 	if err != nil {
@@ -81,7 +83,7 @@ func (c Client) claims() customClaims {
 	return customClaims{
 		Claims: jwt.Claims{
 			Issuer:    clientID,
-			Audience:  []string{c.Config.DigDir.Auth.Audience},
+			Audience:  []string{c.Config.DigDir.IDPorten.Metadata.Issuer},
 			Expiry:    jwt.NewNumericDate(time.Now().Add(2 * time.Minute)),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
