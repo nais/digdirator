@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -101,8 +102,10 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 	correlationID := uuid.New().String()
 
 	logger := *log.WithFields(log.Fields{
-		instanceType:    req.NamespacedName,
-		"correlationID": correlationID,
+		"instance_type":      instanceType,
+		"instance_name":      req.Name,
+		"instance_namespace": req.Namespace,
+		"correlationID":      correlationID,
 	})
 
 	if err := r.Reader.Get(ctx, req.NamespacedName, instance); err != nil {
@@ -281,7 +284,7 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 	}
 
 	tx.Instance.GetStatus().SetKeyIDs(crypto.KeyIDsFromJwks(&jwksResponse.JSONWebKeySet))
-	tx.Logger = tx.Logger.WithField("KeyIDs", tx.Instance.GetStatus().GetKeyIDs())
+	tx.Logger = tx.Logger.WithField("KeyIDs", strings.Join(tx.Instance.GetStatus().GetKeyIDs(), ", "))
 	tx.Logger.Info("new JWKS for client registered")
 
 	return nil
