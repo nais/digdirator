@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/zapr v1.2.3
 	github.com/google/uuid v1.3.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/nais/liberator v0.0.0-20220518112540-f74050feef86
+	github.com/nais/liberator v0.0.0-20220822130640-83f29d2ce7db
 	github.com/prometheus/client_golang v1.12.2
 	github.com/sethvargo/go-retry v0.2.3
 	github.com/sirupsen/logrus v1.8.1
@@ -60,6 +60,7 @@ require (
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
+	github.com/stretchr/objx v0.4.0 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
