@@ -1,8 +1,13 @@
 package clients
 
 import (
-	"github.com/nais/digdirator/pkg/digdir/types"
 	v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+
+	"github.com/nais/digdirator/pkg/digdir/types"
+)
+
+const (
+	defaultScope = "nav:test/api"
 )
 
 type FilteredScopes struct {
@@ -13,6 +18,10 @@ type FilteredScopes struct {
 func FilterScopes(desired []v1.ConsumedScope, accesibleScopes []types.Scope) FilteredScopes {
 	validScopes := make([]string, 0)
 	invalidScopes := make([]string, 0)
+
+	if len(desired) == 0 {
+		desired = []v1.ConsumedScope{{Name: defaultScope}}
+	}
 
 	for _, scope := range desired {
 		if scopeIsAccessible(scope, accesibleScopes) {
