@@ -88,6 +88,16 @@ func GetSecretJwkKey(instance Instance) string {
 	return ""
 }
 
+func GetSecretClientIDKey(instance Instance) string {
+	switch instance.(type) {
+	case *naisiov1.IDPortenClient:
+		return secrets.IDPortenClientIDKey
+	case *naisiov1.MaskinportenClient:
+		return secrets.MaskinportenClientIDKey
+	}
+	return ""
+}
+
 func IsUpToDate(instance Instance) (bool, error) {
 	newHash, err := instance.Hash()
 	if err != nil {

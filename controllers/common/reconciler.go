@@ -42,13 +42,13 @@ type Reconciler struct {
 }
 
 func NewReconciler(
-	client client.Client,
-	reader client.Reader,
-	scheme *runtime.Scheme,
-	recorder record.EventRecorder,
-	config *config.Config,
-	signer jose.Signer,
-	httpClient *http.Client,
+		client client.Client,
+		reader client.Reader,
+		scheme *runtime.Scheme,
+		recorder record.EventRecorder,
+		config *config.Config,
+		signer jose.Signer,
+		httpClient *http.Client,
 ) Reconciler {
 	return Reconciler{
 		Client:     client,
@@ -164,6 +164,22 @@ func (r *Reconciler) process(tx *Transaction) error {
 		jwk, err = crypto.GetPreviousJwkFromSecret(managedSecrets, clients.GetSecretJwkKey(tx.Instance))
 		if err != nil {
 			return err
+		}
+
+		if len(tx.Instance.GetStatus().GetClientID()) == 0 {
+			clientID := func() string {
+				for _, secret := range append(managedSecrets.Used.Items, managedSecrets.Unused.Items...) {
+					value := secret.Data[clients.GetSecretClientIDKey(tx.Instance)]
+
+					if len(value) != 0 {
+						return string(value)
+					}
+				}
+
+				return ""
+			}()
+
+			tx.Instance.GetStatus().SetClientID(clientID)
 		}
 	} else {
 		if instanceClient == nil {
