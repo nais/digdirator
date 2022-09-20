@@ -42,13 +42,13 @@ type Reconciler struct {
 }
 
 func NewReconciler(
-		client client.Client,
-		reader client.Reader,
-		scheme *runtime.Scheme,
-		recorder record.EventRecorder,
-		config *config.Config,
-		signer jose.Signer,
-		httpClient *http.Client,
+	client client.Client,
+	reader client.Reader,
+	scheme *runtime.Scheme,
+	recorder record.EventRecorder,
+	config *config.Config,
+	signer jose.Signer,
+	httpClient *http.Client,
 ) Reconciler {
 	return Reconciler{
 		Client:     client,
@@ -133,7 +133,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 	instanceClient, err := r.createOrUpdateClient(tx)
 	if err != nil {
 		// TODO - best effort as of now...
-		log.Errorf("creating or updating client: %+v; ignoring...", err)
+		tx.Logger.Errorf("creating or updating client: %+v; ignoring...", err)
 		shouldUsePreviousSecret = true
 	}
 
@@ -198,10 +198,9 @@ func (r *Reconciler) process(tx *Transaction) error {
 		return fmt.Errorf("creating or updating secret: %w", err)
 	}
 
-	// FIXME - skip deletion, temporarily
-	/*if err := secretsClient.DeleteUnused(managedSecrets.Unused); err != nil {
+	if err := secretsClient.DeleteUnused(managedSecrets.Unused); err != nil {
 		return err
-	}*/
+	}
 
 	return nil
 }

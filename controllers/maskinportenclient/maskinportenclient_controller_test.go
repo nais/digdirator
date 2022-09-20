@@ -96,11 +96,9 @@ func TestMaskinportenController(t *testing.T) {
 	}, test.Timeout, test.Interval, "new hash should be set")
 
 	assert.Equal(t, test.ClientID, instance.Status.ClientID, "client ID should still match")
-	// TODO: reenable
-	// assert.Len(t, instance.Status.KeyIDs, 2, "should contain two key IDs")
+	assert.Len(t, instance.Status.KeyIDs, 2, "should contain two key IDs")
 	assert.Contains(t, instance.Status.KeyIDs, "some-keyid", "previous key should still be valid")
-	// TODO: reenable
-	// assert.Contains(t, instance.Status.KeyIDs, "some-new-keyid", "new key should be valid")
+	assert.Contains(t, instance.Status.KeyIDs, "some-new-keyid", "new key should be valid")
 	assert.NotEqual(t, previousCorrelationID, instance.Status.CorrelationID, "should generate new correlation ID")
 	assert.NotEmpty(t, instance.Status.SynchronizationHash)
 	assert.NotEmpty(t, instance.Status.SynchronizationTime)
