@@ -1,0 +1,60 @@
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    {{- include "digdirator.labels" . | nindent 4 }}
+  name: {{ include "digdirator.fullname" . }}
+rules:
+  - apiGroups:
+      - nais.io
+    resources:
+      - idportenclients
+      - idportenclients/status
+      - maskinportenclients
+      - maskinportenclients/status
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - update
+  - apiGroups:
+      - '*'
+    resources:
+      - secrets
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - update
+  - apiGroups:
+      - '*'
+    resources:
+      - pods
+      - namespaces
+    verbs:
+      - list
+      - get
+      - watch
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    {{- include "digdirator.labels" . | nindent 4 }}
+  name: {{ include "digdirator.fullname" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "digdirator.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "digdirator.fullname" . }}
+    namespace: "{{ .Release.Namespace }}"
+---
