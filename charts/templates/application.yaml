@@ -1,0 +1,51 @@
+{{ if .Values.digdirator.enabled }}
+apiVersion: nais.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ include "digdirator.fullname" . }}
+  labels:
+    {{- include "digdirator.labels" . | nindent 4 }}
+    team: {{ .Values.digdirator.team }}
+spec:
+  image: "{{ .Values.repository }}/{{ .Values.digdirator.image}}:{{ .Values.digdirator.tag}}"
+  port: 8080
+  strategy:
+    type: Recreate
+  replicas:
+    min: {{.Values.digdirator.replicas.min}}
+    max: {{.Values.digdirator.replicas.max}}
+  liveness:
+    path: /metrics
+  readiness:
+    path: /metrics
+  prometheus:
+    enabled: true
+    path: /metrics
+  envFrom:
+    {{range $key, $value := .Values.digdirator.envFrom}}
+    - secret: {{ $value }}
+    {{end}}
+  accessPolicy:
+    inbound:
+      rules:
+        - application: prometheus
+    outbound:
+      external:
+      {{ range .Values.digdirator.outbound.external }}
+        - {{ . }}
+      {{ end }}
+  {{ if .Values.digdirator.onprem.enabled }}
+  webproxy: true
+  filesFrom:
+    {{ range $key,$value:= .Values.digdirator.filesFrom }}
+    - mountPath: "{{ $key }}"
+      secret: {{ $value | quote }}
+    {{ end }}
+  {{ end }}
+  env:
+  {{ range $key,$value:= .Values.digdirator.env }}
+    - name: "{{ $key}}"
+      value: {{ $value | quote }}
+  {{ end }}
+  skipCaBundle: true
+{{ end }}
