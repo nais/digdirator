@@ -27,6 +27,8 @@ digdirator:
     - secret: digdirator-env
   outbound:
     external:
+      - cloudkms.googleapis.com
+      - secretmanager.googleapis.com
   secrets:
     google:
       sa:

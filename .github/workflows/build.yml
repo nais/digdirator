@@ -2,7 +2,7 @@ name: Build and deploy digdirator
 
 on:
   push:
-    ignore-paths:
+    paths-ignore:
       - 'charts/**'
       - '.github/workflows/chart.yaml'
 

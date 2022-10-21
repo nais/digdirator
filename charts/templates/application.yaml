@@ -33,8 +33,11 @@ spec:
       {{ range .Values.digdirator.outbound.external }}
         - host: {{ . }}
       {{ end }}
-        - host: cloudkms.googleapis.com
-        - host: secretmanager.googleapis.com
+      {{ if not .Values.digdirator.onprem.enabled }}
+        - host: ver2.maskinporten.no
+        - host: integrasjon-ver2.difi.no
+        - host: oidc-ver2.difi.no
+      {{ end }}
   {{ if .Values.digdirator.onprem.enabled }}
   webproxy: true
   filesFrom:
