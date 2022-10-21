@@ -1,6 +1,10 @@
 name: Build and deploy digdirator
 
-on: [push]
+on:
+  push:
+    ignore-paths:
+      - 'charts/**'
+      - '.github/workflows/chart.yaml'
 
 env:
   image: ghcr.io/${{ github.repository }}
