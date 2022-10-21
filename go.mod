@@ -15,7 +15,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.12.0
 	github.com/stretchr/testify v1.8.0
-	go.uber.org/zap v1.21.0
+	go.uber.org/zap v1.23.0
 	google.golang.org/genproto v0.0.0-20220617124728-180714bec0ad
 	gopkg.in/square/go-jose.v2 v2.6.0
 	k8s.io/api v0.23.6
