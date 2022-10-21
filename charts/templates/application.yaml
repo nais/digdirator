@@ -1,13 +1,12 @@
-{{ if .Values.digdirator.enabled }}
 apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
   name: {{ include "digdirator.fullname" . }}
   labels:
     {{- include "digdirator.labels" . | nindent 4 }}
-    team: {{ .Values.digdirator.team }}
+    team: {{ .Values.team }}
 spec:
-  image: "{{ .Values.repository }}/{{ .Values.digdirator.image}}:{{ .Values.digdirator.tag}}"
+  image: "{{ .Values.image.repository }}/{{ .Values.image.name}}:{{ .Values.image.tag}}"
   port: 8080
   strategy:
     type: Recreate
@@ -32,8 +31,10 @@ spec:
     outbound:
       external:
       {{ range .Values.digdirator.outbound.external }}
-        - {{ . }}
+        - host: {{ . }}
       {{ end }}
+        - host: cloudkms.googleapis.com
+        - host: secretmanager.googleapis.com
   {{ if .Values.digdirator.onprem.enabled }}
   webproxy: true
   filesFrom:
@@ -41,11 +42,10 @@ spec:
     - mountPath: "{{ $key }}"
       secret: {{ $value | quote }}
     {{ end }}
-  {{ end }}
   env:
   {{ range $key,$value:= .Values.digdirator.env }}
     - name: "{{ $key}}"
       value: {{ $value | quote }}
   {{ end }}
+  {{ end }}
   skipCaBundle: true
-{{ end }}

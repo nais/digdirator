@@ -1,7 +1,7 @@
 apiVersion: v2
 name: digdirator
-description: Kubernetes cluster operator for automated registration and lifecycle management 
-  of ID-porten and Maskinporten clients (integrations) with feature Maskinporten Scopes (APIS)
+description: Helm Chart of a K8s cluster operator for automated registration and lifecycle management 
+  of ID-porten and Maskinporten clients.
 type: application
 version: 0.0.1
 appVersion: 0.0.1

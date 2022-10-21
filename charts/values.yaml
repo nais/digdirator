@@ -1,7 +1,11 @@
-repository: europe-north1-docker.pkg.dev/nais-io/nais/images
+image:
+  repository: europe-north1-docker.pkg.dev/nais-io/nais/images
+  name: digdirator
+  tag: sha-1f6a9d0
+
+team: nais
 
 digdirator:
-  enabled: true
   onprem:
     enabled: false
   replicas:
@@ -14,8 +18,6 @@ digdirator:
     requests:
       memory: 256Mi
       cpu: 300m
-  image: digdirator
-  tag: sha-1f6a9d0
   env:
     GOOGLE_APPLICATION_CREDENTIALS: /var/run/secrets/google/sa.json"
   filesFrom:
@@ -25,8 +27,6 @@ digdirator:
     - secret: digdirator-env
   outbound:
     external:
-      - host: cloudkms.googleapis.com
-      - host: secretmanager.googleapis.com
   secrets:
     google:
       sa:
