@@ -34,6 +34,7 @@ digdirator:
       YOLO: "yolo"
       BOLO: "bolo"
       DIGDIRATOR_DIGDIR_IDPORTEN_SCOPES: "idporten:dcr.write idporten:dcr.read"
+      DIGDIRATOR_DIGDIR_IDPORTEN_KMS_KEY_PATH: "projects/virksomhetssertifikat-dev/locations/europe-north1/keyRings/digdirator/cryptoKeys/test-virksomhetssertifikat-non-rep-signering/cryptoKeyVersions/3"
     google:
       sa:
         credentials: ""
