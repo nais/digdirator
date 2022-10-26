@@ -20,11 +20,6 @@ digdirator:
       cpu: 300m
   env:
     GOOGLE_APPLICATION_CREDENTIALS: /var/run/secrets/google/sa.json"
-  filesFrom:
-    - secret: digdirator-google-service-account
-      mountPath: "/var/run/secrets/google"
-  envFrom:
-    - secret: digdirator-env
   outbound:
     external:
       - "cloudkms.googleapis.com"

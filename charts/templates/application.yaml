@@ -21,9 +21,7 @@ spec:
     enabled: true
     path: /metrics
   envFrom:
-    {{range $key, $value := .Values.digdirator.envFrom}}
-    - secret: {{ $value }}
-    {{end}}
+    - secret: digdirator-env
   accessPolicy:
     inbound:
       rules:
@@ -45,5 +43,8 @@ spec:
     - name: "{{ $key}}"
       value: {{ $value | quote }}
   {{ end }}
+  filesFrom:
+    - secret: digdirator-google-service-account
+      mountPath: "/var/run/secrets/google"
   {{ end }}
   skipCaBundle: true
