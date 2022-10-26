@@ -30,7 +30,7 @@ digdirator:
       - "cloudkms.googleapis.com"
       - "secretmanager.googleapis.com"
   secrets:
-    env:
+    environment:
       DIGDIRATOR_DIGDIR_ADMIN_BASE_URL: "https://integrasjon-ver2.difi.no"
       DIGDIRATOR_CLUSTER_NAME: ""
       DIGDIRATOR_DIGDIR_IDPORTEN_CERT_CHAIN_SECRET_NAME: "idporten-cert-chain"
