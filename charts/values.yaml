@@ -33,6 +33,7 @@ digdirator:
     yolo:
       YOLO: "yolo"
       BOLO: "bolo"
+      DIGDIRATOR_DIGDIR_IDPORTEN_SCOPES: "idporten:dcr.write idporten:dcr.read"
     google:
       sa:
         credentials: ""
