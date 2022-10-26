@@ -36,7 +36,7 @@ digdirator:
     env:
       DIGDIRATOR_DIGDIR_ADMIN_BASE_URL: "https://integrasjon-ver2.difi.no"
       DIGDIRATOR_CLUSTER_NAME: ""
-      DIGDIRATOR_DIGDIR_IDPORTEN_CERT_CHAIN_SECRET_NAME: idporten-cert-chain
+      DIGDIRATOR_DIGDIR_IDPORTEN_CERT_CHAIN_SECRET_NAME: "idporten-cert-chain"
       DIGDIRATOR_DIGDIR_IDPORTEN_CERT_CHAIN_SECRET_VERSION: "2"
       DIGDIRATOR_DIGDIR_IDPORTEN_CLIENT_ID: "oidc_nav_digdirator_admin"
       DIGDIRATOR_DIGDIR_IDPORTEN_KMS_KEY_PATH: "projects/virksomhetssertifikat-dev/locations/europe-north1/keyRings/digdirator/cryptoKeys/test-virksomhetssertifikat-non-rep-signering/cryptoKeyVersions/3"
