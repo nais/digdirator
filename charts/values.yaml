@@ -30,27 +30,6 @@ digdirator:
       - "cloudkms.googleapis.com"
       - "secretmanager.googleapis.com"
   secrets:
-    yolo:
-      YOLO: "yolo"
-      BOLO: "bolo"
-      DIGDIRATOR_DIGDIR_ADMIN_BASE_URL: "https://integrasjon-ver2.difi.no"
-      DIGDIRATOR_CLUSTER_NAME: ""
-      DIGDIRATOR_DIGDIR_IDPORTEN_CERT_CHAIN_SECRET_NAME: "idporten-cert-chain"
-      DIGDIRATOR_DIGDIR_IDPORTEN_CERT_CHAIN_SECRET_VERSION: "2"
-      DIGDIRATOR_DIGDIR_IDPORTEN_KMS_KEY_PATH: "projects/virksomhetssertifikat-dev/locations/europe-north1/keyRings/digdirator/cryptoKeys/test-virksomhetssertifikat-non-rep-signering/cryptoKeyVersions/3"
-      DIGDIRATOR_DIGDIR_IDPORTEN_SCOPES: "idporten:dcr.write idporten:dcr.read"
-      DIGDIRATOR_DIGDIR_IDPORTEN_WELL_KNOWN_URL: "https://oidc-ver2.difi.no/idporten-oidc-provider/.well-known/openid-configuration"
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_CERT_CHAIN_SECRET_NAME: "maskinporten-cert-chain"
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_CERT_CHAIN_SECRET_VERSION: "2"
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_CLIENT_ID: "maskinporten_nav_digdirator_admin"
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_KMS_KEY_PATH: "projects/virksomhetssertifikat-dev/locations/europe-north1/keyRings/digdirator/cryptoKeys/test-virksomhetssertifikat-non-rep-signering/cryptoKeyVersions/3"
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_SCOPES: "idporten:dcr.write idporten:dcr.read idporten:scopes.write"
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_WELL_KNOWN_URL: "https://ver2.maskinporten.no/.well-known/oauth-authorization-server"
-      DIGDIRATOR_FEATURES_MASKINPORTEN: "false"
-      DIGDIRATOR_PROJECT_ID: "aura-dev-d9f5"
-    google:
-      sa:
-        credentials: ""
     env:
       DIGDIRATOR_DIGDIR_ADMIN_BASE_URL: "https://integrasjon-ver2.difi.no"
       DIGDIRATOR_CLUSTER_NAME: ""
@@ -68,3 +47,6 @@ digdirator:
       DIGDIRATOR_DIGDIR_MASKINPORTEN_WELL_KNOWN_URL: "https://ver2.maskinporten.no/.well-known/oauth-authorization-server"
       DIGDIRATOR_FEATURES_MASKINPORTEN: "false"
       DIGDIRATOR_PROJECT_ID: "aura-dev-d9f5"
+    google:
+      sa:
+        credentials: ""
