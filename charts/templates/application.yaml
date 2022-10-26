@@ -40,11 +40,6 @@ spec:
       {{ end }}
   {{ if .Values.digdirator.onprem.enabled }}
   webproxy: true
-  filesFrom:
-    {{ range $key,$value:= .Values.digdirator.filesFrom }}
-    - mountPath: "{{ $key }}"
-      secret: {{ $value | quote }}
-    {{ end }}
   env:
   {{ range $key,$value:= .Values.digdirator.env }}
     - name: "{{ $key}}"
