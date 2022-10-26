@@ -49,3 +49,7 @@ Selector labels
 app.kubernetes.io/name: {{ include "digdirator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{- define "digdirator.serviceAccountName" -}}
+{{- include "digdirator.fullname" . }}
+{{- end }}

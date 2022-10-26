@@ -1,9 +1,11 @@
 image:
   repository: europe-north1-docker.pkg.dev/nais-io/nais/images
   name: digdirator
+  pullPolicy: Always
   tag: sha-1f6a9d0
 
 team: nais
+caBundle: false
 
 digdirator:
   onprem:

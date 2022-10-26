@@ -1,0 +1,121 @@
+apiVersion: nais.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ include "digdirator.fullname" . }}
+  labels:
+    {{- include "digdirator.labels" . | nindent 4 }}
+    team: {{ .Values.team }}
+spec:
+  image: "{{ .Values.image.repository }}/{{ .Values.image.name}}:{{ .Values.image.tag}}"
+  port: 8080
+  strategy:
+    type: Recreate
+  replicas:
+    min: {{.Values.digdirator.replicas.min}}
+    max: {{.Values.digdirator.replicas.max}}
+  liveness:
+    path: /metrics
+  readiness:
+    path: /metrics
+  prometheus:
+    enabled: true
+    path: /metrics
+  envFrom:
+    - secret: digdirator-env
+  accessPolicy:
+    inbound:
+      rules:
+        - application: prometheus
+    outbound:
+      external:
+      {{ range .Values.digdirator.outbound.external }}
+        - host: {{ . }}
+      {{ end }}
+      {{ if not .Values.digdirator.onprem.enabled }}
+        - host: ver2.maskinporten.no
+        - host: integrasjon-ver2.difi.no
+        - host: oidc-ver2.difi.no
+      {{ end }}
+  {{ if .Values.digdirator.onprem.enabled }}
+  webproxy: true
+  env:
+  {{ range $key,$value:= .Values.digdirator.env }}
+    - name: "{{ $key}}"
+      value: {{ $value | quote }}
+  {{ end }}
+  filesFrom:
+    - secret: digdirator-google-service-account
+      mountPath: "/var/run/secrets/google"
+  {{ end }}
+  skipCaBundle: true
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "digdirator.fullname" . }}
+  labels:
+    {{- include "digdirator.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "digdirator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "digdirator.selectorLabels" . | nindent 8 }}
+      annotations:
+        kubectl.kubernetes.io/default-container: {{ .Chart.Name }}
+    spec:
+      serviceAccountName: {{ include "digdirator.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 1069
+            runAsNonRoot: true
+            runAsUser: 1069
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+          image: "{{ .Values.image.repository }}/{{ .Values.image.name}}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          {{- range $key, $value := .Values.digdirator.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+          {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ include "digdirator.fullname" . }}-env
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: http
+          resources:
+            {{- toYaml .Values.digdirator.resources | nindent 12 }}
+{{- if .Values.caBundle }}
+          volumeMounts:
+            - mountPath: /etc/ssl/certs/ca-certificates.crt
+              name: ca-bundle-pem
+              readOnly: true
+              subPath: ca-bundle.pem
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: ca-bundle-pem
+          name: ca-bundle-pem
+{{- end}}
