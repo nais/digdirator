@@ -19,7 +19,7 @@ digdirator:
       memory: 256Mi
       cpu: 300m
   env:
-    GOOGLE_APPLICATION_CREDENTIALS: /var/run/secrets/google/sa.json"
+    GOOGLE_APPLICATION_CREDENTIALS: "/var/run/secrets/google/sa.json"
   outbound:
     external:
       - "cloudkms.googleapis.com"
