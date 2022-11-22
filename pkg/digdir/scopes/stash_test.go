@@ -23,7 +23,7 @@ func TestScopeFilteringWithNewScopeAndOneExistingOne(t *testing.T) {
 	scopeRegistration := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope])
 	scopeRegistration.Name = fmt.Sprintf("nav:%s", currentScope)
 	scopeRegistration.Active = true
-	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, "arbeid", currentScope), scopeRegistration.Description)
+	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, currentObjectMeta.ClusterName, "arbeid", currentScope), scopeRegistration.Description)
 	assert.Equal(t, kubernetes.ToScope("arbeid", currentScope), scopeRegistration.Subscope)
 	assert.True(t, scopeRegistration.Active)
 
@@ -54,7 +54,7 @@ func TestScopeFiltering(t *testing.T) {
 	// subscope: scope/api
 	scopeRegistration1 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope])
 	scopeRegistration1.Name = fmt.Sprintf("nav:%s", currentScope)
-	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, "arbeid", currentScope), scopeRegistration1.Description)
+	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, currentObjectMeta.GetClusterName(), "arbeid", currentScope), scopeRegistration1.Description)
 	assert.Equal(t, kubernetes.ToScope("arbeid", currentScope), scopeRegistration1.Subscope)
 
 	// Secound case new format
@@ -62,7 +62,7 @@ func TestScopeFiltering(t *testing.T) {
 	// subscope: team:app.scope
 	scopeRegistration2 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope2])
 	scopeRegistration2.Name = fmt.Sprintf("nav:%s", currentScope2)
-	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, "arbeid", currentScope2), scopeRegistration2.Description)
+	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, currentObjectMeta.GetClusterName(), "arbeid", currentScope2), scopeRegistration2.Description)
 	assert.Equal(t, "arbeid:test.scope2", scopeRegistration2.Subscope)
 
 	// add scopes owned by current application

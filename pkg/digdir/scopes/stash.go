@@ -43,5 +43,5 @@ func scopeExists(exposedScopeProduct, exposedScopeName, actualScopeName string) 
 }
 
 func scopeIsManaged(client clients.Instance, actual types.ScopeRegistration, scope naisiov1.ExposedScope) bool {
-	return actual.Description == kubernetes.UniformResourceScopeName(client, scope.Product, scope.Name)
+	return actual.Description == kubernetes.UniformResourceScopeName(client, client.GetClusterName(), scope.Product, scope.Name)
 }

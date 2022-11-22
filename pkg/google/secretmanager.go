@@ -3,6 +3,7 @@ package google
 import (
 	"context"
 	"fmt"
+	"github.com/nais/digdirator/pkg/config"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
@@ -25,11 +26,11 @@ func NewSecretManagerClient(ctx context.Context) (*secretManagerClient, error) {
 	return &secretManagerClient{client}, nil
 }
 
-func (in *secretManagerClient) KeyChainMetadata(ctx context.Context, projectID, secretName, secretVersion string) ([]byte, error) {
-	req := ToAccessSecretVersionRequest(projectID, secretName, secretVersion)
+func (in *secretManagerClient) KeyChainMetadata(ctx context.Context, certChain config.CertificateChain) ([]byte, error) {
+	req := ToAccessSecretVersionRequest(certChain.ProjectID, certChain.Name, certChain.Version)
 	secretData, err := in.GetSecretData(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("fetching keychain metadata (secret '%s', version '%s' project ID '%s'): %w", secretName, secretVersion, projectID, err)
+		return nil, fmt.Errorf("fetching keychain metadata (secret '%s', version '%s' project ID '%s'): %w", certChain.Name, certChain.Version, certChain.ProjectID, err)
 	}
 	return secretData, nil
 }

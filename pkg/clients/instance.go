@@ -155,7 +155,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegist
 		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
 		ClientName:                        types.DefaultClientName,
 		ClientURI:                         string(in.Spec.ClientURI),
-		Description:                       kubernetes.UniformResourceName(&in),
+		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, in.ClusterName),
 		FrontchannelLogoutSessionRequired: true,
 		FrontchannelLogoutURI:             string(in.Spec.FrontchannelLogoutURI),
 		GrantTypes: []types.GrantType{
@@ -181,7 +181,7 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient) types.Clie
 		AuthorizationLifeTime:             IDPortenDefaultSessionLifetimeSeconds,
 		ClientName:                        types.DefaultClientName,
 		ClientURI:                         IDPortenDefaultClientURI,
-		Description:                       kubernetes.UniformResourceName(&in),
+		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, in.ClusterName),
 		FrontchannelLogoutSessionRequired: false,
 		FrontchannelLogoutURI:             "",
 		GrantTypes: []types.GrantType{
@@ -205,7 +205,7 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 		DelegationSource:           "",
 		Name:                       "",
 		AuthorizationMaxLifetime:   MaskinportenDefaultAuthorizationMaxLifetime,
-		Description:                kubernetes.UniformResourceScopeName(&in, exposedScope.Product, exposedScope.Name),
+		Description:                kubernetes.UniformResourceScopeName(&in.ObjectMeta, in.ClusterName, exposedScope.Product, exposedScope.Name),
 		Prefix:                     MaskinportenScopePrefix,
 		Subscope:                   kubernetes.ToScope(exposedScope.Product, exposedScope.Name),
 		TokenType:                  types.TokenTypeSelfContained,
