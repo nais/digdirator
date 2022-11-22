@@ -26,4 +26,6 @@ WORKDIR /
 COPY --from=builder /workspace/digdirator /digdirator
 RUN apk add --no-cache ca-certificates
 
+HEALTHCHECK CMD curl --fail http://localhost:8080/ || exit 1
+
 CMD ["/digdirator"]
