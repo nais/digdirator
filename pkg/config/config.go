@@ -58,8 +58,8 @@ type KMS struct {
 }
 
 type CertificateChain struct {
-	ProjectID string `json:"project-id"`
 	Name      string `json:"name"`
+	ProjectID string `json:"project-id"`
 	Version   string `json:"version"`
 }
 
