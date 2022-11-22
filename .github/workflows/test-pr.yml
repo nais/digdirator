@@ -1,11 +1,10 @@
-name: Build Dependabot PR
+name: Build and test PR
 
 on: [pull_request]
 
 jobs:
   build:
     name: Checkout code and setup node
-    if: ${{ github.actor == 'dependabot[bot]' }}
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
