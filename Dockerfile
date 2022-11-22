@@ -7,6 +7,9 @@ ENV arch "amd64"
 COPY . /workspace
 WORKDIR /workspace
 
+RUN useradd -d /home/appuser -m -s /bin/bash appuser
+USER appuser
+
 # download kubebuilder
 RUN mkdir -p /usr/local/kubebuilder
 RUN make kubebuilder
@@ -26,6 +29,6 @@ WORKDIR /
 COPY --from=builder /workspace/digdirator /digdirator
 RUN apk add --no-cache ca-certificates
 
-HEALTHCHECK CMD curl --fail http://localhost:8080/ || exit 1
+HEALTHCHECK CMD curl --fail http://localhost:8080/metrics/ || exit 1
 
 CMD ["/digdirator"]
