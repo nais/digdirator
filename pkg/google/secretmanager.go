@@ -26,11 +26,11 @@ func NewSecretManagerClient(ctx context.Context) (*secretManagerClient, error) {
 	return &secretManagerClient{client}, nil
 }
 
-func (in *secretManagerClient) KeyChainMetadata(ctx context.Context, certChain config.CertificateChain) ([]byte, error) {
-	req := ToAccessSecretVersionRequest(certChain.ProjectID, certChain.Name, certChain.Version)
+func (in *secretManagerClient) KeyChainMetadata(ctx context.Context, certChain config.CertChain) ([]byte, error) {
+	req := ToAccessSecretVersionRequest(certChain.SecretProjectID, certChain.SecretName, certChain.SecretVersion)
 	secretData, err := in.GetSecretData(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("fetching keychain metadata (secret '%s', version '%s' project ID '%s'): %w", certChain.Name, certChain.Version, certChain.ProjectID, err)
+		return nil, fmt.Errorf("fetching keychain metadata (secret '%s', version '%s' project ID '%s'): %w", certChain.SecretName, certChain.SecretVersion, certChain.SecretProjectID, err)
 	}
 	return secretData, nil
 }

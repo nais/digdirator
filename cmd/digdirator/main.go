@@ -138,7 +138,7 @@ func run() error {
 		setupLog.Info("fetching certificate key chain for maskinporten")
 		maskinportenKeyChain, err := secretManagerClient.KeyChainMetadata(
 			ctx,
-			cfg.DigDir.Maskinporten.CertificateChain,
+			cfg.DigDir.Maskinporten.CertChain,
 		)
 
 		if err != nil {
@@ -238,22 +238,18 @@ func setupConfig() (*config.Config, error) {
 		config.DigDirAdminBaseURL,
 		config.DigDirIDportenClientID,
 		config.DigDirMaskinportenClientID,
-		config.DigDirIDportenCertChainName,
-		config.DigDirMaskinportenCertChainName,
+		config.DigDirIDportenCertChainSecretName,
+		config.DigDirMaskinportenCertChainSecretName,
+		config.DigDirMaskinportenCertChainSecretProjectID,
+		config.DigDirMaskinportenCertChainSecretVersion,
+		config.DigDirIDportenCertChainSecretProjectID,
+		config.DigDirIDportenCertChainSecretVersion,
 		config.DigDirIDportenScopes,
 		config.DigDirMaskinportenScopes,
 		config.DigDirIDPortenWellKnownURL,
 		config.DigDirMaskinportenWellKnownURL,
 		config.DigDirIDportenKmsKey,
-		config.DigdirIDportenKmsKeyRing,
-		config.DigdirIDportenKmsLocation,
-		config.DigdirIDportenKmsVersion,
-		config.DigdirIDportenKmsProjectID,
 		config.DigDirMaskinportenKmsKey,
-		config.DigdirMaskinportenKmsKeyRing,
-		config.DigdirMaskinportenKmsLocation,
-		config.DigdirMaskinportenKmsVersion,
-		config.DigdirMaskinportenKmsProjectID,
 	}); err != nil {
 		return nil, err
 	}

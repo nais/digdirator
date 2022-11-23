@@ -2,11 +2,11 @@ package crypto
 
 import (
 	kms "cloud.google.com/go/kms/apiv1"
+	"cloud.google.com/go/kms/apiv1/kmspb"
 	"context"
 	"crypto/sha256"
 	"fmt"
 	"github.com/nais/digdirator/pkg/config"
-	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 	"gopkg.in/square/go-jose.v2"
 	"time"
 )
@@ -19,16 +19,8 @@ type KmsOptions struct {
 	KmsConfig config.KMS
 }
 
-func (k KmsOptions) buildPath() KmsKeyPath {
-	return KmsKeyPath(
-		fmt.Sprintf("projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s/cryptoKeyVersions/%s",
-			k.KmsConfig.ProjectID,
-			k.KmsConfig.Location,
-			k.KmsConfig.KeyRing,
-			k.KmsConfig.Key,
-			k.KmsConfig.Version,
-		),
-	)
+func (k KmsOptions) keyPath() KmsKeyPath {
+	return KmsKeyPath(k.KmsConfig.Key)
 }
 
 type KmsByteSigner struct {
@@ -44,7 +36,7 @@ func NewKmsSigner(kms *KmsOptions, opts *jose.SignerOptions) (jose.Signer, error
 		ByteSigner: KmsByteSigner{
 			Client:        kms.Client,
 			Ctx:           kms.Ctx,
-			KmsKeyPath:    kms.buildPath(),
+			KmsKeyPath:    kms.keyPath(),
 			SignerOptions: opts,
 		},
 	}, nil

@@ -56,31 +56,25 @@ digdir:
   admin:
     base-url: "base URL for digdir admin API"
   idporten:
-    well-known-url: "URL to ID-porten well-known discovery metadata document."
     client-id: "client ID / issuer for JWT assertion"
-    certificate-cain:
-      project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
-      name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
-      version: "Secret version for the secret in Google Secret Manager."
-    scopes: "space separated list of scopes for JWT assertion"
+    cert-cain:
+      secret-name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
+      secret-project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
+      secret-version: "Secret version for the secret in Google Secret Manager."
     kms:
-      key: "KMS key name to sign JWT assertion"
-      key-ring: "KMS key ring name where the key is located"
-      location: "KMS key location e.g. europe-north1"
-      project-id: "GCP Project where the key is located"
+      key: "KMS resource path to sign JWT assertion"
+    scopes: "space separated list of scopes for JWT assertion"
+    well-known-url: "URL to ID-porten well-known discovery metadata document."
   maskinporten:
     client-id: "client ID / issuer for JWT assertion"
-    certificate-cain:
-      project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
-      name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
-      version: "Secret version for the secret in Google Secret Manager."
+    cert-cain:
+      secret-name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
+      secret-project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
+      secret-version: "Secret version for the secret in Google Secret Manager."
+    kms:
+      key: "KMS resource path to sign JWT assertion"
     scopes: "space separated list of scopes for JWT assertion"
     well-known-url: "URL to Maskinporten well-known discovery metadata document."
-    kms:
-      key: "KMS key name to sign JWT assertion"
-      key-ring: "KMS key ring name where the key is located"
-      location: "KMS key location e.g. europe-north1"
-      project-id: "GCP Project where the key is located"
 ```
 
 Then, assuming you have a Kubernetes cluster running locally (e.g.
