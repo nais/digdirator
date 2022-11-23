@@ -62,7 +62,7 @@ digdir:
       secret-project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
       secret-version: "Secret version for the secret in Google Secret Manager."
     kms:
-      key: "KMS resource path to sign JWT assertion"
+      key-path: "KMS resource path to sign JWT assertion"
     scopes: "space separated list of scopes for JWT assertion"
     well-known-url: "URL to ID-porten well-known discovery metadata document."
   maskinporten:
@@ -72,7 +72,7 @@ digdir:
       secret-project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
       secret-version: "Secret version for the secret in Google Secret Manager."
     kms:
-      key: "KMS resource path to sign JWT assertion"
+      key-path: "KMS resource path to sign JWT assertion"
     scopes: "space separated list of scopes for JWT assertion"
     well-known-url: "URL to Maskinporten well-known discovery metadata document."
 ```

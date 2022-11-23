@@ -248,8 +248,8 @@ func setupConfig() (*config.Config, error) {
 		config.DigDirMaskinportenScopes,
 		config.DigDirIDPortenWellKnownURL,
 		config.DigDirMaskinportenWellKnownURL,
-		config.DigDirIDportenKmsKey,
-		config.DigDirMaskinportenKmsKey,
+		config.DigDirIDportenKmsKeyPath,
+		config.DigDirMaskinportenKmsKeyPath,
 	}); err != nil {
 		return nil, err
 	}

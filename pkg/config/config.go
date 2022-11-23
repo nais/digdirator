@@ -50,7 +50,7 @@ type Maskinporten struct {
 }
 
 type KMS struct {
-	Key string `json:"key"`
+	KeyPath string `json:"key-path"`
 }
 
 type CertChain struct {
@@ -78,8 +78,8 @@ const (
 	DigDirMaskinportenCertChainSecretName      = "digdir.maskinporten.cert-chain.secret-name"
 	DigDirMaskinportenCertChainSecretVersion   = "digdir.maskinporten.cert-chain.secret-version"
 	DigDirMaskinportenCertChainSecretProjectID = "digdir.maskinporten.cert-chain.secret-project-id"
-	DigDirIDportenKmsKey                       = "digdir.idporten.kms.key"
-	DigDirMaskinportenKmsKey                   = "digdir.maskinporten.kms.key"
+	DigDirIDportenKmsKeyPath                   = "digdir.idporten.kms.key-path"
+	DigDirMaskinportenKmsKeyPath               = "digdir.maskinporten.kms.key-path"
 	DigDirIDPortenWellKnownURL                 = "digdir.idporten.well-known-url"
 	DigDirMaskinportenWellKnownURL             = "digdir.maskinporten.well-known-url"
 	FeaturesMaskinporten                       = "features.maskinporten"
@@ -103,12 +103,12 @@ func init() {
 	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
 	flag.String(DigDirAdminBaseURL, "", "Base URL endpoint for interacting with Digdir Client Registration API")
 	flag.String(DigDirIDportenClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirIDportenKmsKey, "", "IDPorten KMS resource path used to sign JWT assertion when authenticating to DigDir.")
+	flag.String(DigDirIDportenKmsKeyPath, "", "IDPorten KMS resource path used to sign JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirIDportenCertChainSecretName, "", "Secret name in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir.")
 	flag.String(DigDirIDportenCertChainSecretVersion, "", "Secret version for the secret in Google Secret Manager.")
 	flag.String(DigDirIDportenCertChainSecretProjectID, "", "Project ID for the secret in Google Secret Manager.")
 	flag.String(DigDirMaskinportenClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirMaskinportenKmsKey, "", "Maskinporten Google KmsConfig resource path used to sign JWT assertion when authenticating to DigDir.")
+	flag.String(DigDirMaskinportenKmsKeyPath, "", "Maskinporten Google KmsConfig resource path used to sign JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirMaskinportenCertChainSecretName, "", "Secret name in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir.")
 	flag.String(DigDirMaskinportenCertChainSecretVersion, "", "Secret version for the secret in Google Secret Manager.")
 	flag.String(DigDirMaskinportenCertChainSecretProjectID, "", "Project ID for the secret in Google Secret Manager.")

@@ -20,7 +20,7 @@ type KmsOptions struct {
 }
 
 func (k KmsOptions) keyPath() KmsKeyPath {
-	return KmsKeyPath(k.KmsConfig.Key)
+	return KmsKeyPath(k.KmsConfig.KeyPath)
 }
 
 type KmsByteSigner struct {
