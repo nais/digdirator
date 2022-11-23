@@ -16,7 +16,7 @@ The setup is divided into three parts:
 * Upload `business certificate` to Google Key Management Service in your project
 * Upload business certificate `certificate-chain` to Secret Manager in your project
 
-## Pre-requisites:
+## Pre-requisites
 
 ### Tenant
 
@@ -59,10 +59,7 @@ A KMS resource name with the format:
 
 `projects/<project-id>/locations/<location>/keyRings/<key-ring>/cryptoKeys/<key-name>/cryptoKeyVersions/<version>`
 
-Resource naem can be copied to the clipboard `Copy resource name`
-
-![resource-name](images/resource-name.png)
-
+Resource name can be copied to the clipboard in the dot menu and `Copy resource name`.
 
 > Update a certificate only requires the tenant to provide the new version
 
@@ -102,7 +99,7 @@ MIIFZTKKL---
 -----END CERTIFICATE-----
 ```
 
-## What NAIS does
+### NAIS
 
 NAIS sets up Digdirator with a service account with roles to be able to access
 [Google Cloud KMS](https://cloud.google.com/kms/docs/how-tos). The service account is created by default when a NAIS
