@@ -9,33 +9,11 @@ on:
       - '.github/workflows/chart.yaml'
 
 env:
-  image: ghcr.io/${{ github.repository }}
   REGISTRY: europe-north1-docker.pkg.dev/nais-io/nais/images
 
 jobs:
-  build:
-    name: Checkout code and setup node
-    if: ${{ github.actor != 'dependabot[bot]' }}
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - name: Generate image environment variable
-        run: |
-          version=$(./version.sh)
-          echo "version=${version}" >> $GITHUB_ENV
-          echo "IMAGE=${image}:${version}" >> $GITHUB_ENV
-      - name: Login to GitHub Docker Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build an push the Docker image
-        run: |
-          docker build --pull --tag ${IMAGE} .
-          docker push ${IMAGE}
   build_and_push_registry:
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: "read"
       id-token: "write"
@@ -84,39 +62,14 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-  deploy:
-    name: Deploy to Kubernetes
-    if: github.ref == 'refs/heads/master'
-    needs: build
-    runs-on: ubuntu-20.04
+  rollout:
+    permissions:
+      id-token: write
+    needs: [ build_and_push_registry" ]
+    runs-on: fasit-deploy
+    if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v3
+      - uses: nais/fasit-deploy@main
         with:
-          path: digdirator
-      - uses: navikt/github-app-token-generator@v1
-        id: get-token
-        with:
-          private-key: ${{ secrets.NAIS_APP_PRIVATE_KEY }}
-          app-id: ${{ secrets.NAIS_APP_ID }}
-          repo: navikt/nais-yaml
-      - uses: actions/checkout@v3
-        with:
-          repository: navikt/nais-yaml
-          token: ${{ steps.get-token.outputs.token }}
-          path: nais-yaml
-      - name: Generate image environment variable
-        run: |
-          cd digdirator
-          version=$(./version.sh)
-          echo "version=${version}" >> $GITHUB_ENV
-          echo "IMAGE=${image}:${version}" >> $GITHUB_ENV
-      - name: Bump version in nais-yaml
-        run: |
-          cd nais-yaml
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-          sed -E -i "s#image: ghcr.io/nais/digdirator.+#image: ${IMAGE}#" vars/global.yaml
-          git add .
-          git --no-pager diff --cached
-          git commit --no-verify -a -m "Bump digdirator to version ${version}"
-          git push
+          json: '{"image": {"tag": "${{ needs.build_and_push_registry.outputs.version }}"}}'
+          feature_name: digdirator
