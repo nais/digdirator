@@ -100,9 +100,7 @@ func run() error {
 	setupLog.Info("fetching certificate key chain for idporten")
 	idportenKeyChain, err := secretManagerClient.KeyChainMetadata(
 		ctx,
-		cfg.ProjectID,
-		cfg.DigDir.IDPorten.CertChainSecretName,
-		cfg.DigDir.IDPorten.CertChainSecretVersion,
+		cfg.DigDir.IDPorten.CertificateChain,
 	)
 
 	if err != nil {
@@ -112,7 +110,7 @@ func run() error {
 	setupLog.Info("setting up signer for idporten")
 	idportenSigner, err := setupSigner(
 		idportenKeyChain,
-		cfg.DigDir.IDPorten.KmsKeyPath,
+		cfg.DigDir.IDPorten.KMS,
 		ctx,
 	)
 	if err != nil {
@@ -140,9 +138,7 @@ func run() error {
 		setupLog.Info("fetching certificate key chain for maskinporten")
 		maskinportenKeyChain, err := secretManagerClient.KeyChainMetadata(
 			ctx,
-			cfg.ProjectID,
-			cfg.DigDir.Maskinporten.CertChainSecretName,
-			cfg.DigDir.Maskinporten.CertChainSecretVersion,
+			cfg.DigDir.Maskinporten.CertChain,
 		)
 
 		if err != nil {
@@ -152,7 +148,7 @@ func run() error {
 		setupLog.Info("setting up signer for maskinporten")
 		maskinportenSigner, err := setupSigner(
 			maskinportenKeyChain,
-			cfg.DigDir.Maskinporten.KmsKeyPath,
+			cfg.DigDir.Maskinporten.KMS,
 			ctx,
 		)
 		if err != nil {
@@ -190,22 +186,21 @@ func run() error {
 	return nil
 }
 
-func setupSigner(certChain []byte, kmsKeyPath string, ctx context.Context) (jose.Signer, error) {
+func setupSigner(certChain []byte, kmsConfig config.KMS, ctx context.Context) (jose.Signer, error) {
 	signerOpts, err := crypto.SetupSignerOptions(certChain)
 	if err != nil {
 		return nil, fmt.Errorf("setting up signer options: %v", err)
 	}
 
-	kmsPath := crypto.KmsKeyPath(kmsKeyPath)
 	kmsCtx := ctx
 	kmsClient, err := kms.NewKeyManagementClient(kmsCtx)
 	if err != nil {
 		return nil, fmt.Errorf("error creating key management client: %v", err)
 	}
 	return crypto.NewKmsSigner(&crypto.KmsOptions{
-		Client:     kmsClient,
-		Ctx:        kmsCtx,
-		KmsKeyPath: kmsPath,
+		Client:    kmsClient,
+		Ctx:       kmsCtx,
+		KmsConfig: kmsConfig,
 	}, signerOpts)
 }
 
@@ -240,12 +235,15 @@ func setupConfig() (*config.Config, error) {
 
 	if err = cfg.Validate([]string{
 		config.ClusterName,
-		config.ProjectID,
 		config.DigDirAdminBaseURL,
 		config.DigDirIDportenClientID,
 		config.DigDirMaskinportenClientID,
 		config.DigDirIDportenCertChainSecretName,
 		config.DigDirMaskinportenCertChainSecretName,
+		config.DigDirMaskinportenCertChainSecretProjectID,
+		config.DigDirMaskinportenCertChainSecretVersion,
+		config.DigDirIDportenCertChainSecretProjectID,
+		config.DigDirIDportenCertChainSecretVersion,
 		config.DigDirIDportenScopes,
 		config.DigDirMaskinportenScopes,
 		config.DigDirIDPortenWellKnownURL,

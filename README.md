@@ -1,18 +1,23 @@
 # digdirator
 
-Digdirator is a Kubernetes cluster operator for automated registration and lifecycle management of ID-porten and Maskinporten clients (integrations) with feature Maskinporten Scopes (APIS).
+Digdirator is a Kubernetes cluster operator for automated registration and lifecycle management of ID-porten and
+Maskinporten clients (integrations) with feature Maskinporten Scopes (APIS).
 
 ## CRD
 
 The operator introduces two new Kinds:  
-`IDPortenClient` (shortname `idportenclient`) and `MaskinportenClient` (shortname `maskinportenclient`), and acts upon changes to these.
+`IDPortenClient` (shortname `idportenclient`) and `MaskinportenClient` (shortname `maskinportenclient`), and acts upon
+changes to these.
 
 See the specs in [liberator](https://github.com/nais/liberator) for details:
 
-- [config/crd/nais.io_idportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_idportenclients.yaml) and
-- [config/crd/nais.io_maskinportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_maskinportenclients.yaml) for details.
+- [config/crd/nais.io_idportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_idportenclients.yaml)
+  and
+- [config/crd/nais.io_maskinportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_maskinportenclients.yaml)
+  for details.
 
-An example of resources is available in [config/samples/idportenclient.yaml](config/samples/idportenclient.yaml) and [config/samples/maskinportenclient.yaml](config/samples/maskinportenclient.yaml).
+An example of resources is available in [config/samples/idportenclient.yaml](config/samples/idportenclient.yaml)
+and [config/samples/maskinportenclient.yaml](config/samples/maskinportenclient.yaml).
 
 ## Lifecycle
 
@@ -38,36 +43,42 @@ gcloud auth login --update-adc
 
 ### Configuration
 
-Set up the required environment variables as per the [config](./pkg/config/config.go) 
+Set up the required environment variables as per the [config](./pkg/config/config.go)
 
 ```yaml
 # ./digdirator.yaml
 
+cluster-name: local
+development-mode: true
+features:
+  maskinporten: true
 digdir:
   admin:
     base-url: "base URL for digdir admin API"
   idporten:
+    client-id: "client ID / issuer for JWT assertion"
+    cert-cain:
+      secret-name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
+      secret-project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
+      secret-version: "Secret version for the secret in Google Secret Manager."
+    kms:
+      key-path: "KMS resource path to sign JWT assertion"
+    scopes: "space separated list of scopes for JWT assertion"
     well-known-url: "URL to ID-porten well-known discovery metadata document."
-    client-id: "client ID / issuer for JWT assertion"
-    scopes: "space separated list of scopes for JWT assertion"
-    cert-chain-secret-name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
-    cert-chain-secret-version: "Secret version for the secret in Google Secret Manager."
-    kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
   maskinporten:
-    well-known-url: "URL to Maskinporten well-known discovery metadata document."
     client-id: "client ID / issuer for JWT assertion"
+    cert-cain:
+      secret-name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
+      secret-project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
+      secret-version: "Secret version for the secret in Google Secret Manager."
+    kms:
+      key-path: "KMS resource path to sign JWT assertion"
     scopes: "space separated list of scopes for JWT assertion"
-    cert-chain-secret-name: "Secret name in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir."
-    cert-chain-secret-version: "Secret version for the secret in Google Secret Manager."
-    kms-key-path: "example: projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key/cryptoKeyVersions/123"
-cluster-name: local
-development-mode: true
-project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
-features:
-  maskinporten: true
+    well-known-url: "URL to Maskinporten well-known discovery metadata document."
 ```
 
-Then, assuming you have a Kubernetes cluster running locally (e.g. using [minikube](https://github.com/kubernetes/minikube)):
+Then, assuming you have a Kubernetes cluster running locally (e.g.
+using [minikube](https://github.com/kubernetes/minikube)):
 
 ```shell script
 ulimit -n 4096  # for controller-gen
