@@ -65,7 +65,7 @@ jobs:
   rollout:
     permissions:
       id-token: write
-    needs: [ build_and_push_registry" ]
+    needs: [ "build_and_push_registry" ]
     runs-on: fasit-deploy
     if: github.ref == 'refs/heads/main'
     steps:
