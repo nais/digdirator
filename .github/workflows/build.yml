@@ -13,7 +13,7 @@ env:
 
 jobs:
   build_and_push_registry:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     permissions:
       contents: "read"
       id-token: "write"
@@ -67,7 +67,7 @@ jobs:
       id-token: write
     needs: [ "build_and_push_registry" ]
     runs-on: fasit-deploy
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     steps:
       - uses: nais/fasit-deploy@main
         with:
