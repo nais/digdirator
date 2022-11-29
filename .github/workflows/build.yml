@@ -56,7 +56,7 @@ jobs:
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}}
             type=sha
-            type=raw,value={{date 'YYYYMMDDhhmmss'}}-{{sha}}
+            type=raw,value=${{ steps.version.outputs.version }}
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
