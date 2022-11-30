@@ -1,12 +1,10 @@
 package google
 
 import (
+	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"context"
 	"fmt"
-	"github.com/nais/digdirator/pkg/config"
-
-	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
 
 type SecretManagerClient interface {
@@ -26,11 +24,34 @@ func NewSecretManagerClient(ctx context.Context) (*secretManagerClient, error) {
 	return &secretManagerClient{client}, nil
 }
 
-func (in *secretManagerClient) KeyChainMetadata(ctx context.Context, certChain config.CertChain) ([]byte, error) {
-	req := ToAccessSecretVersionRequest(certChain.SecretProjectID, certChain.SecretName, certChain.SecretVersion)
+func (in *secretManagerClient) KeyChainMetadata(ctx context.Context, certChainPath string) ([]byte, error) {
+	if err := ParseSecretPath(certChainPath); err != nil {
+		return nil, err
+	}
+
+	req := &secretmanagerpb.AccessSecretVersionRequest{
+		Name: certChainPath,
+	}
+
 	secretData, err := in.GetSecretData(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("fetching keychain metadata (secret '%s', version '%s' project ID '%s'): %w", certChain.SecretName, certChain.SecretVersion, certChain.SecretProjectID, err)
+		return nil, fmt.Errorf("fetching keychain metadata (secret path '%s'): %w", certChainPath, err)
+	}
+	return secretData, nil
+}
+
+func (in *secretManagerClient) ClientIdMetadata(ctx context.Context, secretPath string) ([]byte, error) {
+	if err := ParseSecretPath(secretPath); err != nil {
+		return nil, err
+	}
+
+	req := &secretmanagerpb.AccessSecretVersionRequest{
+		Name: secretPath,
+	}
+
+	secretData, err := in.GetSecretData(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching client-id metadata (secret path '%s'): %w", secretPath, err)
 	}
 	return secretData, nil
 }
@@ -41,11 +62,4 @@ func (in *secretManagerClient) GetSecretData(ctx context.Context, req *secretman
 		return nil, fmt.Errorf("while accessing secretmanager: %w", err)
 	}
 	return result.Payload.Data, nil
-}
-
-func ToAccessSecretVersionRequest(projectID, secretName, secretVersion string) *secretmanagerpb.AccessSecretVersionRequest {
-	name := fmt.Sprintf("projects/%s/secrets/%s/versions/%s", projectID, secretName, secretVersion)
-	return &secretmanagerpb.AccessSecretVersionRequest{
-		Name: name,
-	}
 }

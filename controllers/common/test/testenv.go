@@ -103,6 +103,7 @@ func SetupTestEnv(clientID, scope, exposedConsumerOrgno string, handlerType Hand
 		digdiratorConfig,
 		signer,
 		httpClient,
+		[]byte("client-id"),
 	)
 
 	switch handlerType {

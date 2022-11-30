@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -53,6 +52,7 @@ type Client struct {
 	Signer     jose.Signer
 	Config     *config.Config
 	instance   clients.Instance
+	ClientId   []byte
 }
 
 func (c Client) Register(ctx context.Context, payload types.ClientRegistration) (*types.ClientRegistration, error) {
@@ -161,7 +161,7 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 			_ = Body.Close()
 		}(resp.Body)
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("reading server response: %w", err)
 		}
@@ -196,12 +196,13 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 		Do(ctx, retryable)
 }
 
-func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance clients.Instance) Client {
+func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance clients.Instance, clientId []byte) Client {
 	return Client{
 		httpClient,
 		signer,
 		config,
 		instance,
+		clientId,
 	}
 }
 
