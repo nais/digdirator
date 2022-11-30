@@ -136,16 +136,16 @@ If we were to express the above information in yaml, it would look like this:
 ```yaml
 maskinporten:
   kms:
-    key: "projects/123456789/locations/europe-north1/keyRings/nais-test/cryptoKeys/digdirator/cryptoKeyVersions/1"
+    key: "projects/123456789/locations/europe-north1/keyRings/nais-test/cryptoKeys/certificate-test/cryptoKeyVersions/1"
   secret-manager:
-    client-id: "projects/123456789/secrets/digdirator-maskinporten-client-id/versions/1"
-    cert-cain: "projects/123456789/secrets/digdirator/versions/1"
+    client-id: "projects/123456789/secrets/maskinporten-client-id/versions/1"
+    cert-cain: "projects/123456789/secrets/maskinporten-cert-chain/versions/1"
 idporten:
   kms:
-    key: "projects/123456789/locations/europe-north1/keyRings/nais-test/cryptoKeys/digdirator/cryptoKeyVersions/1"
+    key: "projects/123456789/locations/europe-north1/keyRings/nais-test/cryptoKeys/certificate-test/cryptoKeyVersions/1"
   secret-manager:
-    client-id: "projects/123456789/secrets/digdirator-idporten-client-id/versions/1"
-    cert-cain: "projects/123456789/secrets/digdirator/versions/1"
+    client-id: "projects/123456789/secrets/idporten-client-id/versions/1"
+    cert-cain: "projects/123456789/secrets/idporten-cert-chain/versions/1"
 ```
 
 ## Import Certificates
