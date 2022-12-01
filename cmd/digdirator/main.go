@@ -117,6 +117,16 @@ func run() error {
 		return fmt.Errorf("unable to setup signer: %w", err)
 	}
 
+	setupLog.Info("fetching client-id for idporten")
+	idportenClientId, err := secretManagerClient.ClientIdMetadata(
+		ctx,
+		cfg.DigDir.IDPorten.ClientID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("unable to fetch idporten client id: %w", err)
+	}
+
 	setupLog.Info("instantiating reconciler for idporten")
 	idportenReconciler := idportenclient.NewReconciler(common.NewReconciler(
 		mgr.GetClient(),
@@ -126,6 +136,7 @@ func run() error {
 		cfg,
 		idportenSigner,
 		http.DefaultClient,
+		idportenClientId,
 	))
 
 	setupLog.Info("setting up idporten reconciler with manager")
@@ -155,6 +166,16 @@ func run() error {
 			return fmt.Errorf("unable to setup signer: %w", err)
 		}
 
+		setupLog.Info("fetching client-id for maskinporten")
+		maskinportenClientId, err := secretManagerClient.ClientIdMetadata(
+			ctx,
+			cfg.DigDir.Maskinporten.ClientID,
+		)
+
+		if err != nil {
+			return fmt.Errorf("unable to fetch maskinporten client id: %w", err)
+		}
+
 		setupLog.Info("instantiating reconciler for maskinporten")
 		maskinportenReconciler := maskinportenclient.NewReconciler(
 			common.NewReconciler(
@@ -165,6 +186,7 @@ func run() error {
 				cfg,
 				maskinportenSigner,
 				http.DefaultClient,
+				maskinportenClientId,
 			))
 
 		setupLog.Info("setting up maskinporten reconciler with manager")
@@ -238,12 +260,10 @@ func setupConfig() (*config.Config, error) {
 		config.DigDirAdminBaseURL,
 		config.DigDirIDportenClientID,
 		config.DigDirMaskinportenClientID,
-		config.DigDirIDportenCertChainSecretName,
-		config.DigDirMaskinportenCertChainSecretName,
-		config.DigDirMaskinportenCertChainSecretProjectID,
-		config.DigDirMaskinportenCertChainSecretVersion,
-		config.DigDirIDportenCertChainSecretProjectID,
-		config.DigDirIDportenCertChainSecretVersion,
+		config.DigDirIDportenCertChain,
+		config.DigDirMaskinportenCertChain,
+		config.DigDirIDportenClientID,
+		config.DigDirMaskinportenClientID,
 		config.DigDirIDportenScopes,
 		config.DigDirMaskinportenScopes,
 		config.DigDirIDPortenWellKnownURL,

@@ -56,21 +56,15 @@ digdir:
   admin:
     base-url: "base URL for digdir admin API"
   idporten:
-    client-id: "client ID / issuer for JWT assertion"
-    cert-cain:
-      secret-name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
-      secret-project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
-      secret-version: "Secret version for the secret in Google Secret Manager."
+    client-id: "Secret path to the client ID / issuer for JWT assertion"
+    cert-cain: "Secret path in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
     kms:
       key-path: "KMS resource path to sign JWT assertion"
     scopes: "space separated list of scopes for JWT assertion"
     well-known-url: "URL to ID-porten well-known discovery metadata document."
   maskinporten:
-    client-id: "client ID / issuer for JWT assertion"
-    cert-cain:
-      secret-name: "Secret name in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
-      secret-project-id: "GCP Project where to find Secret defined by `cert-cain-secret-name`"
-      secret-version: "Secret version for the secret in Google Secret Manager."
+    client-id: "Secret path to the client ID / issuer for JWT assertion"
+    cert-cain: "Secret path in Google Secret Manager to PEM file containing public certificate chain for authenticating to DigDir."
     kms:
       key-path: "KMS resource path to sign JWT assertion"
     scopes: "space separated list of scopes for JWT assertion"

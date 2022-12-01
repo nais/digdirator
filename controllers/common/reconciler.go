@@ -39,6 +39,7 @@ type Reconciler struct {
 	Config     *config.Config
 	Signer     jose.Signer
 	HttpClient *http.Client
+	ClientID   []byte
 }
 
 func NewReconciler(
@@ -49,6 +50,7 @@ func NewReconciler(
 	config *config.Config,
 	signer jose.Signer,
 	httpClient *http.Client,
+	clientID []byte,
 ) Reconciler {
 	return Reconciler{
 		Client:     client,
@@ -58,6 +60,7 @@ func NewReconciler(
 		Config:     config,
 		Signer:     signer,
 		HttpClient: httpClient,
+		ClientID:   clientID,
 	}
 }
 
@@ -114,7 +117,7 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 	instance.SetClusterName(r.Config.ClusterName)
 	instance.GetStatus().SetCorrelationID(correlationID)
 
-	digdirClient := digdir.NewClient(r.HttpClient, r.Signer, r.Config, instance)
+	digdirClient := digdir.NewClient(r.HttpClient, r.Signer, r.Config, instance, r.ClientID)
 
 	logger.Infof("processing %s...", instanceType)
 

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/nais/digdirator/pkg/config"
 	"gopkg.in/square/go-jose.v2"
+	"strings"
 	"time"
 )
 
@@ -19,8 +20,38 @@ type KmsOptions struct {
 	KmsConfig config.KMS
 }
 
-func (k KmsOptions) keyPath() KmsKeyPath {
-	return KmsKeyPath(k.KmsConfig.KeyPath)
+func (k KmsOptions) parseKeyPath() (KmsKeyPath, error) {
+	splitKmsPath := strings.Split(k.KmsConfig.KeyPath, "/")
+
+	if len(splitKmsPath) == 0 {
+		return "", fmt.Errorf("kms key path is empty")
+	}
+
+	if len(splitKmsPath) != 10 {
+		return "", fmt.Errorf("kms key path must be 10 characters long")
+	}
+
+	if !strings.HasPrefix(k.KmsConfig.KeyPath, "projects/") {
+		return "", fmt.Errorf("kms key path must start with 'projects/'")
+	}
+
+	if !strings.Contains(k.KmsConfig.KeyPath, "/locations/") {
+		return "", fmt.Errorf("kms key path must contain '/locations/'")
+	}
+
+	if !strings.Contains(k.KmsConfig.KeyPath, "/keyRings/") {
+		return "", fmt.Errorf("kms key path must contain '/keyRings/'")
+	}
+
+	if !strings.Contains(k.KmsConfig.KeyPath, "/cryptoKeys/") {
+		return "", fmt.Errorf("kms key path must contain '/cryptoKeys/'")
+	}
+
+	if !strings.Contains(k.KmsConfig.KeyPath, "/cryptoKeyVersions/") {
+		return "", fmt.Errorf("kms key path must contain '/cryptoKeyVersions/'")
+	}
+
+	return KmsKeyPath(k.KmsConfig.KeyPath), nil
 }
 
 type KmsByteSigner struct {
@@ -31,12 +62,17 @@ type KmsByteSigner struct {
 }
 
 func NewKmsSigner(kms *KmsOptions, opts *jose.SignerOptions) (jose.Signer, error) {
+	kmsPath, err := kms.parseKeyPath()
+	if err != nil {
+		return nil, err
+	}
+
 	return ConfigurableSigner{
 		SignerOptions: opts,
 		ByteSigner: KmsByteSigner{
 			Client:        kms.Client,
 			Ctx:           kms.Ctx,
-			KmsKeyPath:    kms.keyPath(),
+			KmsKeyPath:    kmsPath,
 			SignerOptions: opts,
 		},
 	}, nil
