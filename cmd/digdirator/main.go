@@ -123,6 +123,10 @@ func run() error {
 		cfg.DigDir.IDPorten.ClientID,
 	)
 
+	if err != nil {
+		return fmt.Errorf("unable to fetch idporten client id: %w", err)
+	}
+
 	setupLog.Info("instantiating reconciler for idporten")
 	idportenReconciler := idportenclient.NewReconciler(common.NewReconciler(
 		mgr.GetClient(),
@@ -167,6 +171,10 @@ func run() error {
 			ctx,
 			cfg.DigDir.Maskinporten.ClientID,
 		)
+
+		if err != nil {
+			return fmt.Errorf("unable to fetch maskinporten client id: %w", err)
+		}
 
 		setupLog.Info("instantiating reconciler for maskinporten")
 		maskinportenReconciler := maskinportenclient.NewReconciler(
