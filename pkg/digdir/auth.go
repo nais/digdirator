@@ -37,7 +37,7 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 		return nil, fmt.Errorf("generating JWT for ID-porten auth: %w", err)
 	}
 
-	endpoint := c.Config.DigDir.IDPorten.Metadata.TokenEndpoint
+	endpoint := c.Config.DigDir.Maskinporten.Metadata.TokenEndpoint
 
 	req, err := authRequest(ctx, endpoint, token)
 	if err != nil {
@@ -79,7 +79,7 @@ func (c Client) claims() customClaims {
 	return customClaims{
 		Claims: jwt.Claims{
 			Issuer:    string(c.ClientId),
-			Audience:  []string{c.Config.DigDir.IDPorten.Metadata.Issuer},
+			Audience:  []string{c.Config.DigDir.Maskinporten.Metadata.Issuer},
 			Expiry:    jwt.NewNumericDate(time.Now().Add(2 * time.Minute)),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
