@@ -27,3 +27,6 @@ kubebuilder:
 
 pem2jwk:
 	go build -o bin/pem2jwk cmd/pem2jwk/*.go
+
+jwk-updater:
+	go build -o bin/jwk-updater cmd/jwk-updater/*.go
