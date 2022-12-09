@@ -175,7 +175,7 @@ func (c Config) WithProviderMetadata(ctx context.Context) (*Config, error) {
 
 func decoderHook(dc *mapstructure.DecoderConfig) {
 	dc.TagName = "json"
-	dc.ErrorUnused = true
+	dc.ErrorUnused = false
 }
 
 func New() (*Config, error) {
