@@ -111,6 +111,16 @@ func (c Client) Delete(ctx context.Context, clientID string) error {
 	return nil
 }
 
+func (c Client) GetKeys(ctx context.Context, clientID string) (*types.JwksResponse, error) {
+	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.Admin.BaseURL, clientID)
+	response := &types.JwksResponse{}
+
+	if err := c.request(ctx, http.MethodGet, endpoint, nil, response); err != nil {
+		return nil, fmt.Errorf("getting JWKS for client: %w", err)
+	}
+	return response, nil
+}
+
 func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose.JSONWebKeySet) (*types.JwksResponse, error) {
 	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.Admin.BaseURL, clientID)
 	response := &types.JwksResponse{}
