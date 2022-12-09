@@ -1,15 +1,17 @@
 package crypto
 
 import (
-	kms "cloud.google.com/go/kms/apiv1"
-	"cloud.google.com/go/kms/apiv1/kmspb"
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"github.com/nais/digdirator/pkg/config"
-	"gopkg.in/square/go-jose.v2"
 	"strings"
 	"time"
+
+	kms "cloud.google.com/go/kms/apiv1"
+	"cloud.google.com/go/kms/apiv1/kmspb"
+	"gopkg.in/square/go-jose.v2"
+
+	"github.com/nais/digdirator/pkg/config"
 )
 
 type KmsKeyPath string
@@ -61,7 +63,26 @@ type KmsByteSigner struct {
 	KmsKeyPath    KmsKeyPath
 }
 
-func NewKmsSigner(kms *KmsOptions, opts *jose.SignerOptions) (jose.Signer, error) {
+func NewKmsSigner(certChain []byte, kmsConfig config.KMS, ctx context.Context) (jose.Signer, error) {
+	signerOpts, err := SetupSignerOptions(certChain)
+	if err != nil {
+		return nil, fmt.Errorf("setting up signer options: %v", err)
+	}
+
+	kmsCtx := ctx
+	kmsClient, err := kms.NewKeyManagementClient(kmsCtx)
+	if err != nil {
+		return nil, fmt.Errorf("error creating key management client: %v", err)
+	}
+
+	return newConfigurableSigner(&KmsOptions{
+		Client:    kmsClient,
+		Ctx:       kmsCtx,
+		KmsConfig: kmsConfig,
+	}, signerOpts)
+}
+
+func newConfigurableSigner(kms *KmsOptions, opts *jose.SignerOptions) (jose.Signer, error) {
 	kmsPath, err := kms.parseKeyPath()
 	if err != nil {
 		return nil, err
