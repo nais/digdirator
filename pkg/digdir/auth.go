@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -38,7 +37,7 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 		return nil, fmt.Errorf("generating JWT for ID-porten auth: %w", err)
 	}
 
-	endpoint := c.Config.DigDir.IDPorten.Metadata.TokenEndpoint
+	endpoint := c.Config.DigDir.Maskinporten.Metadata.TokenEndpoint
 
 	req, err := authRequest(ctx, endpoint, token)
 	if err != nil {
@@ -51,7 +50,7 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading server response: %w", err)
 	}
@@ -68,22 +67,19 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 }
 
 func (c Client) claims() customClaims {
-	var clientID string
 	var scopes string
 
 	switch c.instance.(type) {
 	case *nais_io_v1.IDPortenClient:
-		clientID = c.Config.DigDir.IDPorten.ClientID
 		scopes = c.Config.DigDir.IDPorten.Scopes
 	case *nais_io_v1.MaskinportenClient:
-		clientID = c.Config.DigDir.Maskinporten.ClientID
 		scopes = c.Config.DigDir.Maskinporten.Scopes
 	}
 
 	return customClaims{
 		Claims: jwt.Claims{
-			Issuer:    clientID,
-			Audience:  []string{c.Config.DigDir.IDPorten.Metadata.Issuer},
+			Issuer:    string(c.ClientId),
+			Audience:  []string{c.Config.DigDir.Maskinporten.Metadata.Issuer},
 			Expiry:    jwt.NewNumericDate(time.Now().Add(2 * time.Minute)),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

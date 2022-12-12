@@ -1,37 +1,99 @@
 package crypto
 
 import (
-	kms "cloud.google.com/go/kms/apiv1"
 	"context"
 	"crypto/sha256"
 	"fmt"
-	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
-	"gopkg.in/square/go-jose.v2"
+	"strings"
 	"time"
+
+	kms "cloud.google.com/go/kms/apiv1"
+	"cloud.google.com/go/kms/apiv1/kmspb"
+	"gopkg.in/square/go-jose.v2"
+
+	"github.com/nais/digdirator/pkg/config"
 )
 
 type KmsKeyPath string
 
 type KmsOptions struct {
-	Client     *kms.KeyManagementClient
-	Ctx        context.Context
-	KmsKeyPath KmsKeyPath
+	Client    *kms.KeyManagementClient
+	Ctx       context.Context
+	KmsConfig config.KMS
+}
+
+func (k KmsOptions) parseKeyPath() (KmsKeyPath, error) {
+	splitKmsPath := strings.Split(k.KmsConfig.KeyPath, "/")
+
+	if len(splitKmsPath) == 0 {
+		return "", fmt.Errorf("kms key path is empty")
+	}
+
+	if len(splitKmsPath) != 10 {
+		return "", fmt.Errorf("kms key path must be 10 characters long")
+	}
+
+	if !strings.HasPrefix(k.KmsConfig.KeyPath, "projects/") {
+		return "", fmt.Errorf("kms key path must start with 'projects/'")
+	}
+
+	if !strings.Contains(k.KmsConfig.KeyPath, "/locations/") {
+		return "", fmt.Errorf("kms key path must contain '/locations/'")
+	}
+
+	if !strings.Contains(k.KmsConfig.KeyPath, "/keyRings/") {
+		return "", fmt.Errorf("kms key path must contain '/keyRings/'")
+	}
+
+	if !strings.Contains(k.KmsConfig.KeyPath, "/cryptoKeys/") {
+		return "", fmt.Errorf("kms key path must contain '/cryptoKeys/'")
+	}
+
+	if !strings.Contains(k.KmsConfig.KeyPath, "/cryptoKeyVersions/") {
+		return "", fmt.Errorf("kms key path must contain '/cryptoKeyVersions/'")
+	}
+
+	return KmsKeyPath(k.KmsConfig.KeyPath), nil
 }
 
 type KmsByteSigner struct {
 	Client        *kms.KeyManagementClient
 	Ctx           context.Context
-	KmsKeyPath    KmsKeyPath
 	SignerOptions *jose.SignerOptions
+	KmsKeyPath    KmsKeyPath
 }
 
-func NewKmsSigner(kms *KmsOptions, opts *jose.SignerOptions) (jose.Signer, error) {
+func NewKmsSigner(certChain []byte, kmsConfig config.KMS, ctx context.Context) (jose.Signer, error) {
+	signerOpts, err := SetupSignerOptions(certChain)
+	if err != nil {
+		return nil, fmt.Errorf("setting up signer options: %v", err)
+	}
+
+	kmsCtx := ctx
+	kmsClient, err := kms.NewKeyManagementClient(kmsCtx)
+	if err != nil {
+		return nil, fmt.Errorf("error creating key management client: %v", err)
+	}
+
+	return newConfigurableSigner(&KmsOptions{
+		Client:    kmsClient,
+		Ctx:       kmsCtx,
+		KmsConfig: kmsConfig,
+	}, signerOpts)
+}
+
+func newConfigurableSigner(kms *KmsOptions, opts *jose.SignerOptions) (jose.Signer, error) {
+	kmsPath, err := kms.parseKeyPath()
+	if err != nil {
+		return nil, err
+	}
+
 	return ConfigurableSigner{
 		SignerOptions: opts,
 		ByteSigner: KmsByteSigner{
 			Client:        kms.Client,
 			Ctx:           kms.Ctx,
-			KmsKeyPath:    kms.KmsKeyPath,
+			KmsKeyPath:    kmsPath,
 			SignerOptions: opts,
 		},
 	}, nil

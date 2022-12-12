@@ -7,30 +7,25 @@ import (
 	"os"
 	"time"
 
-	kms "cloud.google.com/go/kms/apiv1"
-	"github.com/go-logr/zapr"
-
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/controllers/maskinportenclient"
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/crypto"
+	"github.com/nais/digdirator/pkg/google"
 	"github.com/nais/digdirator/pkg/metrics"
 
+	"github.com/go-logr/zapr"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/square/go-jose.v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
-
-	"github.com/nais/digdirator/pkg/google"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -100,9 +95,7 @@ func run() error {
 	setupLog.Info("fetching certificate key chain for idporten")
 	idportenKeyChain, err := secretManagerClient.KeyChainMetadata(
 		ctx,
-		cfg.ProjectID,
-		cfg.DigDir.IDPorten.CertChainSecretName,
-		cfg.DigDir.IDPorten.CertChainSecretVersion,
+		cfg.DigDir.IDPorten.CertificateChain,
 	)
 
 	if err != nil {
@@ -110,13 +103,23 @@ func run() error {
 	}
 
 	setupLog.Info("setting up signer for idporten")
-	idportenSigner, err := setupSigner(
+	idportenSigner, err := crypto.NewKmsSigner(
 		idportenKeyChain,
-		cfg.DigDir.IDPorten.KmsKeyPath,
+		cfg.DigDir.IDPorten.KMS,
 		ctx,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to setup signer: %w", err)
+	}
+
+	setupLog.Info("fetching client-id for idporten")
+	idportenClientId, err := secretManagerClient.ClientIdMetadata(
+		ctx,
+		cfg.DigDir.IDPorten.ClientID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("unable to fetch idporten client id: %w", err)
 	}
 
 	setupLog.Info("instantiating reconciler for idporten")
@@ -128,6 +131,7 @@ func run() error {
 		cfg,
 		idportenSigner,
 		http.DefaultClient,
+		idportenClientId,
 	))
 
 	setupLog.Info("setting up idporten reconciler with manager")
@@ -140,9 +144,7 @@ func run() error {
 		setupLog.Info("fetching certificate key chain for maskinporten")
 		maskinportenKeyChain, err := secretManagerClient.KeyChainMetadata(
 			ctx,
-			cfg.ProjectID,
-			cfg.DigDir.Maskinporten.CertChainSecretName,
-			cfg.DigDir.Maskinporten.CertChainSecretVersion,
+			cfg.DigDir.Maskinporten.CertChain,
 		)
 
 		if err != nil {
@@ -150,13 +152,23 @@ func run() error {
 		}
 
 		setupLog.Info("setting up signer for maskinporten")
-		maskinportenSigner, err := setupSigner(
+		maskinportenSigner, err := crypto.NewKmsSigner(
 			maskinportenKeyChain,
-			cfg.DigDir.Maskinporten.KmsKeyPath,
+			cfg.DigDir.Maskinporten.KMS,
 			ctx,
 		)
 		if err != nil {
 			return fmt.Errorf("unable to setup signer: %w", err)
+		}
+
+		setupLog.Info("fetching client-id for maskinporten")
+		maskinportenClientId, err := secretManagerClient.ClientIdMetadata(
+			ctx,
+			cfg.DigDir.Maskinporten.ClientID,
+		)
+
+		if err != nil {
+			return fmt.Errorf("unable to fetch maskinporten client id: %w", err)
 		}
 
 		setupLog.Info("instantiating reconciler for maskinporten")
@@ -169,6 +181,7 @@ func run() error {
 				cfg,
 				maskinportenSigner,
 				http.DefaultClient,
+				maskinportenClientId,
 			))
 
 		setupLog.Info("setting up maskinporten reconciler with manager")
@@ -188,25 +201,6 @@ func run() error {
 	}
 
 	return nil
-}
-
-func setupSigner(certChain []byte, kmsKeyPath string, ctx context.Context) (jose.Signer, error) {
-	signerOpts, err := crypto.SetupSignerOptions(certChain)
-	if err != nil {
-		return nil, fmt.Errorf("setting up signer options: %v", err)
-	}
-
-	kmsPath := crypto.KmsKeyPath(kmsKeyPath)
-	kmsCtx := ctx
-	kmsClient, err := kms.NewKeyManagementClient(kmsCtx)
-	if err != nil {
-		return nil, fmt.Errorf("error creating key management client: %v", err)
-	}
-	return crypto.NewKmsSigner(&crypto.KmsOptions{
-		Client:     kmsClient,
-		Ctx:        kmsCtx,
-		KmsKeyPath: kmsPath,
-	}, signerOpts)
 }
 
 func setupZapLogger() (*zap.Logger, error) {
@@ -240,12 +234,13 @@ func setupConfig() (*config.Config, error) {
 
 	if err = cfg.Validate([]string{
 		config.ClusterName,
-		config.ProjectID,
 		config.DigDirAdminBaseURL,
 		config.DigDirIDportenClientID,
 		config.DigDirMaskinportenClientID,
-		config.DigDirIDportenCertChainSecretName,
-		config.DigDirMaskinportenCertChainSecretName,
+		config.DigDirIDportenCertChain,
+		config.DigDirMaskinportenCertChain,
+		config.DigDirIDportenClientID,
+		config.DigDirMaskinportenClientID,
 		config.DigDirIDportenScopes,
 		config.DigDirMaskinportenScopes,
 		config.DigDirIDPortenWellKnownURL,

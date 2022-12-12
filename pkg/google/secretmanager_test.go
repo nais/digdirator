@@ -19,15 +19,18 @@ var (
 	secretName = "some-secret-name"
 )
 
-func TestToAccessSecretVersionRequest(t *testing.T) {
-	projectID := "some-project"
-	secretName := "some-secret"
-	secretVersion := "latest"
-
+func TestParseSecretPath(t *testing.T) {
 	expected := "projects/some-project/secrets/some-secret/versions/latest"
-	actual := google.ToAccessSecretVersionRequest(projectID, secretName, secretVersion)
+	err := google.ParseSecretPath(expected)
+	assert.NoError(t, err)
 
-	assert.Equal(t, expected, actual.GetName())
+	errPath1 := "some-project/secrets/some-secret/versions/latest"
+	err = google.ParseSecretPath(errPath1)
+	assert.ErrorContains(t, err, "secret path must be 6 characters long")
+
+	errPath2 := "kk/some-project/secrets/some-secret/versions/latest"
+	err = google.ParseSecretPath(errPath2)
+	assert.ErrorContains(t, err, "secret path must start with 'projects/'")
 }
 
 // This is to verify that changes to SetupSignerOptions works as expected

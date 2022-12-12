@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -53,6 +52,7 @@ type Client struct {
 	Signer     jose.Signer
 	Config     *config.Config
 	instance   clients.Instance
+	ClientId   []byte
 }
 
 func (c Client) Register(ctx context.Context, payload types.ClientRegistration) (*types.ClientRegistration, error) {
@@ -111,6 +111,16 @@ func (c Client) Delete(ctx context.Context, clientID string) error {
 	return nil
 }
 
+func (c Client) GetKeys(ctx context.Context, clientID string) (*types.JwksResponse, error) {
+	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.Admin.BaseURL, clientID)
+	response := &types.JwksResponse{}
+
+	if err := c.request(ctx, http.MethodGet, endpoint, nil, response); err != nil {
+		return nil, fmt.Errorf("getting JWKS for client: %w", err)
+	}
+	return response, nil
+}
+
 func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose.JSONWebKeySet) (*types.JwksResponse, error) {
 	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.Admin.BaseURL, clientID)
 	response := &types.JwksResponse{}
@@ -161,7 +171,7 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 			_ = Body.Close()
 		}(resp.Body)
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("reading server response: %w", err)
 		}
@@ -196,17 +206,18 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 		Do(ctx, retryable)
 }
 
-func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance clients.Instance) Client {
+func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance clients.Instance, clientId []byte) Client {
 	return Client{
 		httpClient,
 		signer,
 		config,
 		instance,
+		clientId,
 	}
 }
 
 func clientMatches(actual types.ClientRegistration, desired clients.Instance) bool {
-	descriptionMatches := actual.Description == kubernetes.UniformResourceName(desired)
+	descriptionMatches := actual.Description == kubernetes.UniformResourceName(desired, desired.GetClusterName())
 	integrationTypeMatches := actual.IntegrationType == clients.GetIntegrationType(desired)
 
 	return descriptionMatches && integrationTypeMatches
