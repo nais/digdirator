@@ -1,3 +1,5 @@
+apiserverIP: "" # mapping value from Fasit
+
 image:
   repository: europe-north1-docker.pkg.dev/nais-io/nais/images
   name: digdirator
