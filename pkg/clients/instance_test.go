@@ -91,7 +91,8 @@ func TestIsUpToDate(t *testing.T) {
 
 func TestToClientRegistration_IDPortenClient(t *testing.T) {
 	client := fixtures.MinimalIDPortenClient()
-	registration := clients.ToClientRegistration(client)
+	cluster := "test-cluster"
+	registration := clients.ToClientRegistration(client, cluster)
 
 	assert.Equal(t, clients.IDPortenDefaultAccessTokenLifetimeSeconds, registration.AccessTokenLifetime)
 
@@ -133,7 +134,8 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 
 func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 	client := fixtures.MinimalMaskinportenClient()
-	registration := clients.ToClientRegistration(client)
+	cluster := "test-cluster"
+	registration := clients.ToClientRegistration(client, cluster)
 
 	assert.Equal(t, clients.IDPortenDefaultAccessTokenLifetimeSeconds, registration.AccessTokenLifetime)
 
@@ -171,6 +173,7 @@ func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 
 func TestToClientRegistration_IntegrationType(t *testing.T) {
 	client := fixtures.MinimalIDPortenClient()
+	cluster := "test-cluster"
 
 	for _, test := range []struct {
 		name                     string
@@ -210,7 +213,7 @@ func TestToClientRegistration_IntegrationType(t *testing.T) {
 			client.Spec.IntegrationType = test.specifiedIntegrationType
 		}
 
-		actual := clients.ToClientRegistration(client)
+		actual := clients.ToClientRegistration(client, cluster)
 
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.wantIntegrationType, actual.IntegrationType)

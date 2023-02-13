@@ -114,7 +114,6 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 	if err := r.Reader.Get(ctx, req.NamespacedName, instance); err != nil {
 		return nil, err
 	}
-	instance.SetClusterName(r.Config.ClusterName)
 	instance.GetStatus().SetCorrelationID(correlationID)
 
 	digdirClient := digdir.NewClient(r.HttpClient, r.Signer, r.Config, instance, r.ClientID)
@@ -126,6 +125,7 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 		instance,
 		&logger,
 		&digdirClient,
+		r.Config.ClusterName,
 	)
 	return &transaction, nil
 }
@@ -209,12 +209,12 @@ func (r *Reconciler) process(tx *Transaction) error {
 }
 
 func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistration, error) {
-	instanceClient, err := tx.DigdirClient.ClientExists(tx.Instance, tx.Ctx)
+	instanceClient, err := tx.DigdirClient.ClientExists(tx.Instance, tx.Ctx, tx.ClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("checking if client exists: %w", err)
 	}
 
-	registrationPayload := clients.ToClientRegistration(tx.Instance)
+	registrationPayload := clients.ToClientRegistration(tx.Instance, tx.ClusterName)
 
 	switch instance := tx.Instance.(type) {
 	case *naisiov1.MaskinportenClient:

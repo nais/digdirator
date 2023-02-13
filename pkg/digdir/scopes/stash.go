@@ -13,7 +13,7 @@ type ScopeStash struct {
 	ToUpdate []Scope
 }
 
-func (s ScopeStash) FilterScopes(actualScopes []types.ScopeRegistration, client clients.Instance, desiredScopes map[string]naisiov1.ExposedScope) *ScopeStash {
+func (s ScopeStash) FilterScopes(actualScopes []types.ScopeRegistration, client clients.Instance, desiredScopes map[string]naisiov1.ExposedScope, clusterName string) *ScopeStash {
 	for _, desired := range desiredScopes {
 		exists := false
 
@@ -23,7 +23,7 @@ func (s ScopeStash) FilterScopes(actualScopes []types.ScopeRegistration, client 
 			}
 
 			exists = true
-			if scopeIsManaged(client, actual, desired) {
+			if scopeIsManaged(client, actual, desired, clusterName) {
 				s.ToUpdate = append(s.ToUpdate, CurrentScopeInfo(actual, desired))
 			}
 
@@ -42,6 +42,6 @@ func scopeExists(exposedScopeProduct, exposedScopeName, actualScopeName string) 
 	return kubernetes.ToScope(exposedScopeProduct, exposedScopeName) == actualScopeName
 }
 
-func scopeIsManaged(client clients.Instance, actual types.ScopeRegistration, scope naisiov1.ExposedScope) bool {
-	return actual.Description == kubernetes.UniformResourceScopeName(client, client.GetClusterName(), scope.Product, scope.Name)
+func scopeIsManaged(client clients.Instance, actual types.ScopeRegistration, scope naisiov1.ExposedScope, clusterName string) bool {
+	return actual.Description == kubernetes.UniformResourceScopeName(client, clusterName, scope.Product, scope.Name)
 }

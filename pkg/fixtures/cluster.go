@@ -86,9 +86,8 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 	}
 	c.idPortenClient = &naisiov1.IDPortenClient{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        key.Name,
-			Namespace:   key.Namespace,
-			ClusterName: "test-cluster",
+			Name:      key.Name,
+			Namespace: key.Namespace,
 		},
 		Spec: spec,
 	}
@@ -113,9 +112,8 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 	}
 	c.maskinportenClient = &naisiov1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        key.Name,
-			Namespace:   key.Namespace,
-			ClusterName: "test-cluster",
+			Name:      key.Name,
+			Namespace: key.Namespace,
 		},
 		Spec: spec,
 	}
@@ -159,9 +157,8 @@ func (c ClusterFixtures) WithMaskinportenScopesClient(scope string) ClusterFixtu
 	}
 	c.maskinportenClient = &naisiov1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        key.Name,
-			Namespace:   key.Namespace,
-			ClusterName: "test-cluster",
+			Name:      key.Name,
+			Namespace: key.Namespace,
 		},
 		Spec: spec,
 	}

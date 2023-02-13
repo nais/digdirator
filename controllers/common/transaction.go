@@ -2,9 +2,11 @@ package common
 
 import (
 	"context"
+
+	log "github.com/sirupsen/logrus"
+
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/digdir"
-	log "github.com/sirupsen/logrus"
 )
 
 type Transaction struct {
@@ -12,6 +14,7 @@ type Transaction struct {
 	Instance     clients.Instance
 	Logger       *log.Entry
 	DigdirClient *digdir.Client
+	ClusterName  string
 }
 
 func NewTransaction(
@@ -19,11 +22,13 @@ func NewTransaction(
 	instance clients.Instance,
 	logger *log.Entry,
 	digdirClient *digdir.Client,
+	clusterName string,
 ) Transaction {
 	return Transaction{
 		Ctx:          ctx,
 		Instance:     instance,
 		Logger:       logger,
 		DigdirClient: digdirClient,
+		ClusterName:  clusterName,
 	}
 }

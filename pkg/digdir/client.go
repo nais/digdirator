@@ -71,7 +71,7 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 	return registration, nil
 }
 
-func (c Client) ClientExists(desired clients.Instance, ctx context.Context) (*types.ClientRegistration, error) {
+func (c Client) ClientExists(desired clients.Instance, ctx context.Context, clusterName string) (*types.ClientRegistration, error) {
 	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.Admin.BaseURL)
 	clientRegistrations := make([]types.ClientRegistration, 0)
 
@@ -80,7 +80,7 @@ func (c Client) ClientExists(desired clients.Instance, ctx context.Context) (*ty
 	}
 
 	for _, actual := range clientRegistrations {
-		if clientMatches(actual, desired) {
+		if clientMatches(actual, desired, clusterName) {
 			desired.GetStatus().SetClientID(actual.ClientID)
 			return &actual, nil
 		}
@@ -216,14 +216,14 @@ func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Confi
 	}
 }
 
-func clientMatches(actual types.ClientRegistration, desired clients.Instance) bool {
-	descriptionMatches := actual.Description == kubernetes.UniformResourceName(desired, desired.GetClusterName())
+func clientMatches(actual types.ClientRegistration, desired clients.Instance, clusterName string) bool {
+	descriptionMatches := actual.Description == kubernetes.UniformResourceName(desired, clusterName)
 	integrationTypeMatches := actual.IntegrationType == clients.GetIntegrationType(desired)
 
 	return descriptionMatches && integrationTypeMatches
 }
 
-func (c Client) GetFilteredScopes(desired clients.Instance, ctx context.Context, exposedScopes map[string]nais_io_v1.ExposedScope) (*scopes.ScopeStash, error) {
+func (c Client) GetFilteredScopes(desired clients.Instance, ctx context.Context, exposedScopes map[string]nais_io_v1.ExposedScope, clusterName string) (*scopes.ScopeStash, error) {
 	endpoint := fmt.Sprintf("%s/scopes?inactive=true", c.Config.DigDir.Admin.BaseURL)
 	actualScopesRegistrations := make([]types.ScopeRegistration, 0)
 	container := scopes.ScopeStash{}
@@ -231,7 +231,7 @@ func (c Client) GetFilteredScopes(desired clients.Instance, ctx context.Context,
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &actualScopesRegistrations); err != nil {
 		return nil, fmt.Errorf("fetching list of scopes from Digdir: %w", err)
 	}
-	return container.FilterScopes(actualScopesRegistrations, desired, exposedScopes), nil
+	return container.FilterScopes(actualScopesRegistrations, desired, exposedScopes, clusterName), nil
 }
 
 func (c Client) RegisterScope(ctx context.Context, payload types.ScopeRegistration) (*types.ScopeRegistration, error) {

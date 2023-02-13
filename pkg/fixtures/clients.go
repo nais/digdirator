@@ -10,9 +10,8 @@ import (
 func MinimalIDPortenClient() *naisiov1.IDPortenClient {
 	return &naisiov1.IDPortenClient{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        "test-app",
-			Namespace:   "test-namespace",
-			ClusterName: "test-cluster",
+			Name:      "test-app",
+			Namespace: "test-namespace",
 		},
 		Spec: naisiov1.IDPortenClientSpec{
 			ClientURI:   "",
@@ -30,9 +29,8 @@ func MinimalIDPortenClient() *naisiov1.IDPortenClient {
 func MinimalMaskinportenClient() *naisiov1.MaskinportenClient {
 	return &naisiov1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        "test-app",
-			Namespace:   "test-namespace",
-			ClusterName: "test-cluster",
+			Name:      "test-app",
+			Namespace: "test-namespace",
 		},
 		Spec: naisiov1.MaskinportenClientSpec{
 			Scopes: naisiov1.MaskinportenScope{
@@ -55,9 +53,8 @@ func MinimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenC
 	atMaxAge := 30
 	return &naisiov1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        "test-app",
-			Namespace:   "test-namespace",
-			ClusterName: "test-cluster",
+			Name:      "test-app",
+			Namespace: "test-namespace",
 		},
 		Spec: naisiov1.MaskinportenClientSpec{
 			Scopes: naisiov1.MaskinportenScope{

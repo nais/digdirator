@@ -104,7 +104,7 @@ func (s scope) updateScopes(toUpdate []scopes.Scope) error {
 }
 
 func (s scope) scopesExist(exposedScopes map[string]naisiov1.ExposedScope) (*scopes.ScopeStash, error) {
-	scopeContainer, err := s.Tx.DigdirClient.GetFilteredScopes(s.Tx.Instance, s.Tx.Ctx, exposedScopes)
+	scopeContainer, err := s.Tx.DigdirClient.GetFilteredScopes(s.Tx.Instance, s.Tx.Ctx, exposedScopes, s.Tx.ClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("getting filterted scopes: %w", err)
 	}
@@ -172,7 +172,7 @@ func (s *scope) deactivateConsumer(scope, consumerOrgno string) (*types.Consumer
 }
 
 func (s *scope) update(scope scopes.Scope) (*types.ScopeRegistration, error) {
-	scopePayload := clients.ToScopeRegistration(s.Tx.Instance, scope.CurrentScope)
+	scopePayload := clients.ToScopeRegistration(s.Tx.Instance, scope.CurrentScope, s.Tx.ClusterName)
 	s.Tx.Logger = s.Tx.Logger.WithField("scope", scope.ToString())
 	s.Tx.Logger.Debug("updating scope...")
 
@@ -184,7 +184,7 @@ func (s *scope) update(scope scopes.Scope) (*types.ScopeRegistration, error) {
 }
 
 func (s *scope) create(newScope naisiov1.ExposedScope) (*types.ScopeRegistration, error) {
-	scopeRegistrationPayload := clients.ToScopeRegistration(s.Tx.Instance, newScope)
+	scopeRegistrationPayload := clients.ToScopeRegistration(s.Tx.Instance, newScope, s.Tx.ClusterName)
 	s.Tx.Logger.Debug("scope does not exist in Digdir, registering...")
 
 	registrationResponse, err := s.Tx.DigdirClient.RegisterScope(s.Tx.Ctx, scopeRegistrationPayload)
@@ -212,7 +212,7 @@ func (s *scope) deactivate(scope string) error {
 }
 
 func (s *scope) activate(scope scopes.Scope) error {
-	scopeActivationPayload := clients.ToScopeRegistration(s.Tx.Instance, scope.CurrentScope)
+	scopeActivationPayload := clients.ToScopeRegistration(s.Tx.Instance, scope.CurrentScope, s.Tx.ClusterName)
 	scopeRegistration, err := s.Tx.DigdirClient.ActivateScope(s.Tx.Ctx, scopeActivationPayload, scope.ToString())
 	if err != nil {
 		return fmt.Errorf("activating scope: %w", err)
@@ -227,7 +227,7 @@ func (s *scope) activate(scope scopes.Scope) error {
 }
 
 func (s *scope) Finalize(exposedScopes map[string]naisiov1.ExposedScope) error {
-	filteredScopes, err := s.Tx.DigdirClient.GetFilteredScopes(s.Tx.Instance, s.Tx.Ctx, exposedScopes)
+	filteredScopes, err := s.Tx.DigdirClient.GetFilteredScopes(s.Tx.Instance, s.Tx.Ctx, exposedScopes, s.Tx.ClusterName)
 	if err != nil {
 		return err
 	}

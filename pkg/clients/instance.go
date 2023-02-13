@@ -36,20 +36,20 @@ type Instance interface {
 	SetStatus(status naisiov1.DigdiratorStatus)
 }
 
-func ToScopeRegistration(instance Instance, scope naisiov1.ExposedScope) types.ScopeRegistration {
+func ToScopeRegistration(instance Instance, scope naisiov1.ExposedScope, clusterName string) types.ScopeRegistration {
 	switch v := instance.(type) {
 	case *naisiov1.MaskinportenClient:
-		return toMaskinPortenScopeRegistration(*v, scope)
+		return toMaskinPortenScopeRegistration(*v, scope, clusterName)
 	}
 	return types.ScopeRegistration{}
 }
 
-func ToClientRegistration(instance Instance) types.ClientRegistration {
+func ToClientRegistration(instance Instance, clusterName string) types.ClientRegistration {
 	switch v := instance.(type) {
 	case *naisiov1.IDPortenClient:
-		return toIDPortenClientRegistration(*v)
+		return toIDPortenClientRegistration(*v, clusterName)
 	case *naisiov1.MaskinportenClient:
-		return toMaskinPortenClientRegistration(*v)
+		return toMaskinPortenClientRegistration(*v, clusterName)
 	}
 	return types.ClientRegistration{}
 }
@@ -147,7 +147,7 @@ func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient) {
 	}
 }
 
-func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegistration {
+func toIDPortenClientRegistration(in naisiov1.IDPortenClient, clusterName string) types.ClientRegistration {
 	SetIDportenClientDefaultValues(&in)
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
@@ -155,7 +155,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegist
 		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
 		ClientName:                        types.DefaultClientName,
 		ClientURI:                         string(in.Spec.ClientURI),
-		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, in.ClusterName),
+		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, clusterName),
 		FrontchannelLogoutSessionRequired: true,
 		FrontchannelLogoutURI:             string(in.Spec.FrontchannelLogoutURI),
 		GrantTypes: []types.GrantType{
@@ -174,14 +174,14 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient) types.ClientRegist
 	}
 }
 
-func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient) types.ClientRegistration {
+func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, clusterName string) types.ClientRegistration {
 	return types.ClientRegistration{
 		AccessTokenLifetime:               IDPortenDefaultAccessTokenLifetimeSeconds,
 		ApplicationType:                   types.ApplicationTypeWeb,
 		AuthorizationLifeTime:             IDPortenDefaultSessionLifetimeSeconds,
 		ClientName:                        types.DefaultClientName,
 		ClientURI:                         IDPortenDefaultClientURI,
-		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, in.ClusterName),
+		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, clusterName),
 		FrontchannelLogoutSessionRequired: false,
 		FrontchannelLogoutURI:             "",
 		GrantTypes: []types.GrantType{
@@ -197,7 +197,7 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient) types.Clie
 	}
 }
 
-func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope) types.ScopeRegistration {
+func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope, clusterName string) types.ScopeRegistration {
 	SetDefaultScopeValues(&exposedScope)
 	return types.ScopeRegistration{
 		AllowedIntegrationType:     exposedScope.AllowedIntegrations,
@@ -205,7 +205,7 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 		DelegationSource:           "",
 		Name:                       "",
 		AuthorizationMaxLifetime:   MaskinportenDefaultAuthorizationMaxLifetime,
-		Description:                kubernetes.UniformResourceScopeName(&in.ObjectMeta, in.ClusterName, exposedScope.Product, exposedScope.Name),
+		Description:                kubernetes.UniformResourceScopeName(&in.ObjectMeta, clusterName, exposedScope.Product, exposedScope.Name),
 		Prefix:                     MaskinportenScopePrefix,
 		Subscope:                   kubernetes.ToScope(exposedScope.Product, exposedScope.Name),
 		TokenType:                  types.TokenTypeSelfContained,
