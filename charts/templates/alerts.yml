@@ -1,0 +1,25 @@
+{{ if .Values.alerts }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "digdirator.fullname" . }}-alerts
+  labels:
+    {{ include "digdirator.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: "digdirator"
+      rules:
+        - alert: {{ include "digdirator.fullname" . }} failed provisioning clients
+          expr: (sum(rate(idporten_client_failed_processing_count[5m])) > 0) or (sum(rate(maskinporten_client_failed_processing_count[5m])) > 0)
+          for: 5m
+          annotations:
+            summary: {{ include "digdirator.fullname" . }} has failed processing clients for longer than usual
+            consequence: Applications that have either idporten or maskinporten enabled will not start up as they are dependant on a secret created by Digdirator.
+            action: |
+              * Check the logs: `kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "digdirator.fullname" . }}`"`
+              * Check DigDir status: https://status.digdir.no/ or https://testmiljo.status.digdir.no
+          labels:
+            severity: critical
+            namespace: {{ .Release.Namespace }}
+{{ end }}
