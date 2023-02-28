@@ -162,11 +162,9 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, clusterName string
 			types.GrantTypeAuthorizationCode,
 			types.GrantTypeRefreshToken,
 		},
-		IntegrationType:        types.IntegrationType(in.Spec.IntegrationType),
-		PostLogoutRedirectURIs: postLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
-		RedirectURIs: []string{
-			string(in.Spec.RedirectURI),
-		},
+		IntegrationType:         types.IntegrationType(in.Spec.IntegrationType),
+		PostLogoutRedirectURIs:  postLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
+		RedirectURIs:            redirectURIs(in),
 		RefreshTokenLifetime:    *in.Spec.SessionLifetime,
 		RefreshTokenUsage:       types.RefreshTokenUsageReuse,
 		Scopes:                  in.Spec.Scopes,
@@ -224,6 +222,20 @@ func postLogoutRedirectURIs(uris []naisiov1.IDPortenURI) []string {
 	}
 
 	return result
+}
+
+func redirectURIs(in naisiov1.IDPortenClient) []string {
+	seen := make(map[naisiov1.IDPortenURI]bool)
+	res := make([]string, 0)
+
+	for _, u := range append(in.Spec.RedirectURIs, in.Spec.RedirectURI) {
+		if u != "" && !seen[u] {
+			seen[u] = true
+			res = append(res, string(u))
+		}
+	}
+
+	return res
 }
 
 func SetDefaultScopeValues(exposedScope *naisiov1.ExposedScope) {

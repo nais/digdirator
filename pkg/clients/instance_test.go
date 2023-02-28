@@ -3,6 +3,7 @@ package clients_test
 import (
 	"testing"
 
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nais/digdirator/pkg/clients"
@@ -130,6 +131,22 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 	assert.Len(t, registration.Scopes, 2)
 
 	assert.Equal(t, types.TokenEndpointAuthMethodPrivateKeyJwt, registration.TokenEndpointAuthMethod)
+
+	t.Run("deprecated redirectURI field is preserved in the registration payload", func(t *testing.T) {
+		client.Spec.RedirectURI = "https://test.com"
+		client.Spec.RedirectURIs = []naisiov1.IDPortenURI{
+			"https://test.com/a",
+			"https://test.com/b",
+			"https://test.com/b",
+		}
+		registration = clients.ToClientRegistration(client, cluster)
+		assert.ElementsMatch(t, registration.RedirectURIs, []string{
+			"https://test.com",
+			"https://test.com/a",
+			"https://test.com/b",
+		})
+		assert.Len(t, registration.RedirectURIs, 3)
+	})
 }
 
 func TestToClientRegistration_MaskinportenClient(t *testing.T) {

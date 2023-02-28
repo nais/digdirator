@@ -14,12 +14,14 @@ func MinimalIDPortenClient() *naisiov1.IDPortenClient {
 			Namespace: "test-namespace",
 		},
 		Spec: naisiov1.IDPortenClientSpec{
-			ClientURI:   "",
-			RedirectURI: "https://test.com",
-			SecretName:  "test",
+			ClientURI: "",
+			RedirectURIs: []naisiov1.IDPortenURI{
+				"https://test.com",
+			},
+			SecretName: "test",
 		},
 		Status: naisiov1.DigdiratorStatus{
-			SynchronizationHash:  "8b5ebee90b513411",
+			SynchronizationHash:  "de6ecbc3b6cb148b",
 			SynchronizationState: common.EventSynchronized,
 			ClientID:             "test-idporten",
 		},

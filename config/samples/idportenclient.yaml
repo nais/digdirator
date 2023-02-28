@@ -6,7 +6,8 @@ metadata:
   namespace: myteam
 spec:
   clientURI: "https://min-app.nav.no"
-  redirectURI: https://min-app.nav.no/oauth2/callback
+  redirectURIs:
+    - https://min-app.nav.no/oauth2/callback
   secretName: my-secret
   frontchannelLogoutURI: "https://min-app.nav.no/oauth2/logout"
   postLogoutRedirectURIs:

@@ -16,11 +16,23 @@ func IDPortenClientSecretData(in *nais_io_v1.IDPortenClient, jwk jose.JSONWebKey
 		return nil, fmt.Errorf("marshalling JWK: %w", err)
 	}
 
+	redirectURI := func() string {
+		if in.Spec.RedirectURI != "" {
+			return string(in.Spec.RedirectURI)
+		}
+
+		if len(in.Spec.RedirectURIs) > 0 {
+			return string(in.Spec.RedirectURIs[0])
+		}
+
+		return ""
+	}
+
 	return map[string]string{
 		IDPortenJwkKey:           string(jwkJson),
 		IDPortenWellKnownURLKey:  config.DigDir.IDPorten.WellKnownURL,
 		IDPortenClientIDKey:      in.GetStatus().GetClientID(),
-		IDPortenRedirectURIKey:   string(in.Spec.RedirectURI),
+		IDPortenRedirectURIKey:   redirectURI(),
 		IDPortenIssuerKey:        config.DigDir.IDPorten.Metadata.Issuer,
 		IDPortenJwksUriKey:       config.DigDir.IDPorten.Metadata.JwksURI,
 		IDPortenTokenEndpointKey: config.DigDir.IDPorten.Metadata.TokenEndpoint,
