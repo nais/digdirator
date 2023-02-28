@@ -228,8 +228,8 @@ github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9G
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/nais/liberator v0.0.0-20230228090924-e1e1ad656158 h1:s7prGek8fKKIVKDZ2sln6pyyXFhYAYmhdlj14J4LIOY=
-github.com/nais/liberator v0.0.0-20230228090924-e1e1ad656158/go.mod h1:TxGJBhUTB36v0UVZ+Efr5N9vJpj8gG3+ylYjwyHHL64=
+github.com/nais/liberator v0.0.0-20230228095441-c9a9154448c9 h1:kLEI+8pa2I2yG0XlOqlciBpQp4ZsYAeIPS92wiocUi4=
+github.com/nais/liberator v0.0.0-20230228095441-c9a9154448c9/go.mod h1:TxGJBhUTB36v0UVZ+Efr5N9vJpj8gG3+ylYjwyHHL64=
 github.com/onsi/ginkgo/v2 v2.6.1 h1:1xQPCjcqYw/J5LchOcp4/2q/jzJFjiAOc25chhnDw+Q=
 github.com/onsi/ginkgo/v2 v2.6.1/go.mod h1:yjiuMwPokqY1XauOgju45q3sJt6VzQ/Fict1LFVcsAo=
 github.com/onsi/gomega v1.24.2 h1:J/tulyYK6JwBldPViHJReihxxZ+22FHs0piGjQAvoUE=
