@@ -371,7 +371,7 @@ func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
 
 	if err := r.updateInstance(tx.Ctx, tx.Instance, func(existing clients.Instance) error {
 		existing.SetStatus(*tx.Instance.GetStatus())
-		return r.Client.Update(tx.Ctx, existing)
+		return r.Client.Status().Update(tx.Ctx, existing)
 	}); err != nil {
 		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedStatusUpdate, "Failed to update status")
 		return ctrl.Result{}, fmt.Errorf("updating status subresource: %w", err)
