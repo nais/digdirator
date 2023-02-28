@@ -25,8 +25,9 @@ digdirator:
     GOOGLE_APPLICATION_CREDENTIALS: "/var/run/secrets/google/sa.json"
   outbound:
     external:
-      - "cloudkms.googleapis.com"
-      - "secretmanager.googleapis.com"
+      - "test.maskinporten.no"
+      - "integrasjon-ver2.difi.no"
+      - "oidc-ver2.difi.no"
   secrets:
     environment:
       DIGDIRATOR_DIGDIR_ADMIN_BASE_URL: "https://integrasjon-ver2.difi.no"
@@ -40,7 +41,7 @@ digdirator:
       DIGDIRATOR_DIGDIR_MASKINPORTEN_CLIENT_ID: ""
       DIGDIRATOR_DIGDIR_MASKINPORTEN_KMS_KEY_PATH: ""
       DIGDIRATOR_DIGDIR_MASKINPORTEN_SCOPES: "idporten:dcr.write idporten:dcr.read idporten:scopes.write"
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_WELL_KNOWN_URL: "https://ver2.maskinporten.no/.well-known/oauth-authorization-server"
+      DIGDIRATOR_DIGDIR_MASKINPORTEN_WELL_KNOWN_URL: "https://test.maskinporten.no/.well-known/oauth-authorization-server"
       DIGDIRATOR_FEATURES_MASKINPORTEN: "false"
     google:
       sa:

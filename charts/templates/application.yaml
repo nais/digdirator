@@ -28,23 +28,22 @@ spec:
         - application: prometheus
     outbound:
       external:
-      {{ range .Values.digdirator.outbound.external }}
+      {{- range .Values.digdirator.outbound.external }}
         - host: {{ . }}
-      {{ end }}
-      {{ if not .Values.digdirator.onprem.enabled }}
-        - host: ver2.maskinporten.no
-        - host: integrasjon-ver2.difi.no
-        - host: oidc-ver2.difi.no
-      {{ end }}
-  {{ if .Values.digdirator.onprem.enabled }}
+      {{- end }}
+      {{- if not .Values.digdirator.onprem.enabled }}
+        - host: cloudkms.googleapis.com
+        - host: secretmanager.googleapis.com
+      {{- end }}
+  {{- if .Values.digdirator.onprem.enabled }}
   webproxy: true
   env:
-  {{ range $key,$value:= .Values.digdirator.env }}
+  {{- range $key,$value:= .Values.digdirator.env }}
     - name: "{{ $key}}"
       value: {{ $value | quote }}
-  {{ end }}
+  {{- end }}
   filesFrom:
     - secret: digdirator-google-service-account
       mountPath: "/var/run/secrets/google"
-  {{ end }}
+  {{- end }}
   skipCaBundle: true
