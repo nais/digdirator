@@ -78,7 +78,7 @@ jobs:
       - name: Sign the container image
         run: cosign sign --yes ${{ env.REGISTRY }}/digdirator@${{ steps.build-push.outputs.digest }}
       - name: Create SBOM
-        uses: aquasecurity/trivy-action@8bd2f9fbda2109502356ff8a6a89da55b1ead252 # ratchet:aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # ratchet:aquasecurity/trivy-action@master
         with:
           scan-type: 'image'
           format: 'cyclonedx'
