@@ -198,6 +198,7 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, clusterNam
 func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope, clusterName string) types.ScopeRegistration {
 	SetDefaultScopeValues(&exposedScope)
 	return types.ScopeRegistration{
+		Active:                     exposedScope.Enabled,
 		AllowedIntegrationType:     exposedScope.AllowedIntegrations,
 		AtMaxAge:                   *exposedScope.AtMaxAge,
 		DelegationSource:           "",
