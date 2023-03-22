@@ -31,6 +31,12 @@ spec:
       {{- range .Values.digdirator.outbound.external }}
         - host: {{ . }}
       {{- end }}
+      {{- range .Values.maskinportenHosts }}
+        - host: {{ . }}
+      {{- end }}
+      {{- range .Values.idportenHosts }}
+        - host: {{ . }}
+      {{- end }}
       {{- if not .Values.digdirator.onprem.enabled }}
         - host: cloudkms.googleapis.com
         - host: secretmanager.googleapis.com

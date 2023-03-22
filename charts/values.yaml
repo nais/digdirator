@@ -8,6 +8,13 @@ image:
 
 team: nais
 
+maskinportenHosts:
+  - "test.maskinporten.no"
+  - "ver2.maskinporten.no"
+idportenHosts:
+  - "oidc-ver2.difi.no"
+  - "test.idporten.no"
+
 digdirator:
   onprem:
     enabled: false
@@ -25,9 +32,7 @@ digdirator:
     GOOGLE_APPLICATION_CREDENTIALS: "/var/run/secrets/google/sa.json"
   outbound:
     external:
-      - "test.maskinporten.no"
       - "integrasjon-ver2.difi.no"
-      - "oidc-ver2.difi.no"
   secrets:
     environment:
       DIGDIRATOR_DIGDIR_ADMIN_BASE_URL: "https://integrasjon-ver2.difi.no"
