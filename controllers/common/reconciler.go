@@ -131,13 +131,9 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 }
 
 func (r *Reconciler) process(tx *Transaction) error {
-	shouldUsePreviousSecret := false
-
 	instanceClient, err := r.createOrUpdateClient(tx)
 	if err != nil {
-		// TODO - best effort as of now...
-		tx.Logger.Errorf("creating or updating client: %+v; ignoring...", err)
-		shouldUsePreviousSecret = true
+		return err
 	}
 
 	if len(tx.Instance.GetStatus().GetClientID()) == 0 && instanceClient != nil {
@@ -148,8 +144,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 		return nil
 	}
 
-	var jwk *jose.JSONWebKey
-	jwk, err = crypto.GenerateJwk()
+	jwk, err := crypto.GenerateJwk()
 	if err != nil {
 		return fmt.Errorf("generating new JWK for client: %w", err)
 	}
@@ -160,42 +155,12 @@ func (r *Reconciler) process(tx *Transaction) error {
 		return fmt.Errorf("getting managed secrets: %w", err)
 	}
 
-	previousSecrets := append(managedSecrets.Used.Items, managedSecrets.Unused.Items...)
-
-	// TODO: hacky hack
-	if shouldUsePreviousSecret && len(previousSecrets) > 0 {
-		jwk, err = crypto.GetPreviousJwkFromSecret(managedSecrets, clients.GetSecretJwkKey(tx.Instance))
-		if err != nil {
-			return err
-		}
-
-		if len(tx.Instance.GetStatus().GetClientID()) == 0 {
-			clientID := func() string {
-				for _, secret := range append(managedSecrets.Used.Items, managedSecrets.Unused.Items...) {
-					value := secret.Data[clients.GetSecretClientIDKey(tx.Instance)]
-
-					if len(value) != 0 {
-						return string(value)
-					}
-				}
-
-				return ""
-			}()
-
-			tx.Instance.GetStatus().SetClientID(clientID)
-		}
-	} else {
-		if instanceClient == nil {
-			return fmt.Errorf("no previous secret, no client; cannot register new jwk")
-		}
-
-		if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
-			return err
-		}
-
-		r.reportEvent(tx, corev1.EventTypeNormal, EventRotatedInDigDir, "Client credentials is rotated")
-		metrics.IncClientsRotated(tx.Instance)
+	if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
+		return err
 	}
+
+	r.reportEvent(tx, corev1.EventTypeNormal, EventRotatedInDigDir, "Client credentials is rotated")
+	metrics.IncClientsRotated(tx.Instance)
 
 	if err := secretsClient.CreateOrUpdate(*jwk); err != nil {
 		return fmt.Errorf("creating or updating secret: %w", err)
@@ -237,7 +202,7 @@ func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistr
 	if instanceClient != nil {
 		_, err = r.updateClient(tx, registrationPayload, instanceClient.ClientID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("updating client: %w", err)
 		}
 
 		r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedInDigDir, "Client is updated")
@@ -245,7 +210,7 @@ func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistr
 	} else {
 		instanceClient, err = r.createClient(tx, registrationPayload)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("creating client: %w", err)
 		}
 
 		r.reportEvent(tx, corev1.EventTypeNormal, EventCreatedInDigDir, "Client is registered")

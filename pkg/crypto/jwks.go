@@ -3,7 +3,6 @@ package crypto
 import (
 	"fmt"
 
-	"github.com/nais/liberator/pkg/kubernetes"
 	"gopkg.in/square/go-jose.v2"
 	v1 "k8s.io/api/core/v1"
 )
@@ -24,23 +23,6 @@ func MergeJwks(jwk jose.JSONWebKey, secretsInUse v1.SecretList, secretKey string
 	}
 
 	return &jose.JSONWebKeySet{Keys: unique(keys)}, nil
-}
-
-func GetPreviousJwkFromSecret(managedSecrets *kubernetes.SecretLists, secretKey string) (*jose.JSONWebKey, error) {
-	var newestSecret v1.Secret
-
-	for _, secret := range append(managedSecrets.Used.Items, managedSecrets.Unused.Items...) {
-		if secret.CreationTimestamp.After(newestSecret.CreationTimestamp.Time) {
-			newestSecret = secret
-		}
-	}
-
-	key, err := getJWKFromSecret(newestSecret, secretKey)
-	if err == nil && key != nil {
-		return key, nil
-	}
-
-	return nil, fmt.Errorf("getting jwk from secret: %w", err)
 }
 
 func KeyIDsFromJwks(jwks *jose.JSONWebKeySet) []string {
