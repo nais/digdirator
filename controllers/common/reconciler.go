@@ -300,8 +300,6 @@ func (r *Reconciler) handleError(tx *Transaction, err error) (ctrl.Result, error
 	tx.Logger.Error(fmt.Errorf("processing client: %w", err))
 	r.reportEvent(tx, corev1.EventTypeWarning, EventFailedSynchronization, "Failed to synchronize client")
 
-	metrics.IncClientsFailedProcessing(tx.Instance)
-
 	var digdirErr *digdir.Error
 	requeue := true
 
@@ -315,6 +313,7 @@ func (r *Reconciler) handleError(tx *Transaction, err error) (ctrl.Result, error
 	}
 
 	if requeue {
+		metrics.IncClientsFailedProcessing(tx.Instance)
 		tx.Logger.Infof("requeuing failed reconciliation after %s", RequeueInterval)
 		return ctrl.Result{RequeueAfter: RequeueInterval}, nil
 	}
