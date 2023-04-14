@@ -9,9 +9,6 @@ on:
       - '.github/workflows/chart.yaml'
       - '*.md'
 
-env:
-  REGISTRY: europe-north1-docker.pkg.dev/nais-io/nais/images
-
 jobs:
   build_and_push_registry:
     if: github.ref == 'refs/heads/master'
@@ -21,80 +18,38 @@ jobs:
       packages: write
       id-token: write
     outputs:
-      "version": ${{ steps.version.outputs.version }}
-      digest: ${{ steps.build-push.outputs.digest }}
+      version: ${{ steps.build_push_sign.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # ratchet:actions/checkout@v3
       - name: Generate version
         id: version
         run: echo "version=$(date +'%Y%m%d-%H%M%S')-$(git rev-parse --short HEAD)" >> ${GITHUB_OUTPUT}
-      - id: "auth"
-        name: "Authenticate to Google Cloud"
-        uses: google-github-actions/auth@v1.0.0
-        with:
-          workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: "gh-digdirator@nais-io.iam.gserviceaccount.com"
-          token_format: "access_token"
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Login to registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: "oauth2accesstoken"
-          password: "${{ steps.auth.outputs.access_token }}"
-      - name: Docker meta
-        id: metadata
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ env.REGISTRY }}/digdirator
-          # Docker tags based on the following events/attributes
-          tags: |
-            type=schedule
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern=v{{version}}
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}
-            type=sha
-            type=raw,value=${{ steps.version.outputs.version }}
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        id: build-push
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
       - name: Install cosign
         uses: sigstore/cosign-installer@9e9de2292db7abb3f51b7f4808d98f0d347a8919 # ratchet:sigstore/cosign-installer@main
         with:
           cosign-release: 'v2.0.0'
-      - name: Sign the container image
-        run: cosign sign --yes ${{ env.REGISTRY }}/digdirator@${{ steps.build-push.outputs.digest }}
-      - name: Create SBOM
-        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee # ratchet:aquasecurity/trivy-action@master
+      - name: Verify builder image
+        run: cosign verify --certificate-identity "https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main"  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" cgr.dev/chainguard/go:1.20
+      - name: Verify runner image
+        run: cosign verify --certificate-oidc-issuer https://accounts.google.com  --certificate-identity keyless@distroless.iam.gserviceaccount.com gcr.io/distroless/static-debian11:nonroot
+      - uses: nais/build-push-sign@8b336817c5749f179373fd63a7f511bae7246f10 # ratchet:nais/build-push-sign@main
+        id: build_push_sign
         with:
-          scan-type: 'image'
-          format: 'cyclonedx'
-          output: 'cyclone.sbom.json'
-          image-ref: ${{ env.REGISTRY }}/digdirator@${{ steps.build-push.outputs.digest }}
-      - name: Attest image
-        run: cosign attest --yes --predicate cyclone.sbom.json --type cyclonedx ${{ env.REGISTRY }}/digdirator@${{ steps.build-push.outputs.digest }}
+          name: digdirator
+          dockerfile: Dockerfile
+          google_service_account: gh-digdirator
+          push: ${{ github.actor != 'dependabot[bot]' && github.ref == 'refs/heads/master' }}
+          workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
 
   rollout:
     permissions:
       id-token: write
-    needs: [ "build_and_push_registry" ]
+    needs: ["build_and_push_registry"]
     runs-on: fasit-deploy
     if: github.ref == 'refs/heads/master'
     steps:
-      - uses: nais/fasit-deploy@main
+      - uses: nais/fasit-deploy@b2c0b6d049b53bef41b321eec406fe66938576fd # ratchet:nais/fasit-deploy@main
         with:
           json: '{"image": {"tag": "${{ needs.build_and_push_registry.outputs.version }}"}}'
           feature_name: digdirator

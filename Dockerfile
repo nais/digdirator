@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.20 as builder
+FROM cgr.dev/chainguard/go:1.20 as builder
 
 ENV os "linux"
 ENV arch "amd64"
@@ -24,10 +24,9 @@ RUN CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} GO111MODULE=on go build -a -installs
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM alpine:3
+FROM gcr.io/distroless/static-debian11:nonroot
 WORKDIR /
 COPY --from=builder /workspace/digdirator /digdirator
-RUN apk add --no-cache ca-certificates
 
 # HEALTHCHECK CMD curl --fail http://localhost:8080/metrics/ || exit 1
 
