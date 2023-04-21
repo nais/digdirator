@@ -140,27 +140,32 @@ func (r *Reconciler) process(tx *Transaction) error {
 		tx.Instance.GetStatus().SetClientID(instanceClient.ClientID)
 	}
 
-	if !clients.ShouldUpdateSecrets(tx.Instance) {
-		return nil
-	}
-
-	jwk, err := crypto.GenerateJwk()
-	if err != nil {
-		return fmt.Errorf("generating new JWK for client: %w", err)
-	}
-
 	secretsClient := r.secrets(tx)
 	managedSecrets, err := secretsClient.GetManaged()
 	if err != nil {
 		return fmt.Errorf("getting managed secrets: %w", err)
 	}
 
-	if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
-		return err
-	}
+	var jwk *jose.JSONWebKey
 
-	r.reportEvent(tx, corev1.EventTypeNormal, EventRotatedInDigDir, "Client credentials is rotated")
-	metrics.IncClientsRotated(tx.Instance)
+	if clients.NeedsSecretRotation(tx.Instance) {
+		jwk, err = crypto.GenerateJwk()
+		if err != nil {
+			return fmt.Errorf("generating new JWK for client: %w", err)
+		}
+
+		if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
+			return err
+		}
+
+		r.reportEvent(tx, corev1.EventTypeNormal, EventRotatedInDigDir, "Client credentials is rotated")
+		metrics.IncClientsRotated(tx.Instance)
+	} else {
+		jwk, err = crypto.GetPreviousJwkFromSecret(managedSecrets, clients.GetSecretJwkKey(tx.Instance))
+		if err != nil {
+			return err
+		}
+	}
 
 	if err := secretsClient.CreateOrUpdate(*jwk); err != nil {
 		return fmt.Errorf("creating or updating secret: %w", err)

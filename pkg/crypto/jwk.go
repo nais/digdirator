@@ -2,8 +2,11 @@ package crypto
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
+	"github.com/nais/liberator/pkg/kubernetes"
 	"gopkg.in/square/go-jose.v2"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -23,4 +26,24 @@ func GenerateJwk() (*jose.JSONWebKey, error) {
 		Algorithm: KeyAlgorithm,
 	}
 	return jwk, nil
+}
+
+func GetPreviousJwkFromSecret(managedSecrets *kubernetes.SecretLists, secretKey string) (*jose.JSONWebKey, error) {
+	var newestSecret corev1.Secret
+
+	for _, secret := range append(managedSecrets.Used.Items, managedSecrets.Unused.Items...) {
+		if secret.CreationTimestamp.After(newestSecret.CreationTimestamp.Time) {
+			newestSecret = secret
+		}
+	}
+
+	key, err := getJWKFromSecret(newestSecret, secretKey)
+	if err == nil && key != nil {
+		return key, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting jwk from secret: %w", err)
+	}
+
+	return nil, fmt.Errorf("no previous jwk found from managed secret")
 }
