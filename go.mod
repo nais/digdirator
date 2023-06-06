@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	cloud.google.com/go/kms v1.11.0
-	cloud.google.com/go/secretmanager v1.10.1
+	cloud.google.com/go/secretmanager v1.11.0
 	github.com/go-logr/zapr v1.2.4
 	github.com/google/uuid v1.3.0
 	github.com/mitchellh/mapstructure v1.5.0
