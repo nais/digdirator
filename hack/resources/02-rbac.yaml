@@ -1,0 +1,61 @@
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    app: digdirator
+  name: digdirator
+rules:
+  - apiGroups:
+      - nais.io
+    resources:
+      - idportenclients
+      - idportenclients/status
+      - maskinportenclients
+      - maskinportenclients/status
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - update
+      - patch
+  - apiGroups:
+      - '*'
+    resources:
+      - secrets
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - update
+      - patch
+  - apiGroups:
+      - '*'
+    resources:
+      - pods
+      - namespaces
+    verbs:
+      - list
+      - get
+      - watch
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    app: digdirator
+  name: digdirator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: digdirator
+subjects:
+  - kind: ServiceAccount
+    name: digdirator
+    namespace: digdirator-system

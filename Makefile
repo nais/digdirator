@@ -30,3 +30,12 @@ pem2jwk:
 
 jwk-updater:
 	go build -o bin/jwk-updater cmd/jwk-updater/*.go
+
+install:
+	kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_idportenclients.yaml
+	kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_maskinportenclients.yaml
+	kubectl apply -f ./hack/resources/
+
+sample:
+	kubectl apply -f ./config/samples/idportenclient.yaml
+	kubectl apply -f ./config/samples/maskinportenclient.yaml

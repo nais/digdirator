@@ -1,0 +1,22 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: digdirator
+  namespace: digdirator-system
+  labels:
+    app: digdirator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: digdirator
+  template:
+    metadata:
+      labels:
+        app: digdirator
+    spec:
+      serviceAccountName: digdirator
+      containers:
+        - name: digdirator
+          image: ghcr.io/nais/digdirator:latest
