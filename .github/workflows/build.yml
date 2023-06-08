@@ -43,14 +43,14 @@ jobs:
           push_ghcr: true
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
 
-  #rollout:
-  #  permissions:
-  #    id-token: write
-  #  needs: ["build_and_push_registry"]
-  #  runs-on: fasit-deploy
-  #  if: github.ref == 'refs/heads/master'
-  #  steps:
-  #    - uses: nais/fasit-deploy@b2c0b6d049b53bef41b321eec406fe66938576fd # ratchet:nais/fasit-deploy@main
-  #      with:
-  #        json: '{"image": {"tag": "${{ needs.build_and_push_registry.outputs.version }}"}}'
-  #        feature_name: digdirator
+  rollout:
+    permissions:
+      id-token: write
+    needs: ["build_and_push_registry"]
+    runs-on: fasit-deploy
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: nais/fasit-deploy@b2c0b6d049b53bef41b321eec406fe66938576fd # ratchet:nais/fasit-deploy@main
+        with:
+          json: '{"image": {"tag": "${{ needs.build_and_push_registry.outputs.version }}"}}'
+          feature_name: digdirator
