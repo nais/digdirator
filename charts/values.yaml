@@ -4,7 +4,7 @@ apiserverIP: "" # mapping value from Fasit
 image:
   repository: europe-north1-docker.pkg.dev/nais-io/nais/images
   name: digdirator
-  tag: sha-d4be92d
+  tag: latest
 
 team: nais
 
