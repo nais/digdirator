@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir"
 )
 
@@ -14,7 +15,7 @@ type Transaction struct {
 	Instance     clients.Instance
 	Logger       *log.Entry
 	DigdirClient *digdir.Client
-	ClusterName  string
+	Config       *config.Config
 }
 
 func NewTransaction(
@@ -22,13 +23,13 @@ func NewTransaction(
 	instance clients.Instance,
 	logger *log.Entry,
 	digdirClient *digdir.Client,
-	clusterName string,
+	config *config.Config,
 ) Transaction {
 	return Transaction{
 		Ctx:          ctx,
 		Instance:     instance,
 		Logger:       logger,
 		DigdirClient: digdirClient,
-		ClusterName:  clusterName,
+		Config:       config,
 	}
 }

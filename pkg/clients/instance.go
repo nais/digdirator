@@ -10,17 +10,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/secrets"
 )
 
 const (
-	// IDPortenDefaultClientURI Default values
-	IDPortenDefaultClientURI                    = "https://www.nav.no"
-	IDPortenDefaultPostLogoutRedirectURI        = "https://www.nav.no"
-	IDPortenDefaultAccessTokenLifetimeSeconds   = 3600
-	IDPortenDefaultSessionLifetimeSeconds       = 7200
-	MaskinportenScopePrefix                     = "nav"
 	MaskinportenDefaultAllowedIntegrationType   = "maskinporten"
 	MaskinportenDefaultAtAgeMax                 = 30
 	MaskinportenDefaultAuthorizationMaxLifetime = 0
@@ -36,20 +31,20 @@ type Instance interface {
 	SetStatus(status naisiov1.DigdiratorStatus)
 }
 
-func ToScopeRegistration(instance Instance, scope naisiov1.ExposedScope, clusterName string) types.ScopeRegistration {
+func ToScopeRegistration(instance Instance, scope naisiov1.ExposedScope, cfg *config.Config) types.ScopeRegistration {
 	switch v := instance.(type) {
 	case *naisiov1.MaskinportenClient:
-		return toMaskinPortenScopeRegistration(*v, scope, clusterName)
+		return toMaskinPortenScopeRegistration(*v, scope, cfg)
 	}
 	return types.ScopeRegistration{}
 }
 
-func ToClientRegistration(instance Instance, clusterName string) types.ClientRegistration {
+func ToClientRegistration(instance Instance, cfg *config.Config) types.ClientRegistration {
 	switch v := instance.(type) {
 	case *naisiov1.IDPortenClient:
-		return toIDPortenClientRegistration(*v, clusterName)
+		return toIDPortenClientRegistration(*v, cfg)
 	case *naisiov1.MaskinportenClient:
-		return toMaskinPortenClientRegistration(*v, clusterName)
+		return toMaskinPortenClientRegistration(*v, cfg)
 	}
 	return types.ClientRegistration{}
 }
@@ -110,23 +105,23 @@ func NeedsSecretRotation(instance Instance) bool {
 	return instance.GetStatus().GetSynchronizationSecretName() != GetSecretName(instance)
 }
 
-func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient) {
+func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Config) {
 	var defaultValidIdportenScopes = []string{"openid", "profile"}
 	var defaultValidKrrScopes = []string{"krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read"}
 
 	if in.Spec.AccessTokenLifetime == nil {
-		lifetime := IDPortenDefaultAccessTokenLifetimeSeconds
+		lifetime := cfg.DigDir.Common.AccessTokenLifetime
 		in.Spec.AccessTokenLifetime = &lifetime
 	}
 	if in.Spec.SessionLifetime == nil {
-		lifetime := IDPortenDefaultSessionLifetimeSeconds
+		lifetime := cfg.DigDir.Common.SessionLifetime
 		in.Spec.SessionLifetime = &lifetime
 	}
 	if len(in.Spec.ClientURI) == 0 {
-		in.Spec.ClientURI = IDPortenDefaultClientURI
+		in.Spec.ClientURI = naisiov1.IDPortenURI(cfg.DigDir.Common.ClientURI)
 	}
 	if in.Spec.PostLogoutRedirectURIs == nil || len(in.Spec.PostLogoutRedirectURIs) == 0 {
-		in.Spec.PostLogoutRedirectURIs = []naisiov1.IDPortenURI{IDPortenDefaultPostLogoutRedirectURI}
+		in.Spec.PostLogoutRedirectURIs = []naisiov1.IDPortenURI{naisiov1.IDPortenURI(cfg.DigDir.Common.ClientURI)}
 	}
 	if in.Spec.IntegrationType != "" {
 		switch in.Spec.IntegrationType {
@@ -147,15 +142,15 @@ func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient) {
 	}
 }
 
-func toIDPortenClientRegistration(in naisiov1.IDPortenClient, clusterName string) types.ClientRegistration {
-	SetIDportenClientDefaultValues(&in)
+func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config) types.ClientRegistration {
+	SetIDportenClientDefaultValues(&in, cfg)
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
 		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
-		ClientName:                        types.DefaultClientName,
+		ClientName:                        cfg.DigDir.Common.ClientName,
 		ClientURI:                         string(in.Spec.ClientURI),
-		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, clusterName),
+		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, cfg.ClusterName),
 		FrontchannelLogoutSessionRequired: true,
 		FrontchannelLogoutURI:             string(in.Spec.FrontchannelLogoutURI),
 		GrantTypes: []types.GrantType{
@@ -172,14 +167,14 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, clusterName string
 	}
 }
 
-func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, clusterName string) types.ClientRegistration {
+func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, cfg *config.Config) types.ClientRegistration {
 	return types.ClientRegistration{
-		AccessTokenLifetime:               IDPortenDefaultAccessTokenLifetimeSeconds,
+		AccessTokenLifetime:               cfg.DigDir.Common.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
-		AuthorizationLifeTime:             IDPortenDefaultSessionLifetimeSeconds,
-		ClientName:                        types.DefaultClientName,
-		ClientURI:                         IDPortenDefaultClientURI,
-		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, clusterName),
+		AuthorizationLifeTime:             cfg.DigDir.Common.SessionLifetime,
+		ClientName:                        cfg.DigDir.Common.ClientName,
+		ClientURI:                         cfg.DigDir.Common.ClientURI,
+		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, cfg.ClusterName),
 		FrontchannelLogoutSessionRequired: false,
 		FrontchannelLogoutURI:             "",
 		GrantTypes: []types.GrantType{
@@ -195,7 +190,7 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, clusterNam
 	}
 }
 
-func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope, clusterName string) types.ScopeRegistration {
+func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope, cfg *config.Config) types.ScopeRegistration {
 	SetDefaultScopeValues(&exposedScope)
 	return types.ScopeRegistration{
 		Active:                     exposedScope.Enabled,
@@ -204,8 +199,8 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 		DelegationSource:           "",
 		Name:                       "",
 		AuthorizationMaxLifetime:   MaskinportenDefaultAuthorizationMaxLifetime,
-		Description:                kubernetes.UniformResourceScopeName(&in.ObjectMeta, clusterName, exposedScope.Product, exposedScope.Name),
-		Prefix:                     MaskinportenScopePrefix,
+		Description:                kubernetes.UniformResourceScopeName(&in.ObjectMeta, cfg.ClusterName, exposedScope.Product, exposedScope.Name),
+		Prefix:                     cfg.DigDir.Maskinporten.Default.ScopePrefix,
 		Subscope:                   kubernetes.ToScope(exposedScope.Product, exposedScope.Name),
 		TokenType:                  types.TokenTypeSelfContained,
 		Visibility:                 types.ScopeVisibilityPublic,

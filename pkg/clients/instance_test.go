@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/fixtures"
 	"github.com/nais/digdirator/pkg/secrets"
@@ -93,17 +94,18 @@ func TestIsUpToDate(t *testing.T) {
 func TestToClientRegistration_IDPortenClient(t *testing.T) {
 	client := fixtures.MinimalIDPortenClient()
 	cluster := "test-cluster"
-	registration := clients.ToClientRegistration(client, cluster)
+	cfg := makeConfig(cluster)
+	registration := clients.ToClientRegistration(client, cfg)
 
-	assert.Equal(t, clients.IDPortenDefaultAccessTokenLifetimeSeconds, registration.AccessTokenLifetime)
+	assert.Equal(t, 3600, registration.AccessTokenLifetime)
 
 	assert.Equal(t, types.ApplicationTypeWeb, registration.ApplicationType)
 
-	assert.Equal(t, clients.IDPortenDefaultSessionLifetimeSeconds, registration.AuthorizationLifeTime)
+	assert.Equal(t, 7200, registration.AuthorizationLifeTime)
 
-	assert.Equal(t, clients.IDPortenDefaultClientURI, registration.ClientURI)
+	assert.Equal(t, "https://some-client-uri", registration.ClientURI)
 
-	assert.Equal(t, types.DefaultClientName, registration.ClientName)
+	assert.Equal(t, "some-client-name", registration.ClientName)
 
 	assert.Equal(t, "test-cluster:test-namespace:test-app", registration.Description)
 
@@ -116,13 +118,13 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 
 	assert.Equal(t, types.IntegrationTypeIDPorten, registration.IntegrationType)
 
-	assert.Contains(t, registration.PostLogoutRedirectURIs, clients.IDPortenDefaultPostLogoutRedirectURI)
+	assert.Contains(t, registration.PostLogoutRedirectURIs, "https://some-client-uri")
 	assert.Len(t, registration.PostLogoutRedirectURIs, 1)
 
 	assert.Contains(t, registration.RedirectURIs, "https://test.com")
 	assert.Len(t, registration.RedirectURIs, 1)
 
-	assert.Equal(t, clients.IDPortenDefaultSessionLifetimeSeconds, registration.RefreshTokenLifetime)
+	assert.Equal(t, 7200, registration.RefreshTokenLifetime)
 
 	assert.Equal(t, types.RefreshTokenUsageReuse, registration.RefreshTokenUsage)
 
@@ -139,7 +141,7 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 			"https://test.com/b",
 			"https://test.com/b",
 		}
-		registration = clients.ToClientRegistration(client, cluster)
+		registration = clients.ToClientRegistration(client, cfg)
 		assert.ElementsMatch(t, registration.RedirectURIs, []string{
 			"https://test.com",
 			"https://test.com/a",
@@ -152,17 +154,18 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 	client := fixtures.MinimalMaskinportenClient()
 	cluster := "test-cluster"
-	registration := clients.ToClientRegistration(client, cluster)
+	cfg := makeConfig(cluster)
+	registration := clients.ToClientRegistration(client, cfg)
 
-	assert.Equal(t, clients.IDPortenDefaultAccessTokenLifetimeSeconds, registration.AccessTokenLifetime)
+	assert.Equal(t, 3600, registration.AccessTokenLifetime)
 
 	assert.Equal(t, types.ApplicationTypeWeb, registration.ApplicationType)
 
-	assert.Equal(t, clients.IDPortenDefaultSessionLifetimeSeconds, registration.AuthorizationLifeTime)
+	assert.Equal(t, 7200, registration.AuthorizationLifeTime)
 
-	assert.Equal(t, clients.IDPortenDefaultClientURI, registration.ClientURI)
+	assert.Equal(t, "https://some-client-uri", registration.ClientURI)
 
-	assert.Equal(t, types.DefaultClientName, registration.ClientName)
+	assert.Equal(t, "some-client-name", registration.ClientName)
 
 	assert.Equal(t, "test-cluster:test-namespace:test-app", registration.Description)
 
@@ -191,6 +194,7 @@ func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 func TestToClientRegistration_IntegrationType(t *testing.T) {
 	client := fixtures.MinimalIDPortenClient()
 	cluster := "test-cluster"
+	cfg := makeConfig(cluster)
 
 	for _, test := range []struct {
 		name                     string
@@ -230,11 +234,25 @@ func TestToClientRegistration_IntegrationType(t *testing.T) {
 			client.Spec.IntegrationType = test.specifiedIntegrationType
 		}
 
-		actual := clients.ToClientRegistration(client, cluster)
+		actual := clients.ToClientRegistration(client, cfg)
 
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.wantIntegrationType, actual.IntegrationType)
 			assert.Equal(t, test.wantScopes, actual.Scopes)
 		})
+	}
+}
+
+func makeConfig(clusterName string) *config.Config {
+	return &config.Config{
+		ClusterName: clusterName,
+		DigDir: config.DigDir{
+			Common: config.DigDirCommon{
+				AccessTokenLifetime: 3600,
+				ClientName:          "some-client-name",
+				ClientURI:           "https://some-client-uri",
+				SessionLifetime:     7200,
+			},
+		},
 	}
 }

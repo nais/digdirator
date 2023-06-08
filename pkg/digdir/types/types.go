@@ -1,12 +1,9 @@
 package types
 
 import (
-	"gopkg.in/square/go-jose.v2"
 	"time"
-)
 
-const (
-	DefaultClientName string = "ARBEIDS- OG VELFERDSETATEN"
+	"gopkg.in/square/go-jose.v2"
 )
 
 type ApplicationType string

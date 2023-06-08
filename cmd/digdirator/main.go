@@ -232,22 +232,22 @@ func setupConfig() (*config.Config, error) {
 
 	cfg.Print([]string{})
 
-	if err = cfg.Validate([]string{
+	required := []string{
 		config.ClusterName,
 		config.DigDirAdminBaseURL,
 		config.DigDirIDportenClientID,
-		config.DigDirMaskinportenClientID,
 		config.DigDirIDportenCertChain,
-		config.DigDirMaskinportenCertChain,
-		config.DigDirIDportenClientID,
-		config.DigDirMaskinportenClientID,
-		config.DigDirIDportenScopes,
-		config.DigDirMaskinportenScopes,
-		config.DigDirIDPortenWellKnownURL,
-		config.DigDirMaskinportenWellKnownURL,
 		config.DigDirIDportenKmsKeyPath,
+		config.DigDirIDportenScopes,
+		config.DigDirIDPortenWellKnownURL,
+		config.DigDirMaskinportenClientID,
+		config.DigDirMaskinportenCertChain,
 		config.DigDirMaskinportenKmsKeyPath,
-	}); err != nil {
+		config.DigDirMaskinportenScopes,
+		config.DigDirMaskinportenWellKnownURL,
+	}
+
+	if err = cfg.Validate(required); err != nil {
 		return nil, err
 	}
 	return cfg, nil

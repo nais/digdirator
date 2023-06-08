@@ -49,7 +49,7 @@ func (f finalizer) Process() (ctrl.Result, error) {
 
 	f.Logger.Info("finalizer triggered...")
 
-	clientRegistration, err := f.DigdirClient.ClientExists(f.Instance, f.Ctx, f.Config.ClusterName)
+	clientRegistration, err := f.DigdirClient.ClientExists(f.Instance, f.Ctx, f.Reconciler.Config.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

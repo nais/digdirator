@@ -25,6 +25,14 @@ type DigDir struct {
 	Admin        Admin        `json:"admin"`
 	IDPorten     IDPorten     `json:"idporten"`
 	Maskinporten Maskinporten `json:"maskinporten"`
+	Common       DigDirCommon `json:"common"`
+}
+
+type DigDirCommon struct {
+	AccessTokenLifetime int    `json:"access-token-lifetime"`
+	ClientName          string `json:"client-name"`
+	ClientURI           string `json:"client-uri"`
+	SessionLifetime     int    `json:"session-lifetime"`
 }
 
 type Admin struct {
@@ -41,12 +49,18 @@ type IDPorten struct {
 }
 
 type Maskinporten struct {
-	CertChain    string `json:"cert-chain"`
-	ClientID     string `json:"client-id"`
-	KMS          KMS    `json:"kms"`
-	Scopes       string `json:"scopes"`
-	WellKnownURL string `json:"well-known-url"`
+	CertChain    string              `json:"cert-chain"`
+	ClientID     string              `json:"client-id"`
+	Default      MaskinportenDefault `json:"default"`
+	KMS          KMS                 `json:"kms"`
+	Scopes       string              `json:"scopes"`
+	WellKnownURL string              `json:"well-known-url"`
 	Metadata     oauth.MetadataOAuth
+}
+
+type MaskinportenDefault struct {
+	ClientScope string `json:"client-scope"`
+	ScopePrefix string `json:"scope-prefix"`
 }
 
 type KMS struct {
@@ -58,21 +72,32 @@ type Features struct {
 }
 
 const (
-	MetricsAddress                 = "metrics-address"
-	ClusterName                    = "cluster-name"
-	DevelopmentMode                = "development-mode"
-	DigDirAdminBaseURL             = "digdir.admin.base-url"
-	DigDirIDportenClientID         = "digdir.idporten.client-id"
-	DigDirIDportenScopes           = "digdir.idporten.scopes"
-	DigDirIDportenCertChain        = "digdir.idporten.cert-chain"
-	DigDirMaskinportenClientID     = "digdir.maskinporten.client-id"
-	DigDirMaskinportenScopes       = "digdir.maskinporten.scopes"
-	DigDirMaskinportenCertChain    = "digdir.maskinporten.cert-chain"
-	DigDirIDportenKmsKeyPath       = "digdir.idporten.kms.key-path"
-	DigDirMaskinportenKmsKeyPath   = "digdir.maskinporten.kms.key-path"
-	DigDirIDPortenWellKnownURL     = "digdir.idporten.well-known-url"
-	DigDirMaskinportenWellKnownURL = "digdir.maskinporten.well-known-url"
-	FeaturesMaskinporten           = "features.maskinporten"
+	MetricsAddress     = "metrics-address"
+	ClusterName        = "cluster-name"
+	DevelopmentMode    = "development-mode"
+	DigDirAdminBaseURL = "digdir.admin.base-url"
+
+	DigDirCommonClientName          = "digdir.common.client-name"
+	DigDirCommonClientURI           = "digdir.common.client-uri"
+	DigDirCommonAccessTokenLifetime = "digdir.common.access-token-lifetime"
+	DigDirCommonSessionLifetime     = "digdir.common.session-lifetime"
+
+	DigDirIDportenClientID     = "digdir.idporten.client-id"
+	DigDirIDportenCertChain    = "digdir.idporten.cert-chain"
+	DigDirIDportenKmsKeyPath   = "digdir.idporten.kms.key-path"
+	DigDirIDportenScopes       = "digdir.idporten.scopes"
+	DigDirIDPortenWellKnownURL = "digdir.idporten.well-known-url"
+
+	DigDirMaskinportenClientID  = "digdir.maskinporten.client-id"
+	DigDirMaskinportenCertChain = "digdir.maskinporten.cert-chain"
+
+	DigDirMaskinportenDefaultClientScope = "digdir.maskinporten.default.client-scope"
+	DigDirMaskinportenDefaultScopePrefix = "digdir.maskinporten.default.scope-prefix"
+	DigDirMaskinportenKmsKeyPath         = "digdir.maskinporten.kms.key-path"
+	DigDirMaskinportenScopes             = "digdir.maskinporten.scopes"
+	DigDirMaskinportenWellKnownURL       = "digdir.maskinporten.well-known-url"
+
+	FeaturesMaskinporten = "features.maskinporten"
 )
 
 func init() {
@@ -91,17 +116,28 @@ func init() {
 	flag.String(MetricsAddress, ":8080", "The address the metric endpoint binds to.")
 	flag.String(ClusterName, "", "The cluster in which this application should run.")
 	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
+
 	flag.String(DigDirAdminBaseURL, "", "Base URL endpoint for interacting with Digdir Client Registration API")
+
+	flag.String(DigDirCommonClientName, "ARBEIDS- OG VELFERDSETATEN", "Default name for all provisioned clients. Appears in the login prompt for ID-porten.")
+	flag.String(DigDirCommonClientURI, "https://www.nav.no", "Default client URI for all provisioned clients. Appears in the back-button for the login prompt for ID-porten.")
+	flag.Int(DigDirCommonAccessTokenLifetime, 3600, "Default lifetime (in seconds) for access tokens for all clients.")
+	flag.Int(DigDirCommonSessionLifetime, 7200, "Default lifetime (in seconds) for sessions (authorization and refresh token lifetime) for all clients.")
+
 	flag.String(DigDirIDportenClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirIDportenKmsKeyPath, "", "IDPorten KMS resource path used to sign JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirIDportenCertChain, "", "Secret path in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir.")
-	flag.String(DigDirMaskinportenClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirMaskinportenKmsKeyPath, "", "Maskinporten Google KmsConfig resource path used to sign JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirMaskinportenCertChain, "", "Secret path in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir.")
-	flag.String(DigDirMaskinportenScopes, "", "List of scopes for JWT assertion when authenticating to DigDir with Maskinporten.")
+	flag.String(DigDirIDportenKmsKeyPath, "", "IDPorten KMS resource path used to sign JWT assertion when authenticating to DigDir.")
 	flag.String(DigDirIDportenScopes, "", "List of scopes for JWT assertion when authenticating to DigDir with IDporten.")
-	flag.String(DigDirMaskinportenWellKnownURL, "", "URL to Maskinporten well-known discovery metadata document.")
 	flag.String(DigDirIDPortenWellKnownURL, "", "URL to ID-porten well-known discovery metadata document.")
+
+	flag.String(DigDirMaskinportenClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
+	flag.String(DigDirMaskinportenCertChain, "", "Secret path in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir.")
+	flag.String(DigDirMaskinportenDefaultClientScope, "nav:test/api", "Default scope for provisioned Maskinporten clients, if none specified in spec.")
+	flag.String(DigDirMaskinportenDefaultScopePrefix, "nav", "Default scope prefix for provisioned Maskinporten scopes.")
+	flag.String(DigDirMaskinportenKmsKeyPath, "", "Maskinporten Google KmsConfig resource path used to sign JWT assertion when authenticating to DigDir.")
+	flag.String(DigDirMaskinportenScopes, "", "List of scopes for JWT assertion when authenticating to DigDir with Maskinporten.")
+	flag.String(DigDirMaskinportenWellKnownURL, "", "URL to Maskinporten well-known discovery metadata document.")
+
 	flag.Bool(FeaturesMaskinporten, false, "Feature toggle for maskinporten")
 }
 

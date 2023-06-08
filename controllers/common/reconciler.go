@@ -125,7 +125,7 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 		instance,
 		&logger,
 		&digdirClient,
-		r.Config.ClusterName,
+		r.Config,
 	)
 	return &transaction, nil
 }
@@ -179,12 +179,12 @@ func (r *Reconciler) process(tx *Transaction) error {
 }
 
 func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistration, error) {
-	instanceClient, err := tx.DigdirClient.ClientExists(tx.Instance, tx.Ctx, tx.ClusterName)
+	instanceClient, err := tx.DigdirClient.ClientExists(tx.Instance, tx.Ctx, tx.Config.ClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("checking if client exists: %w", err)
 	}
 
-	registrationPayload := clients.ToClientRegistration(tx.Instance, tx.ClusterName)
+	registrationPayload := clients.ToClientRegistration(tx.Instance, tx.Config)
 
 	switch instance := tx.Instance.(type) {
 	case *naisiov1.MaskinportenClient:
@@ -264,6 +264,10 @@ func (r *Reconciler) filterValidScopes(tx *Transaction, registration types.Clien
 	accessibleScopes, err := tx.DigdirClient.GetAccessibleScopes(tx.Ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(desiredScopes) == 0 {
+		desiredScopes = []naisiov1.ConsumedScope{{Name: r.Config.DigDir.Maskinporten.Default.ClientScope}}
 	}
 
 	filteredScopes := clients.FilterScopes(desiredScopes, accessibleScopes)

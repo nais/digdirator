@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir/types"
 )
 
@@ -17,11 +18,12 @@ func TestScopeFilteringWithNewScopeAndOneExistingOne(t *testing.T) {
 	currentScope := "test/scope"
 	currentObjectMeta := metaObject()
 	clusterName := "test-cluster"
+	cfg := &config.Config{ClusterName: clusterName}
 	exposedScopes := createExposedScopes(currentScope)
 	currentMaskinportenClient := minimalMaskinportenWithScopeInternalExternalClient(currentObjectMeta, exposedScopes)
 	scopeContainer := ScopeStash{}
 
-	scopeRegistration := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], clusterName)
+	scopeRegistration := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], cfg)
 	scopeRegistration.Name = fmt.Sprintf("nav:%s", currentScope)
 	scopeRegistration.Active = true
 	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, clusterName, "arbeid", currentScope), scopeRegistration.Description)
@@ -44,6 +46,7 @@ func TestScopeFiltering(t *testing.T) {
 	currentScope2 := "test.scope2"
 	noneExistingScope := "scope/nr2"
 	clusterName := "test-cluster"
+	cfg := &config.Config{ClusterName: clusterName}
 	currentObjectMeta := metaObject()
 	currentExternals := createExposedScopes(currentScope, currentScope2, noneExistingScope)
 	currentMaskinportenClient := minimalMaskinportenWithScopeInternalExternalClient(currentObjectMeta, currentExternals)
@@ -54,7 +57,7 @@ func TestScopeFiltering(t *testing.T) {
 	// with legacy scopes used on-prem
 	// description: cluster:namespace:app.scope/api
 	// subscope: scope/api
-	scopeRegistration1 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], clusterName)
+	scopeRegistration1 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], cfg)
 	scopeRegistration1.Name = fmt.Sprintf("nav:%s", currentScope)
 	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, clusterName, "arbeid", currentScope), scopeRegistration1.Description)
 	assert.Equal(t, kubernetes.ToScope("arbeid", currentScope), scopeRegistration1.Subscope)
@@ -62,7 +65,7 @@ func TestScopeFiltering(t *testing.T) {
 	// Secound case new format
 	// description: cluster:team:app.scope
 	// subscope: team:app.scope
-	scopeRegistration2 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope2], clusterName)
+	scopeRegistration2 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope2], cfg)
 	scopeRegistration2.Name = fmt.Sprintf("nav:%s", currentScope2)
 	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, clusterName, "arbeid", currentScope2), scopeRegistration2.Description)
 	assert.Equal(t, "arbeid:test.scope2", scopeRegistration2.Subscope)

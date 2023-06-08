@@ -6,10 +6,6 @@ import (
 	"github.com/nais/digdirator/pkg/digdir/types"
 )
 
-const (
-	defaultScope = "nav:test/api"
-)
-
 type FilteredScopes struct {
 	Valid   []string
 	Invalid []string
@@ -18,10 +14,6 @@ type FilteredScopes struct {
 func FilterScopes(desired []v1.ConsumedScope, accesibleScopes []types.Scope) FilteredScopes {
 	validScopes := make([]string, 0)
 	invalidScopes := make([]string, 0)
-
-	if len(desired) == 0 {
-		desired = []v1.ConsumedScope{{Name: defaultScope}}
-	}
 
 	for _, scope := range desired {
 		if scopeIsAccessible(scope, accesibleScopes) {
