@@ -1,5 +1,4 @@
 name: Build and deploy digdirator
-
 on:
   push:
     branches:
@@ -8,7 +7,6 @@ on:
       - 'charts/**'
       - '.github/workflows/chart.yaml'
       - '*.md'
-
 jobs:
   build_and_push_registry:
     if: github.ref == 'refs/heads/master'
@@ -33,7 +31,7 @@ jobs:
         run: cosign verify --certificate-identity "https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main"  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" cgr.dev/chainguard/go:1.20
       - name: Verify runner image
         run: cosign verify --certificate-oidc-issuer https://accounts.google.com  --certificate-identity keyless@distroless.iam.gserviceaccount.com gcr.io/distroless/static-debian11:nonroot
-      - uses: nais/platform-build-push-sign@push-ghcr
+      - uses: nais/platform-build-push-sign@485e0b87b397e50ea6382a8351af41d4580dbdbc # ratchet:nais/platform-build-push-sign@main
         id: build_push_sign
         with:
           name: digdirator
@@ -42,7 +40,6 @@ jobs:
           push: ${{ github.actor != 'dependabot[bot]' && github.ref == 'refs/heads/master' }}
           push_ghcr: true
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
-
   rollout:
     permissions:
       id-token: write
