@@ -3,7 +3,7 @@ module github.com/nais/digdirator
 go 1.20
 
 require (
-	cloud.google.com/go/kms v1.11.0
+	cloud.google.com/go/kms v1.12.0
 	cloud.google.com/go/secretmanager v1.11.0
 	github.com/go-logr/zapr v1.2.4
 	github.com/google/uuid v1.3.0
@@ -26,7 +26,7 @@ require (
 require (
 	cloud.google.com/go/compute v1.19.3 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	cloud.google.com/go/iam v1.0.1 // indirect
+	cloud.google.com/go/iam v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
