@@ -19,7 +19,7 @@ jobs:
       version: ${{ steps.build_push_sign.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # ratchet:actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # ratchet:actions/checkout@v3
       - name: Generate version
         id: version
         run: echo "version=$(date +'%Y%m%d-%H%M%S')-$(git rev-parse --short HEAD)" >> ${GITHUB_OUTPUT}
@@ -31,7 +31,7 @@ jobs:
         run: cosign verify --certificate-identity "https://github.com/chainguard-images/images/.github/workflows/release.yaml@refs/heads/main"  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" cgr.dev/chainguard/go:1.20
       - name: Verify runner image
         run: cosign verify --certificate-oidc-issuer https://accounts.google.com  --certificate-identity keyless@distroless.iam.gserviceaccount.com gcr.io/distroless/static-debian11:nonroot
-      - uses: nais/platform-build-push-sign@485e0b87b397e50ea6382a8351af41d4580dbdbc # ratchet:nais/platform-build-push-sign@main
+      - uses: nais/platform-build-push-sign@a4d8dd01a8d6308f95403e28103066e44a40d61b # ratchet:nais/platform-build-push-sign@main
         id: build_push_sign
         with:
           name: digdirator
