@@ -1,8 +1,6 @@
 package crypto
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 
 	"gopkg.in/square/go-jose.v2"
@@ -13,8 +11,10 @@ func SetupSignerOptions(certPEMBlock []byte) (*jose.SignerOptions, error) {
 	if err != nil {
 		return nil, fmt.Errorf("converting PEM cert chain to X509 cert chain: %w", err)
 	}
-	sha256sum := sha256.Sum256(certs[0].Raw)
-	kid := base64.RawURLEncoding.EncodeToString(sha256sum[:])
+
+	// Calculate and use the `x5t#S256` value as the `kid`
+	// This must match the `kid` for the pre-registered public key at the Authorization Server, exchanged out-of-band.
+	kid := X5tS256(certs[0])
 
 	signerOpts := &jose.SignerOptions{}
 	signerOpts.WithType("JWT")
