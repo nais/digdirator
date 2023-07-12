@@ -44,6 +44,12 @@ See the documentation over at DigDir for acquiring clients with the required sco
 
 Digdirator uses two separate clients (and thus also certificates) for administration of ID-porten and Maskinporten clients.
 
+Use the [pem2jwk](cmd/pem2jwk) utility to generate a public JWK with the correct `x5c` and `kid` parameters.
+This key should be registered/associated with your DigDir client out-of-band.
+
+Digdirator will calculate the same `kid` using the configured certificate chain and use this when creating JWT grants for
+authenticating with the DigDir self-service APIs.
+
 ### Google Cloud Platform Setup
 
 Digdirator makes use of a few Google Cloud Platform products; Secret Manager and Cloud Key Management Service (KMS).
@@ -74,7 +80,7 @@ The Google Service Account needs the following IAM role for each _key_ in Cloud 
 
 Follow [Google's documentation for importing keys](https://cloud.google.com/kms/docs/importing-a-key).
 
-The private key for business certificate should be imported with the purpose set to `ASYMMETRIC_SIGN`, and the algorithm set to one of the `RSASSA-PKCS1 v1_5` variants.
+The private key should be imported with the purpose set to `ASYMMETRIC_SIGN`, and the algorithm set to one of the `RSASSA-PKCS1 v1_5` variants.
 
 ### Configuration
 
