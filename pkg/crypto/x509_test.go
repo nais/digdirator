@@ -8,13 +8,14 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"github.com/nais/digdirator/pkg/crypto"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"math/big"
-	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/nais/digdirator/pkg/crypto"
 )
 
 var (
@@ -42,53 +43,13 @@ func TestConvertPEMBlockToX509Chain(t *testing.T) {
 	pemChainBytes, err := pemChainToBytes(certChain)
 	assert.NoError(t, err)
 
-	certs, err := crypto.ConvertPEMBlockToX509Chain(pemChainBytes)
+	certs, err := crypto.ConvertPEMChainToX509Chain(pemChainBytes)
 	assert.NoError(t, err)
 
 	assert.Len(t, certs, 3)
 	assert.Equal(t, "CN=NAIS Price AS,O=NAIS Price AS 987654321,C=NO", certs[0].Subject.String())
 	assert.Equal(t, "CN=ACME AS Intermediate CA,O=ACME AS 987654321,C=NO", certs[1].Subject.String())
 	assert.Equal(t, "CN=ACME AS Root CA,O=ACME AS 987654321,C=NO", certs[2].Subject.String())
-}
-
-func TestConvertX509CertificatesToX5c(t *testing.T) {
-	certChain, err := generateCertChain()
-	assert.NoError(t, err)
-
-	x5c := crypto.ConvertX509CertificatesToX5c(certChain)
-	assert.Len(t, x5c, 3)
-
-	assertPemStringsEqualsX5cStrings(t, x5c, certChain)
-}
-
-func assertPemStringsEqualsX5cStrings(t *testing.T, x5c []string, certs []*x509.Certificate) {
-	for i, x5 := range x5c {
-		certString, err := certToFormattedString(certs[i])
-		assert.NoError(t, err)
-		assert.Equal(t, certString, x5)
-		for j := range certs {
-			if i != j {
-				assert.NotEqual(t, certString, x5c[j])
-			}
-		}
-	}
-}
-
-func certToFormattedString(cert *x509.Certificate) (string, error) {
-	const prefix = "-----BEGIN CERTIFICATE-----"
-	const suffix = "-----END CERTIFICATE-----"
-
-	b := bytes.Buffer{}
-	if err := encodeCertToPem(cert, &b); err != nil {
-		return "", err
-	}
-
-	var certString = b.String()
-	certString = strings.ReplaceAll(certString, "\n", "")
-	certString = strings.TrimPrefix(certString, prefix)
-	certString = strings.TrimSuffix(certString, suffix)
-
-	return certString, nil
 }
 
 func encodeCertToPem(cert *x509.Certificate, out io.Writer) error {

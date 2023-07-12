@@ -6,8 +6,8 @@ import (
 	"gopkg.in/square/go-jose.v2"
 )
 
-func SetupSignerOptions(certPEMBlock []byte) (*jose.SignerOptions, error) {
-	certs, err := ConvertPEMBlockToX509Chain(certPEMBlock)
+func SetupSignerOptions(pemChain []byte) (*jose.SignerOptions, error) {
+	certs, err := ConvertPEMChainToX509Chain(pemChain)
 	if err != nil {
 		return nil, fmt.Errorf("converting PEM cert chain to X509 cert chain: %w", err)
 	}
