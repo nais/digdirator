@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -82,21 +81,14 @@ func main() {
 
 func parseCertificates() ([]*x509.Certificate, error) {
 	path := viper.GetString(CertChainPath)
-	certChainPEM, err := ioutil.ReadFile(path)
+	certChainPEM, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("while reading %s: %w", path, err)
 	}
 
-	var certDERBlock *pem.Block
-	certificates := make([]*x509.Certificate, 0)
-	for {
-		certDERBlock, certChainPEM = pem.Decode(certChainPEM)
-		if certDERBlock == nil {
-			break
-		}
-		if certDERBlock.Type == "CERTIFICATE" {
-			certificates = append(certificates, &x509.Certificate{Raw: certDERBlock.Bytes})
-		}
+	certificates, err := crypto.ConvertPEMChainToX509Chain(certChainPEM)
+	if err != nil {
+		return nil, fmt.Errorf("converting PEM cert chain to X509 cert chain: %w", err)
 	}
 
 	return certificates, nil
@@ -104,7 +96,7 @@ func parseCertificates() ([]*x509.Certificate, error) {
 
 func parsePublicKey() (interface{}, error) {
 	path := viper.GetString(PublicKeyPath)
-	pubPEM, err := ioutil.ReadFile(path)
+	pubPEM, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("while reading %s: %w", path, err)
 	}
