@@ -122,8 +122,12 @@ func parsePublicKey() (interface{}, error) {
 }
 
 func convertToPublicJwk(certificates []*x509.Certificate, publicKey interface{}) jose.JSONWebKey {
+	// note: RFC7517 for JWK defines the `x5t` and `x5t#S256` parameters as base64url-encoded SHA-1 and SHA256 thumbprints/digests.
+	// we set these digests as-is without encoding them, as the go-jose library already does the encoding when marshalling the key.
 	x5tSHA1 := sha1.Sum(certificates[0].Raw)
 	x5tSHA256 := sha256.Sum256(certificates[0].Raw)
+
+	// we'll use the `x5t#S256` thumbprint as the `kid`, as this can reliably be calculated using the certificate when creating JWT client assertions elsewhere.
 	keyId := base64.RawURLEncoding.EncodeToString(x5tSHA256[:])
 
 	jwk := jose.JSONWebKey{
@@ -134,7 +138,6 @@ func convertToPublicJwk(certificates []*x509.Certificate, publicKey interface{})
 		Certificates:                certificates,
 		CertificateThumbprintSHA1:   x5tSHA1[:],
 		CertificateThumbprintSHA256: x5tSHA256[:],
-		// TODO - set `exp` (epoch time) for JWK expiry for DigDir's APIs
 	}
 
 	return jwk

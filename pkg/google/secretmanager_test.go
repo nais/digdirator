@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/square/go-jose.v2"
 
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/fake"
@@ -42,7 +43,9 @@ func TestGetKeyChainAndSetupOfSignerOptions(t *testing.T) {
 
 	signerOption, err := crypto.SetupSignerOptions(data)
 	assert.NoError(t, err)
-	assert.Equal(t, 3, len(signerOption.ExtraHeaders))
+	assert.Equal(t, jose.ContentType("JWT"), signerOption.ExtraHeaders["typ"])
+	assert.Equal(t, "PqkzrnxnIaW1x5siEQZzNp3efeif3rO4ndqW6B4B-tY", signerOption.ExtraHeaders["kid"])
+	assert.Equal(t, 2, len(signerOption.ExtraHeaders))
 }
 
 func readPemFile() []byte {
