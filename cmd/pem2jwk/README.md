@@ -26,5 +26,5 @@ Run `make pem2jwk` in the root project directory to generate the binary.
 Usage of ./bin/pem2jwk:
       --cert-chain-path string   The certificate chain including the certificate itself, in PEM format. (default "chain.pem")
       --output string            Path to output the resulting JWK to. (default "public.jwk")
-      --public-key-path string   The public key associated with the certificate, in PEM format. (default "publickey.pem")
+      --public-key-path string   The PKIX public key associated with the certificate, in PEM format. (default "publickey.pem")
 ```

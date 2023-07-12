@@ -32,7 +32,7 @@ func init() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 
 	flag.String(CertChainPath, "chain.pem", "The certificate chain including the certificate itself, in PEM format.")
-	flag.String(PublicKeyPath, "publickey.pem", "The public key associated with the certificate, in PEM format.")
+	flag.String(PublicKeyPath, "publickey.pem", "The PKIX public key associated with the certificate, in PEM format.")
 	flag.String(Output, "public.jwk", "Path to output the resulting JWK to.")
 
 	flag.Parse()

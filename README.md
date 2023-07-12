@@ -72,6 +72,10 @@ The Google Service Account needs the following IAM role for each _key_ in Cloud 
 
 - Cloud KMS CryptoKey Signer/Verifier (`roles/cloudkms.signerVerifier`)
 
+Follow [Google's documentation for importing keys](https://cloud.google.com/kms/docs/importing-a-key).
+
+The private key for business certificate should be imported with the purpose set to `ASYMMETRIC_SIGN`, and the algorithm set to one of the `RSASSA-PKCS1 v1_5` variants.
+
 ### Configuration
 
 Digdirator can be configured using either command-line flags or equivalent environment variables (i.e. `-`, `.` -> `_`
