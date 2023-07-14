@@ -50,8 +50,11 @@ func ToClientRegistration(instance Instance, cfg *config.Config) types.ClientReg
 }
 
 func GetIntegrationType(instance Instance) types.IntegrationType {
-	switch instance.(type) {
+	switch in := instance.(type) {
 	case *naisiov1.IDPortenClient:
+		if in.Spec.IntegrationType != "" {
+			return types.IntegrationType(in.Spec.IntegrationType)
+		}
 		return types.IntegrationTypeIDPorten
 	case *naisiov1.MaskinportenClient:
 		return types.IntegrationTypeMaskinporten

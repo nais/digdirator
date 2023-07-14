@@ -17,6 +17,9 @@ func TestGetIntegrationType(t *testing.T) {
 	idPortenClient := fixtures.MinimalIDPortenClient()
 	assert.Equal(t, types.IntegrationTypeIDPorten, clients.GetIntegrationType(idPortenClient))
 
+	idPortenClient.Spec.IntegrationType = string(types.IntegrationTypeApiKlient)
+	assert.Equal(t, types.IntegrationTypeApiKlient, clients.GetIntegrationType(idPortenClient))
+
 	maskinportenClient := fixtures.MinimalMaskinportenClient()
 	assert.Equal(t, types.IntegrationTypeMaskinporten, clients.GetIntegrationType(maskinportenClient))
 }
