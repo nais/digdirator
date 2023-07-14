@@ -147,6 +147,12 @@ func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Con
 
 func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config) types.ClientRegistration {
 	SetIDportenClientDefaultValues(&in, cfg)
+
+	integrationType := types.IntegrationType(in.Spec.IntegrationType)
+	if in.Spec.IntegrationType == string(types.IntegrationTypeMaskinporten) {
+		integrationType = types.IntegrationTypeIDPorten
+	}
+
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
@@ -160,7 +166,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 			types.GrantTypeAuthorizationCode,
 			types.GrantTypeRefreshToken,
 		},
-		IntegrationType:         types.IntegrationType(in.Spec.IntegrationType),
+		IntegrationType:         integrationType,
 		PostLogoutRedirectURIs:  postLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
 		RedirectURIs:            redirectURIs(in),
 		RefreshTokenLifetime:    *in.Spec.SessionLifetime,

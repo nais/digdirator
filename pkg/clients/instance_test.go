@@ -152,6 +152,12 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 		})
 		assert.Len(t, registration.RedirectURIs, 3)
 	})
+
+	t.Run("integration type maskinporten should not be allowed", func(t *testing.T) {
+		client.Spec.IntegrationType = string(types.IntegrationTypeMaskinporten)
+		registration = clients.ToClientRegistration(client, cfg)
+		assert.Equal(t, types.IntegrationTypeIDPorten, registration.IntegrationType)
+	})
 }
 
 func TestToClientRegistration_MaskinportenClient(t *testing.T) {
