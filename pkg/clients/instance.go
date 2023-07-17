@@ -170,7 +170,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 		PostLogoutRedirectURIs:  postLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
 		RedirectURIs:            redirectURIs(in),
 		RefreshTokenLifetime:    *in.Spec.SessionLifetime,
-		RefreshTokenUsage:       types.RefreshTokenUsageReuse,
+		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
 		Scopes:                  in.Spec.Scopes,
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
