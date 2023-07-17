@@ -252,6 +252,36 @@ func TestToClientRegistration_IntegrationType(t *testing.T) {
 	}
 }
 
+func TestIDPortenIntegrationNameFallback(t *testing.T) {
+	client := fixtures.MinimalIDPortenClient()
+	cluster := "test-cluster"
+
+	cfg1 := makeConfig(cluster)
+	registration1 := clients.ToClientRegistration(client, cfg1)
+	assert.Equal(t, cfg1.DigDir.Common.ClientName, registration1.ClientName)
+
+	integrationName := "test-integration"
+	client.Spec.IntegrationName = integrationName
+	cfg2 := makeConfig(cluster)
+	registration2 := clients.ToClientRegistration(client, cfg2)
+	assert.Equal(t, integrationName, registration2.ClientName)
+}
+
+func TestMaskinportenIntegrationNameFallback(t *testing.T) {
+	client := fixtures.MinimalMaskinportenClient()
+	cluster := "test-cluster"
+
+	cfg1 := makeConfig(cluster)
+	registration1 := clients.ToClientRegistration(client, cfg1)
+	assert.Equal(t, cfg1.DigDir.Common.ClientName, registration1.ClientName)
+
+	integrationName := "test-integration"
+	client.Spec.IntegrationName = integrationName
+	cfg2 := makeConfig(cluster)
+	registration2 := clients.ToClientRegistration(client, cfg2)
+	assert.Equal(t, integrationName, registration2.ClientName)
+}
+
 func makeConfig(clusterName string) *config.Config {
 	return &config.Config{
 		ClusterName: clusterName,
