@@ -129,7 +129,7 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 
 	assert.Equal(t, 7200, registration.RefreshTokenLifetime)
 
-	assert.Equal(t, types.RefreshTokenUsageReuse, registration.RefreshTokenUsage)
+	assert.Equal(t, types.RefreshTokenUsageOneTime, registration.RefreshTokenUsage)
 
 	assert.Contains(t, registration.Scopes, "openid")
 	assert.Contains(t, registration.Scopes, "profile")
