@@ -153,16 +153,16 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 		integrationType = types.IntegrationTypeIDPorten
 	}
 
-	integrationName := in.Spec.IntegrationName
-	if integrationName == "" {
-		integrationName = cfg.DigDir.Common.ClientName
+	clientName := in.Spec.ClientName
+	if clientName == "" {
+		clientName = cfg.DigDir.Common.ClientName
 	}
 
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
 		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
-		ClientName:                        integrationName,
+		ClientName:                        clientName,
 		ClientURI:                         string(in.Spec.ClientURI),
 		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, cfg.ClusterName),
 		FrontchannelLogoutSessionRequired: true,
@@ -182,16 +182,16 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 }
 
 func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, cfg *config.Config) types.ClientRegistration {
-	integrationName := in.Spec.IntegrationName
-	if integrationName == "" {
-		integrationName = cfg.DigDir.Common.ClientName
+	clientName := in.Spec.ClientName
+	if clientName == "" {
+		clientName = cfg.DigDir.Common.ClientName
 	}
 
 	return types.ClientRegistration{
 		AccessTokenLifetime:               cfg.DigDir.Common.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
 		AuthorizationLifeTime:             cfg.DigDir.Common.SessionLifetime,
-		ClientName:                        integrationName,
+		ClientName:                        clientName,
 		ClientURI:                         cfg.DigDir.Common.ClientURI,
 		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, cfg.ClusterName),
 		FrontchannelLogoutSessionRequired: false,

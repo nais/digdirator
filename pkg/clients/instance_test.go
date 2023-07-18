@@ -261,7 +261,7 @@ func TestIDPortenIntegrationNameFallback(t *testing.T) {
 	assert.Equal(t, cfg1.DigDir.Common.ClientName, registration1.ClientName)
 
 	integrationName := "test-integration"
-	client.Spec.IntegrationName = integrationName
+	client.Spec.ClientName = integrationName
 	cfg2 := makeConfig(cluster)
 	registration2 := clients.ToClientRegistration(client, cfg2)
 	assert.Equal(t, integrationName, registration2.ClientName)
@@ -276,7 +276,7 @@ func TestMaskinportenIntegrationNameFallback(t *testing.T) {
 	assert.Equal(t, cfg1.DigDir.Common.ClientName, registration1.ClientName)
 
 	integrationName := "test-integration"
-	client.Spec.IntegrationName = integrationName
+	client.Spec.ClientName = integrationName
 	cfg2 := makeConfig(cluster)
 	registration2 := clients.ToClientRegistration(client, cfg2)
 	assert.Equal(t, integrationName, registration2.ClientName)
