@@ -108,10 +108,17 @@ func NeedsSecretRotation(instance Instance) bool {
 	return instance.GetStatus().GetSynchronizationSecretName() != GetSecretName(instance)
 }
 
-func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Config) {
-	var defaultValidIdportenScopes = []string{"openid", "profile"}
-	var defaultValidKrrScopes = []string{"krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read"}
+func GetIDPortenDefaultScopes(integrationType string) []string {
+	switch integrationType {
+	case string(types.IntegrationTypeIDPorten):
+		return []string{"openid", "profile"}
+	case string(types.IntegrationTypeKrr):
+		return []string{"krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read"}
+	}
+	return make([]string, 0)
+}
 
+func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Config) {
 	if in.Spec.AccessTokenLifetime == nil {
 		lifetime := cfg.DigDir.Common.AccessTokenLifetime
 		in.Spec.AccessTokenLifetime = &lifetime
@@ -126,22 +133,13 @@ func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Con
 	if in.Spec.PostLogoutRedirectURIs == nil || len(in.Spec.PostLogoutRedirectURIs) == 0 {
 		in.Spec.PostLogoutRedirectURIs = []naisiov1.IDPortenURI{naisiov1.IDPortenURI(cfg.DigDir.Common.ClientURI)}
 	}
-	if in.Spec.IntegrationType != "" {
-		switch in.Spec.IntegrationType {
-		case string(types.IntegrationTypeIDPorten):
-			if len(in.Spec.Scopes) == 0 {
-				in.Spec.Scopes = defaultValidIdportenScopes
-			}
-		case string(types.IntegrationTypeKrr):
-			if len(in.Spec.Scopes) == 0 {
-				in.Spec.Scopes = defaultValidKrrScopes
-			}
-		}
-	}
 
 	if in.Spec.IntegrationType == "" {
 		in.Spec.IntegrationType = string(types.IntegrationTypeIDPorten)
-		in.Spec.Scopes = defaultValidIdportenScopes
+	}
+
+	if len(in.Spec.Scopes) == 0 {
+		in.Spec.Scopes = GetIDPortenDefaultScopes(in.Spec.IntegrationType)
 	}
 }
 
