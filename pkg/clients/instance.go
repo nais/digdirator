@@ -115,7 +115,7 @@ func GetIDPortenDefaultScopes(integrationType string) []string {
 	case string(types.IntegrationTypeKrr):
 		return []string{"krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read"}
 	}
-	return make([]string, 0)
+	return []string(nil)
 }
 
 func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Config) {
