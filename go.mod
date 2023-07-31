@@ -3,7 +3,7 @@ module github.com/nais/digdirator
 go 1.20
 
 require (
-	cloud.google.com/go/kms v1.13.0
+	cloud.google.com/go/kms v1.15.0
 	cloud.google.com/go/secretmanager v1.11.1
 	github.com/go-logr/zapr v1.2.4
 	github.com/google/uuid v1.3.0
@@ -17,9 +17,9 @@ require (
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.24.0
 	gopkg.in/square/go-jose.v2 v2.6.0
-	k8s.io/api v0.27.3
-	k8s.io/apimachinery v0.27.3
-	k8s.io/client-go v0.27.3
+	k8s.io/api v0.27.4
+	k8s.io/apimachinery v0.27.4
+	k8s.io/client-go v0.27.4
 	sigs.k8s.io/controller-runtime v0.15.0
 )
 

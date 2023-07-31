@@ -114,6 +114,8 @@ The following flags are available:
 --digdir.maskinporten.scopes string                 List of scopes for JWT assertion when authenticating to DigDir with Maskinporten.
 --digdir.maskinporten.well-known-url string         URL to Maskinporten well-known discovery metadata document.
 --features.maskinporten                             Feature toggle for maskinporten
+--leader-election.enabled                           Toggle for enabling leader election. (default "false")
+--leader-election.namespace string                  Namespace for the leader election resource. Needed if not running in-cluster (e.g. locally). If empty, will default to the same namespace as the running application. (default "")
 --metrics-address string                            The address the metric endpoint binds to. (default ":8080")
 ```
 
