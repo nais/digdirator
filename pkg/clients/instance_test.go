@@ -226,6 +226,7 @@ func TestToClientRegistration_IntegrationType(t *testing.T) {
 			name:                     "IntegrationType api_klient specified then return specified IntegrationType and and matching scope (if any)",
 			specifiedIntegrationType: string(types.IntegrationTypeApiKlient),
 			wantIntegrationType:      types.IntegrationTypeApiKlient,
+			wantScopes:               []string{"openid", "profile"},
 		},
 		{
 			name:                     "IntegrationType krr specified then return specified IntegrationType and and matching scope",
@@ -241,6 +242,11 @@ func TestToClientRegistration_IntegrationType(t *testing.T) {
 	} {
 		if len(test.specifiedIntegrationType) > 0 {
 			client.Spec.IntegrationType = test.specifiedIntegrationType
+		}
+
+		if test.wantScopes == nil {
+			// a nil slice is not the same as an empty slice, which has consequences for JSON marshalling (i.e. `"data": null` vs `"data": []`)
+			test.wantScopes = []string{}
 		}
 
 		actual := clients.ToClientRegistration(client, cfg)
