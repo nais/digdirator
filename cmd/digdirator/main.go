@@ -76,9 +76,11 @@ func run() error {
 
 	setupLog.Info("instantiating manager")
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: cfg.MetricsAddr,
-		LeaderElection:     false,
+		Scheme:                  scheme,
+		MetricsBindAddress:      cfg.MetricsAddr,
+		LeaderElection:          cfg.LeaderElection.Enabled,
+		LeaderElectionID:        "digdirator.nais.io",
+		LeaderElectionNamespace: cfg.LeaderElection.Namespace,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to start manager: %w", err)

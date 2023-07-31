@@ -14,11 +14,12 @@ import (
 )
 
 type Config struct {
-	MetricsAddr     string   `json:"metrics-address"`
-	ClusterName     string   `json:"cluster-name"`
-	DevelopmentMode bool     `json:"development-mode"`
-	DigDir          DigDir   `json:"digdir"`
-	Features        Features `json:"features"`
+	MetricsAddr     string         `json:"metrics-address"`
+	ClusterName     string         `json:"cluster-name"`
+	DevelopmentMode bool           `json:"development-mode"`
+	DigDir          DigDir         `json:"digdir"`
+	Features        Features       `json:"features"`
+	LeaderElection  LeaderElection `json:"leader-election"`
 }
 
 type DigDir struct {
@@ -71,11 +72,18 @@ type Features struct {
 	Maskinporten bool `json:"maskinporten"`
 }
 
+type LeaderElection struct {
+	Enabled   bool   `json:"enabled"`
+	Namespace string `json:"namespace"`
+}
+
 const (
-	MetricsAddress     = "metrics-address"
-	ClusterName        = "cluster-name"
-	DevelopmentMode    = "development-mode"
-	DigDirAdminBaseURL = "digdir.admin.base-url"
+	MetricsAddress          = "metrics-address"
+	ClusterName             = "cluster-name"
+	DevelopmentMode         = "development-mode"
+	LeaderElectionEnabled   = "leader-election.enabled"
+	LeaderElectionNamespace = "leader-election.namespace"
+	DigDirAdminBaseURL      = "digdir.admin.base-url"
 
 	DigDirCommonClientName          = "digdir.common.client-name"
 	DigDirCommonClientURI           = "digdir.common.client-uri"
@@ -116,6 +124,8 @@ func init() {
 	flag.String(MetricsAddress, ":8080", "The address the metric endpoint binds to.")
 	flag.String(ClusterName, "", "The cluster in which this application should run.")
 	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
+	flag.Bool(LeaderElectionEnabled, false, "Toggle for enabling leader election.")
+	flag.String(LeaderElectionNamespace, "", "Namespace for the leader election resource. Needed if not running in-cluster (e.g. locally). If empty, will default to the same namespace as the running application.")
 
 	flag.String(DigDirAdminBaseURL, "", "Base URL endpoint for interacting with Digdir Client Registration API")
 
