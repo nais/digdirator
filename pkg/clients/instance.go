@@ -110,12 +110,12 @@ func NeedsSecretRotation(instance Instance) bool {
 
 func GetIDPortenDefaultScopes(integrationType string) []string {
 	switch integrationType {
-	case string(types.IntegrationTypeIDPorten):
+	case string(types.IntegrationTypeIDPorten), string(types.IntegrationTypeApiKlient):
 		return []string{"openid", "profile"}
 	case string(types.IntegrationTypeKrr):
 		return []string{"krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read"}
 	}
-	return []string(nil)
+	return []string{}
 }
 
 func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Config) {
