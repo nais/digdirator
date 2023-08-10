@@ -1,28 +1,56 @@
-name: Build and deploy digdirator
+name: Build and deploy
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GOOGLE_REGISTRY: "europe-north1-docker.pkg.dev"
+  FEATURE_NAME: "digdirator"
+
 on:
   push:
-    branches:
-      - master
     paths-ignore:
-      - 'charts/**'
-      - '.github/workflows/chart.yaml'
-      - '*.md'
+      - "*.md"
+
 jobs:
-  build_and_push_registry:
-    if: github.ref == 'refs/heads/master'
+  test:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # ratchet:actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # ratchet:actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          check-latest: true
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # ratchet:actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Setup Test
+        run: |
+          make kubebuilder
+      - name: Test Go
+        run: |
+          make test
+
+  build_and_push:
+    needs: test
+    name: Publish to Google and GitHub registries
+    if: github.ref == 'refs/heads/master'
     permissions:
-      contents: read
-      packages: write
-      id-token: write
-    outputs:
-      version: ${{ steps.build_push_sign.outputs.version }}
+      contents: "read"
+      id-token: "write"
+      packages: "write"
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # ratchet:actions/checkout@v3
-      - name: Generate version
-        id: version
-        run: echo "version=$(date +'%Y%m%d-%H%M%S')-$(git rev-parse --short HEAD)" >> ${GITHUB_OUTPUT}
       - name: Install cosign
         uses: sigstore/cosign-installer@6e04d228eb30da1757ee4e1dd75a0ec73a653e06 # ratchet:sigstore/cosign-installer@main
         with:
@@ -32,20 +60,56 @@ jobs:
       - uses: nais/platform-build-push-sign@fb7da39ee56c8904ed15c02705a1780cb278a65b # ratchet:nais/platform-build-push-sign@main
         id: build_push_sign
         with:
-          name: digdirator
+          name: ${{ env.FEATURE_NAME }}
           dockerfile: Dockerfile
-          google_service_account: gh-digdirator
-          push: ${{ github.actor != 'dependabot[bot]' && github.ref == 'refs/heads/master' }}
+          google_service_account: gh-${{ env.FEATURE_NAME }}
+          push: true
           push_ghcr: true
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
-  #rollout:
-  #  permissions:
-  #    id-token: write
-  #  needs: ["build_and_push_registry"]
-  #  runs-on: fasit-deploy
-  #  if: github.ref == 'refs/heads/master'
-  #  steps:
-  #    - uses: nais/fasit-deploy@b2c0b6d049b53bef41b321eec406fe66938576fd # ratchet:nais/fasit-deploy@main
-  #      with:
-  #        json: '{"image": {"tag": "${{ needs.build_and_push_registry.outputs.version }}"}}'
-  #        feature_name: digdirator
+      - uses: azure/setup-helm@5119fcb9089d432beecbf79bb2c7915207344b78 # ratchet:azure/setup-helm@v3
+        with:
+          version: "v3.12.2"
+      - name: Package chart
+        id: package_chart
+        env:
+          CHART_PATH: ./charts
+        run: |
+          base_version="$(yq '.version' < "${{ env.CHART_PATH }}/Chart.yaml")"
+          chart_version="${base_version}-${{ steps.build_push_sign.outputs.version }}"
+
+          yq eval \
+            '.version="'"$chart_version"'"' \
+            "${{ env.CHART_PATH }}/Chart.yaml" --inplace
+          yq eval \
+            '.imageTag="${{ steps.build_push_sign.outputs.version }}"' \
+            "${{ env.CHART_PATH }}/values.yaml" --inplace
+
+          # helm dependency update "${{ env.CHART_PATH }}"
+          helm package "${{ env.CHART_PATH }}" --destination .
+
+          name=$(yq '.name' < "${{ env.CHART_PATH }}/Chart.yaml")
+          echo "name=$name" >> $GITHUB_OUTPUT
+          echo "version=$chart_version" >> $GITHUB_OUTPUT
+          echo "archive=$name-$chart_version.tgz" >> $GITHUB_OUTPUT
+      - name: Push Chart
+        run: |-
+          chart="${{ steps.package_chart.outputs.archive }}"
+          echo "Pushing: $chart"
+          helm push "$chart" oci://${{ env.GOOGLE_REGISTRY }}/nais-io/nais/feature
+    outputs:
+      chart_name: ${{ steps.package_chart.outputs.name }}
+      chart_version: ${{ steps.package_chart.outputs.version }}
+      chart_archive: ${{ steps.package_chart.outputs.archive }}
+
+  rollout:
+    runs-on: fasit-deploy
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      id-token: write
+    needs:
+      - build_and_push
+    steps:
+      - uses: nais/fasit-deploy@v2 # ratchet:exclude
+        with:
+          chart: oci://${{ env.GOOGLE_REGISTRY }}/nais-io/nais/feature/${{ needs.build_and_push.outputs.chart_name }}
+          version: ${{ needs.build_and_push.outputs.chart_version }}
