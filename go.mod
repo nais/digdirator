@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/kms v1.15.1
 	cloud.google.com/go/secretmanager v1.11.1
 	github.com/go-logr/zapr v1.2.4
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nais/liberator v0.0.0-20230718082241-0f5c7b61891e
 	github.com/prometheus/client_golang v1.16.0
