@@ -20,6 +20,7 @@ type Config struct {
 	DigDir          DigDir         `json:"digdir"`
 	Features        Features       `json:"features"`
 	LeaderElection  LeaderElection `json:"leader-election"`
+	LogLevel        string         `json:"log-level"`
 }
 
 type DigDir struct {
@@ -78,13 +79,13 @@ type LeaderElection struct {
 }
 
 const (
-	MetricsAddress          = "metrics-address"
-	ClusterName             = "cluster-name"
-	DevelopmentMode         = "development-mode"
-	LeaderElectionEnabled   = "leader-election.enabled"
-	LeaderElectionNamespace = "leader-election.namespace"
-	DigDirAdminBaseURL      = "digdir.admin.base-url"
-
+	LogLevel                        = "log-level"
+	MetricsAddress                  = "metrics-address"
+	ClusterName                     = "cluster-name"
+	DevelopmentMode                 = "development-mode"
+	LeaderElectionEnabled           = "leader-election.enabled"
+	LeaderElectionNamespace         = "leader-election.namespace"
+	DigDirAdminBaseURL              = "digdir.admin.base-url"
 	DigDirCommonClientName          = "digdir.common.client-name"
 	DigDirCommonClientURI           = "digdir.common.client-uri"
 	DigDirCommonAccessTokenLifetime = "digdir.common.access-token-lifetime"
@@ -126,6 +127,7 @@ func init() {
 	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
 	flag.Bool(LeaderElectionEnabled, false, "Toggle for enabling leader election.")
 	flag.String(LeaderElectionNamespace, "", "Namespace for the leader election resource. Needed if not running in-cluster (e.g. locally). If empty, will default to the same namespace as the running application.")
+	flag.String(LogLevel, "info", "Log level for digdirator.")
 
 	flag.String(DigDirAdminBaseURL, "", "Base URL endpoint for interacting with Digdir Client Registration API")
 
