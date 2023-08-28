@@ -74,7 +74,7 @@ func run() error {
 		return err
 	}
 
-	zapLogger, err := setupZapLogger(cfg)
+	zapLogger, err := setupZapLogger()
 	if err != nil {
 		return err
 	}
@@ -211,7 +211,7 @@ func run() error {
 	return nil
 }
 
-func setupZapLogger(cfg *config.Config) (*zap.Logger, error) {
+func setupZapLogger() (*zap.Logger, error) {
 	if viper.GetBool(config.DevelopmentMode) {
 		logger, err := zap.NewDevelopment()
 		if err != nil {
@@ -226,7 +226,7 @@ func setupZapLogger(cfg *config.Config) (*zap.Logger, error) {
 	log.SetFormatter(&formatter)
 
 	loggerConfig := zap.NewProductionConfig()
-	level, err := zap.ParseAtomicLevel(strings.ToLower(viper.GetString(cfg.LogLevel)))
+	level, err := zap.ParseAtomicLevel(strings.ToLower(viper.GetString(config.LogLevel)))
 	if err != nil {
 		loggerConfig.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
 	}
