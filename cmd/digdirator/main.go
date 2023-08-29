@@ -44,10 +44,10 @@ func init() {
 
 	lvl, err := log.ParseLevel(viper.GetString(config.LogLevel))
 	if err != nil {
-		log.SetLevel(log.InfoLevel)
-	} else {
-		log.SetLevel(lvl)
+		log.Error("unable to parse log level", err)
+		os.Exit(1)
 	}
+	log.SetLevel(lvl)
 }
 
 func main() {
