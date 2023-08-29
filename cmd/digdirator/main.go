@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/nais/digdirator/controllers/common"
@@ -41,7 +42,12 @@ func init() {
 	_ = nais_io_v1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 
-	log.SetLevel(log.DebugLevel)
+	lvl, err := log.ParseLevel(viper.GetString(config.LogLevel))
+	if err != nil {
+		lvl = log.InfoLevel
+		log.Error("unable to parse log level, setting to ", lvl)
+	}
+	log.SetLevel(lvl)
 }
 
 func main() {
@@ -220,7 +226,11 @@ func setupZapLogger() (*zap.Logger, error) {
 	log.SetFormatter(&formatter)
 
 	loggerConfig := zap.NewProductionConfig()
-	loggerConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	level, err := zap.ParseAtomicLevel(strings.ToLower(viper.GetString(config.LogLevel)))
+	if err != nil {
+		loggerConfig.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	}
+	loggerConfig.Level = level
 	loggerConfig.EncoderConfig.TimeKey = "timestamp"
 	loggerConfig.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
 	return loggerConfig.Build()
