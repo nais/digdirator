@@ -26,7 +26,8 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
+	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
+	ctrlmetricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -36,7 +37,7 @@ var (
 )
 
 func init() {
-	ctrlMetrics.Registry.MustRegister(metrics.AllMetrics...)
+	ctrlmetrics.Registry.MustRegister(metrics.AllMetrics...)
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = nais_io_v1.AddToScheme(scheme)
@@ -82,8 +83,10 @@ func run() error {
 
 	setupLog.Info("instantiating manager")
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                  scheme,
-		MetricsBindAddress:      cfg.MetricsAddr,
+		Scheme: scheme,
+		Metrics: ctrlmetricsserver.Options{
+			BindAddress: cfg.MetricsAddr,
+		},
 		LeaderElection:          cfg.LeaderElection.Enabled,
 		LeaderElectionID:        "digdirator.nais.io",
 		LeaderElectionNamespace: cfg.LeaderElection.Namespace,
