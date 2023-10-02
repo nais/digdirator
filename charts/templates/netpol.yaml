@@ -43,6 +43,8 @@ spec:
         kind: FQDNNetworkPolicy
         metadata:
           name: {{ .Release.Name }}-idporten-fqdn
+          annotations:
+            fqdnnetworkpolicies.networking.gke.io/aaaa-lookups: skip
         spec:
           egress:
             - ports:
@@ -65,6 +67,8 @@ spec:
         kind: FQDNNetworkPolicy
         metadata:
           name: {{ .Release.Name }}-maskinporten-fqdn
+          annotations:
+            fqdnnetworkpolicies.networking.gke.io/aaaa-lookups: skip
         spec:
           egress:
             - ports:
