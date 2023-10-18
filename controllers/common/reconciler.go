@@ -205,6 +205,13 @@ func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistr
 	}
 
 	if registration != nil {
+		existingType := registration.IntegrationType
+		desiredType := registrationPayload.IntegrationType
+
+		if existingType != desiredType {
+			return nil, fmt.Errorf("cannot update immutable integration type (existing: %s, desired: %s)", existingType, desiredType)
+		}
+
 		_, err = r.updateClient(tx, registrationPayload, registration.ClientID)
 		if err != nil {
 			return nil, fmt.Errorf("updating client: %w", err)

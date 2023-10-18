@@ -226,9 +226,13 @@ func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Confi
 }
 
 func clientMatches(actual types.ClientRegistration, desired clients.Instance, clusterName string) bool {
+	if desired.GetStatus() != nil && desired.GetStatus().GetClientID() != "" {
+		return actual.ClientID == desired.GetStatus().GetClientID()
+	}
+
+	// We don't have an existing client ID, so we'll have to do best-effort matching.
 	descriptionMatches := actual.Description == kubernetes.UniformResourceName(desired, clusterName)
 	integrationTypeMatches := actual.IntegrationType == clients.GetIntegrationType(desired)
-
 	return descriptionMatches && integrationTypeMatches
 }
 
