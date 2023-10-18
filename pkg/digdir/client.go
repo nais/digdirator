@@ -71,7 +71,7 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 	return registration, nil
 }
 
-func (c Client) ClientExists(desired clients.Instance, ctx context.Context, clusterName string) (*types.ClientRegistration, error) {
+func (c Client) GetRegistration(desired clients.Instance, ctx context.Context, clusterName string) (*types.ClientRegistration, error) {
 	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.Admin.BaseURL)
 	clientRegistrations := make([]types.ClientRegistration, 0)
 
@@ -86,6 +86,15 @@ func (c Client) ClientExists(desired clients.Instance, ctx context.Context, clus
 		}
 	}
 	return nil, nil
+}
+
+func (c Client) Exists(ctx context.Context, desired clients.Instance, clusterName string) (bool, error) {
+	registration, err := c.GetRegistration(desired, ctx, clusterName)
+	if err != nil {
+		return false, fmt.Errorf("getting client registration: %w", err)
+	}
+
+	return registration != nil, nil
 }
 
 func (c Client) Update(ctx context.Context, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {

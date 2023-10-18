@@ -179,7 +179,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 }
 
 func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistration, error) {
-	instanceClient, err := tx.DigdirClient.ClientExists(tx.Instance, tx.Ctx, tx.Config.ClusterName)
+	registration, err := tx.DigdirClient.GetRegistration(tx.Instance, tx.Ctx, tx.Config.ClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("checking if client exists: %w", err)
 	}
@@ -204,8 +204,8 @@ func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistr
 		registrationPayload = *filteredPayload
 	}
 
-	if instanceClient != nil {
-		_, err = r.updateClient(tx, registrationPayload, instanceClient.ClientID)
+	if registration != nil {
+		_, err = r.updateClient(tx, registrationPayload, registration.ClientID)
 		if err != nil {
 			return nil, fmt.Errorf("updating client: %w", err)
 		}
@@ -213,7 +213,7 @@ func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistr
 		r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedInDigDir, "Client is updated")
 		metrics.IncClientsUpdated(tx.Instance)
 	} else {
-		instanceClient, err = r.createClient(tx, registrationPayload)
+		registration, err = r.createClient(tx, registrationPayload)
 		if err != nil {
 			return nil, fmt.Errorf("creating client: %w", err)
 		}
@@ -222,7 +222,7 @@ func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistr
 		metrics.IncClientsCreated(tx.Instance)
 	}
 
-	return instanceClient, nil
+	return registration, nil
 }
 
 func (r *Reconciler) createClient(tx *Transaction, payload types.ClientRegistration) (*types.ClientRegistration, error) {

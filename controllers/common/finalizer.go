@@ -2,9 +2,7 @@ package common
 
 import (
 	"fmt"
-
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -13,7 +11,8 @@ import (
 )
 
 const (
-	FinalizerName string = "finalizer.digdirator.nais.io"
+	FinalizerName      string = "finalizer.digdirator.nais.io"
+	PreserveAnnotation string = "digdir.nais.io/preserve"
 )
 
 // Finalizers allow the controller to implement an asynchronous pre-delete hook
@@ -28,7 +27,7 @@ func (r Reconciler) finalizer(transaction *Transaction) finalizer {
 
 func (f finalizer) Register() (ctrl.Result, error) {
 	if !controllerutil.ContainsFinalizer(f.Instance, FinalizerName) {
-		f.Logger.Info("finalizer for object not found, registering...")
+		f.Logger.Debug("finalizer for object not found, registering...")
 
 		err := f.updateInstance(f.Ctx, f.Instance, func(existing clients.Instance) error {
 			controllerutil.AddFinalizer(existing, FinalizerName)
@@ -37,7 +36,6 @@ func (f finalizer) Register() (ctrl.Result, error) {
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("registering finalizer: %w", err)
 		}
-		f.reportEvent(f.Transaction, corev1.EventTypeNormal, EventAddedFinalizer, "Object finalizer is added")
 	}
 	return ctrl.Result{}, nil
 }
@@ -47,21 +45,22 @@ func (f finalizer) Process() (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	f.Logger.Info("finalizer triggered...")
+	f.Logger.Debug("finalizer triggered...")
 
-	clientRegistration, err := f.DigdirClient.ClientExists(f.Instance, f.Ctx, f.Reconciler.Config.ClusterName)
+	exists, err := f.DigdirClient.Exists(f.Ctx, f.Instance, f.Reconciler.Config.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	clientExists := clientRegistration != nil
-
-	if clientExists {
-		f.Logger.Info("delete annotation set, deleting client from DigDir...")
-		if err := f.DigdirClient.Delete(f.Ctx, f.Instance.GetStatus().GetClientID()); err != nil {
-			return ctrl.Result{}, fmt.Errorf("deleting client from ID-porten: %w", err)
+	if exists {
+		if hasPreserveAnnotation(f.Instance.GetAnnotations()) {
+			f.Logger.Info("preserve annotation set, skipping external deletion...")
+		} else {
+			f.Logger.Info("deleting client from DigDir...")
+			if err := f.DigdirClient.Delete(f.Ctx, f.Instance.GetStatus().GetClientID()); err != nil {
+				return ctrl.Result{}, fmt.Errorf("deleting client from DigDir: %w", err)
+			}
 		}
-		f.reportEvent(f.Transaction, corev1.EventTypeNormal, EventDeletedInDigDir, "Client deleted in Digdir")
 	}
 
 	switch instance := f.Instance.(type) {
@@ -84,9 +83,13 @@ func (f finalizer) Process() (ctrl.Result, error) {
 		return ctrl.Result{}, fmt.Errorf("removing finalizer from list: %w", err)
 	}
 
-	f.reportEvent(f.Transaction, corev1.EventTypeNormal, EventDeletedFinalizer, "Object finalizer is removed")
 	metrics.IncClientsDeleted(f.Instance)
 
-	f.Logger.Info("finalizer processing completed")
+	f.Logger.Debug("finalizer processing completed")
 	return ctrl.Result{}, nil
+}
+
+func hasPreserveAnnotation(annotations map[string]string) bool {
+	value, found := annotations[PreserveAnnotation]
+	return found && value == "true"
 }
