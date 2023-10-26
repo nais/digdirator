@@ -85,4 +85,69 @@ spec:
           policyTypes:
             - Egress
     {{- end }}
+---
+apiVersion: nais.io/v1
+kind: ReplicationConfig
+metadata:
+  name: {{ .Release.Name }}-nais
+  labels:
+    {{- include "digdirator.labels" . | nindent 4 }}
+spec:
+  namespaceSelector:
+    matchExpressions:
+      - key: name
+        operator: In
+        values:
+          - nais
+          - nais-system
+          - {{ .Release.Namespace }}
+  resources:
+    {{- if .Values.idportenHosts }}
+    - template: |
+        apiVersion: networking.gke.io/v1alpha3
+        kind: FQDNNetworkPolicy
+        metadata:
+          name: {{ .Release.Name }}-idporten-fqdn
+          annotations:
+            fqdnnetworkpolicies.networking.gke.io/aaaa-lookups: skip
+        spec:
+          egress:
+            - ports:
+                - port: 443
+                  protocol: TCP
+              to:
+                - fqdns:
+                  {{- range .Values.idportenHosts }}
+                  - {{ . }}
+                  {{- end }}
+          podSelector:
+            matchLabels:
+              idporten: enabled
+          policyTypes:
+            - Egress
+    {{- end }}
+    {{- if .Values.maskinportenHosts }}
+    - template: |
+        apiVersion: networking.gke.io/v1alpha3
+        kind: FQDNNetworkPolicy
+        metadata:
+          name: {{ .Release.Name }}-maskinporten-fqdn
+          annotations:
+            fqdnnetworkpolicies.networking.gke.io/aaaa-lookups: skip
+        spec:
+          egress:
+            - ports:
+                - port: 443
+                  protocol: TCP
+              to:
+                - fqdns:
+                  {{- range .Values.maskinportenHosts }}
+                  - {{ . }}
+                  {{- end }}
+          podSelector:
+            matchLabels:
+              maskinporten: enabled
+          policyTypes:
+            - Egress
+    {{- end }}
 {{- end }}
