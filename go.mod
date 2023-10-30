@@ -3,7 +3,7 @@ module github.com/nais/digdirator
 go 1.21
 
 require (
-	cloud.google.com/go/kms v1.15.3
+	cloud.google.com/go/kms v1.15.4
 	cloud.google.com/go/secretmanager v1.11.2
 	github.com/go-logr/zapr v1.2.4
 	github.com/google/uuid v1.4.0
@@ -86,7 +86,7 @@ require (
 	google.golang.org/genproto v0.0.0-20230920204549-e6e6cdab5c13 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230920204549-e6e6cdab5c13 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230920204549-e6e6cdab5c13 // indirect
-	google.golang.org/grpc v1.58.3 // indirect
+	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
