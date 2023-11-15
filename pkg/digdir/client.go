@@ -145,7 +145,7 @@ func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose
 }
 
 func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) {
-	endpoint := fmt.Sprintf("%s/scopes/access/all?accessible_for_all=true", c.Config.DigDir.Admin.BaseURL)
+	endpoint := fmt.Sprintf("%s/scopes/access/all", c.Config.DigDir.Admin.BaseURL)
 	s := make([]types.Scope, 0)
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &s); err != nil {
