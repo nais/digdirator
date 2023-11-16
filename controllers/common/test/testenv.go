@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"time"
 
@@ -28,13 +29,10 @@ const (
 	Timeout              = time.Second * 5
 	Interval             = time.Millisecond * 100
 	ClientID             = "some-random-id"
-	Scope                = "nav:arbeid/test/scope"
 	ExposedConsumerOrgno = "111111111"
-	UnusedSecret         = "unused-secret"
-	AlreadyInUseSecret   = "in-use-by-pod"
 )
 
-func SetupTestEnv(clientID, scope, exposedConsumerOrgno string, handlerType HandlerType) (*envtest.Environment, *client.Client, error) {
+func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Client, error) {
 	logger := zap.New(zap.UseDevMode(true))
 	ctrl.SetLogger(logger)
 	log.SetLevel(log.DebugLevel)
@@ -85,7 +83,7 @@ func SetupTestEnv(clientID, scope, exposedConsumerOrgno string, handlerType Hand
 		return nil, nil, fmt.Errorf("creating signer from jwk: %v", err)
 	}
 
-	testServer := httptest.NewServer(DigdirHandler(clientID, handlerType, scope, exposedConsumerOrgno))
+	testServer := httptest.NewServer(handler)
 	httpClient := testServer.Client()
 	digdiratorConfig.ClusterName = "test-cluster"
 	digdiratorConfig.DigDir.Admin.BaseURL = testServer.URL
@@ -108,19 +106,16 @@ func SetupTestEnv(clientID, scope, exposedConsumerOrgno string, handlerType Hand
 		[]byte("client-id"),
 	)
 
-	switch handlerType {
-	case IDPortenHandlerType:
-		reconciler := idportenclient.NewReconciler(commonReconciler)
-		err = reconciler.SetupWithManager(mgr)
-		if err != nil {
-			return nil, nil, err
-		}
-	case MaskinportenHandlerType:
-		reconciler := maskinportenclient.NewReconciler(commonReconciler)
-		err = reconciler.SetupWithManager(mgr)
-		if err != nil {
-			return nil, nil, err
-		}
+	idportenreconciler := idportenclient.NewReconciler(commonReconciler)
+	err = idportenreconciler.SetupWithManager(mgr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	maskinportenreconciler := maskinportenclient.NewReconciler(commonReconciler)
+	err = maskinportenreconciler.SetupWithManager(mgr)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	go func() {

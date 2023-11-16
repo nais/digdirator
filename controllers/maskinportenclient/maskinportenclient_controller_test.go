@@ -21,7 +21,8 @@ import (
 var cli client.Client
 
 func TestMain(m *testing.M) {
-	testEnv, testEnvClient, err := test.SetupTestEnv(test.ClientID, test.Scope, test.ExposedConsumerOrgno, test.MaskinportenHandlerType)
+	handler := test.MaskinportenHandler(test.ClientID, test.ExposedConsumerOrgno)
+	testEnv, testEnvClient, err := test.SetupTestEnv(handler)
 	if err != nil {
 		os.Exit(1)
 	}

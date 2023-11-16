@@ -192,10 +192,12 @@ func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) 
 
 // GetOpenScopes returns all scopes that are accessible to any organization.
 func (c Client) GetOpenScopes(ctx context.Context) ([]types.ScopeRegistration, error) {
-	endpoint, err := url.JoinPath(c.Config.DigDir.Admin.BaseURL, "/scopes/all?accessible_for_all=true")
+	endpoint, err := url.JoinPath(c.Config.DigDir.Admin.BaseURL, "/scopes/all")
 	if err != nil {
 		return nil, err
 	}
+
+	endpoint = endpoint + "?accessible_for_all=true"
 
 	s := make([]types.ScopeRegistration, 0)
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &s); err != nil {

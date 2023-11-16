@@ -2,17 +2,13 @@ package test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"net/url"
+	"os"
+	"path"
 )
 
-type HandlerType string
-
 const (
-	IDPortenHandlerType     HandlerType = "idporten"
-	MaskinportenHandlerType HandlerType = "maskinporten"
-
+	testdataDir              = "../common/testdata"
 	metadataResponseTemplate = `{
   "issuer": "http://%[1]s",
   "jwks_uri": "http://%[1]s/jwks",
@@ -20,82 +16,112 @@ const (
 }`
 )
 
-func DigdirHandler(clientID string, handlerType HandlerType, scope string, orgno string) http.HandlerFunc {
+func MaskinportenHandler(clientID, orgno string) http.HandlerFunc {
+	return handler(clientID, orgno, "maskinporten")
+}
+
+func IDPortenHandler(clientID string) http.HandlerFunc {
+	return handler(clientID, "", "idporten")
+}
+
+func handler(clientID, orgno, clientType string) http.HandlerFunc {
 	var clientExists = false
+	clientTypeDir := path.Join(testdataDir, clientType)
+
+	respond := func(w http.ResponseWriter, body string) {
+		_, _ = w.Write([]byte(body))
+	}
+
+	respondFile := func(w http.ResponseWriter, name string) {
+		body, _ := os.ReadFile(path.Join(testdataDir, name))
+		_, _ = w.Write(body)
+	}
+
+	respondFileForClientType := func(w http.ResponseWriter, name string) {
+		body, _ := os.ReadFile(path.Join(clientTypeDir, name))
+		_, _ = w.Write(body)
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.URL.Path == "/.well-known/openid-configuration" || r.URL.Path == "/.well-known/oauth-authorization-server":
-			response := fmt.Sprintf(metadataResponseTemplate, r.Host)
-			_, _ = w.Write([]byte(response))
-		case r.URL.Path == "/token":
-			response := `{ "access_token": "token" }`
-			_, _ = w.Write([]byte(response))
-		// GET (list) clients
-		case r.URL.Path == "/clients" && r.Method == http.MethodGet:
-			var path string
-			if clientExists {
-				path = fmt.Sprintf("../common/testdata/%s/list-response-exists.json", handlerType)
-			} else {
-				path = fmt.Sprintf("../common/testdata/%s/list-response.json", handlerType)
+		case matchesPath(r, "/.well-known/openid-configuration", "/.well-known/oauth-authorization-server"):
+			respond(w, fmt.Sprintf(metadataResponseTemplate, r.Host))
+		case matchesPath(r, "/token"):
+			respond(w, `{ "access_token": "token" }`)
+		case matchesPath(r, "/clients"):
+			switch r.Method {
+			// GET (list) clients
+			case http.MethodGet:
+				if clientExists {
+					respondFileForClientType(w, "list-response-exists.json")
+					return
+				}
+				respondFileForClientType(w, "list-response.json")
+			// POST (create) client
+			case http.MethodPost:
+				respondFileForClientType(w, "create-response.json")
 			}
-			response, _ := ioutil.ReadFile(path)
-			_, _ = w.Write(response)
-		// POST (create) client
-		case r.URL.Path == "/clients" && r.Method == http.MethodPost:
-			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/create-response.json", handlerType))
-			_, _ = w.Write(response)
-		// PUT (update) existing client
-		case r.URL.Path == fmt.Sprintf("/clients/%s", clientID) && r.Method == http.MethodPut:
-			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/update-response.json", handlerType))
-			_, _ = w.Write(response)
-		// DELETE existing client
-		case r.URL.Path == fmt.Sprintf("/clients/%s", clientID) && r.Method == http.MethodDelete:
-			w.WriteHeader(http.StatusOK)
-		// POST JWKS (overwriting)
-		case r.URL.Path == fmt.Sprintf("/clients/%s/jwks", clientID) && r.Method == http.MethodPost:
-			var path string
-			if clientExists {
-				path = "../common/testdata/register-jwks-response-exists.json"
-			} else {
-				path = "../common/testdata/register-jwks-response.json"
-				clientExists = true
+		case matchesPath(r, fmt.Sprintf("/clients/%s", clientID)):
+			switch r.Method {
+			// PUT (update) existing client
+			case http.MethodPut:
+				respondFileForClientType(w, "update-response.json")
+			// DELETE existing client
+			case http.MethodDelete:
+				w.WriteHeader(http.StatusOK)
 			}
-			response, _ := ioutil.ReadFile(path)
-			_, _ = w.Write(response)
-		// GET accessible maskinporten scopes
-		case r.URL.Path == "/scopes/access/all" && r.Method == http.MethodGet:
-			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/scopes-access-all.json", handlerType))
-			_, _ = w.Write(response)
+		// POST (register) JWKS for client
+		case matchesMethodPath(r, http.MethodPost, fmt.Sprintf("/clients/%s/jwks", clientID)):
+			if clientExists {
+				respondFile(w, "register-jwks-response-exists.json")
+				return
+			}
+			respondFile(w, "register-jwks-response.json")
+			clientExists = true
+		case matchesPath(r, "/scopes"):
+			switch r.Method {
+			// GET (list) all scopes owned by the authenticated organization
+			case http.MethodGet:
+				if clientExists {
+					respondFileForClientType(w, "list-scopes-response-exists.json")
+					return
+				}
+				respondFileForClientType(w, "list-scopes-response.json")
 			// POST (create) scope
-		case r.URL.Path == "/scopes" && r.Method == http.MethodPost:
-			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/create-scope-response.json", handlerType))
-			_, _ = w.Write(response)
+			case http.MethodPost:
+				respondFileForClientType(w, "create-scope-response.json")
 			// PUT (update) scope
-		case r.URL.Path == "/scopes" && r.URL.RawQuery == url.QueryEscape(scope) && r.Method == http.MethodPut:
-			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/specific-scope-info.json", handlerType))
-			_, _ = w.Write(response)
-			// GET consumer access for a scope
-		case r.URL.Path == "/scopes/access" && r.URL.RawQuery == fmt.Sprintf("scope=%s", url.QueryEscape(scope)) && r.Method == http.MethodGet:
-			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/specific-scope-access-all.json", handlerType))
-			_, _ = w.Write(response)
-			// PUT (add) consumer access for a scope
-		case r.URL.Path == fmt.Sprintf("/scopes/access/%s", orgno) && r.URL.RawQuery == fmt.Sprintf("scope=%s", url.QueryEscape(scope)) && r.Method == http.MethodPut:
-			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/specific-scope-info.json", handlerType))
-			_, _ = w.Write(response)
-			// DELETE (remove) consumer access for a scope
-		case r.URL.Path == fmt.Sprintf("/scopes/access/%s", "999999999") && r.URL.RawQuery == fmt.Sprintf("scope=%s", url.QueryEscape(scope)) && r.Method == http.MethodDelete:
-			response, _ := ioutil.ReadFile(fmt.Sprintf("../common/testdata/%s/specific-scope-info.json", handlerType))
-			_, _ = w.Write(response)
-			// GET nav OWNED scopes
-		case r.URL.Path == "/scopes" && r.URL.RawQuery == "inactive=true" && r.Method == http.MethodGet:
-			var path string
-			if clientExists {
-				path = fmt.Sprintf("../common/testdata/%s/list-scopes-response-exists.json", handlerType)
-			} else {
-				path = fmt.Sprintf("../common/testdata/%s/list-scopes-response.json", handlerType)
+			case http.MethodPut:
+				respondFileForClientType(w, "update-scope-response.json")
 			}
-			response, _ := ioutil.ReadFile(path)
-			_, _ = w.Write(response)
+		// GET consumer access for a scope
+		case matchesMethodPath(r, http.MethodGet, "/scopes/access"):
+			respondFileForClientType(w, "specific-scope-access-all.json")
+		// PUT (add) consumer access for a scope
+		case matchesMethodPath(r, http.MethodPut, fmt.Sprintf("/scopes/access/%s", orgno)):
+			respondFileForClientType(w, "specific-scope-info.json")
+		// DELETE (remove) consumer access for a scope
+		case matchesMethodPath(r, http.MethodDelete, fmt.Sprintf("/scopes/access/%s", "999999999")):
+			respondFileForClientType(w, "specific-scope-info.json")
+		// GET accessible maskinporten scopes
+		case matchesMethodPath(r, http.MethodGet, "/scopes/access/all"):
+			respondFileForClientType(w, "scopes-access-all.json")
+		// GET open maskinporten scopes
+		case matchesMethodPath(r, http.MethodGet, "/scopes/all"):
+			respondFileForClientType(w, "list-scopes-response-exists.json")
 		}
 	}
+}
+
+func matchesPath(r *http.Request, paths ...string) bool {
+	for _, p := range paths {
+		if r.URL.Path == p {
+			return true
+		}
+	}
+	return false
+}
+
+func matchesMethodPath(r *http.Request, method string, path string) bool {
+	return r.URL.Path == path && r.Method == method
 }

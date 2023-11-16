@@ -22,7 +22,8 @@ import (
 var cli client.Client
 
 func TestMain(m *testing.M) {
-	testEnv, testEnvClient, err := test.SetupTestEnv(test.ClientID, "", "", test.IDPortenHandlerType)
+	handler := test.IDPortenHandler(test.ClientID)
+	testEnv, testEnvClient, err := test.SetupTestEnv(handler)
 	if err != nil {
 		log.Fatal(err)
 	}
