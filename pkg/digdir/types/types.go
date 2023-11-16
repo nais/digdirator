@@ -91,6 +91,10 @@ type Scope struct {
 	State         ScopeAccessState `json:"state"`
 }
 
+func (s Scope) IsAccessible() bool {
+	return s.State == ScopeAccessApproved
+}
+
 type Visibility string
 
 const (

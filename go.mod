@@ -5,6 +5,7 @@ go 1.21
 require (
 	cloud.google.com/go/kms v1.15.5
 	cloud.google.com/go/secretmanager v1.11.4
+	github.com/Code-Hex/go-generics-cache v1.3.1
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/uuid v1.4.0
 	github.com/mitchellh/mapstructure v1.5.0

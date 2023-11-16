@@ -196,12 +196,13 @@ func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistr
 			return nil, fmt.Errorf("processing scopes: %w", err)
 		}
 
-		filteredPayload, err := r.filterValidScopes(tx, registrationPayload)
+		consumedScopes, err := r.filterConsumedScopes(tx, instance)
 		if err != nil {
 			return nil, err
 		}
 
-		registrationPayload = *filteredPayload
+		registrationPayload.Scopes = consumedScopes
+		tx.Logger.Infof("registering client scopes: [%s]", strings.Join(consumedScopes, ", "))
 	}
 
 	if registration != nil {
@@ -258,37 +259,39 @@ func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistrat
 	return registrationResponse, err
 }
 
-func (r *Reconciler) filterValidScopes(tx *Transaction, registration types.ClientRegistration) (*types.ClientRegistration, error) {
-	var desiredScopes []naisiov1.ConsumedScope
+func (r *Reconciler) filterConsumedScopes(tx *Transaction, client *naisiov1.MaskinportenClient) ([]string, error) {
+	desired := client.Spec.Scopes.ConsumedScopes
 
-	switch v := tx.Instance.(type) {
-	case *naisiov1.IDPortenClient:
-		return &registration, nil
-	case *naisiov1.MaskinportenClient:
-		desiredScopes = v.Spec.Scopes.ConsumedScopes
+	// hack: set default scopes if none are specified, because we cannot register a client without scopes
+	// this is only relevant for MaskinportenClients that _only_ expose scopes.
+	if len(desired) == 0 {
+		desired = []naisiov1.ConsumedScope{{Name: r.Config.DigDir.Maskinporten.Default.ClientScope}}
 	}
 
-	accessibleScopes, err := tx.DigdirClient.GetAccessibleScopes(tx.Ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(desiredScopes) == 0 {
-		desiredScopes = []naisiov1.ConsumedScope{{Name: r.Config.DigDir.Maskinporten.Default.ClientScope}}
-	}
-
-	filteredScopes := clients.FilterScopes(desiredScopes, accessibleScopes)
-	registration.Scopes = filteredScopes.Valid
-
-	if len(filteredScopes.Invalid) > 0 {
-		for _, scope := range filteredScopes.Invalid {
-			msg := fmt.Sprintf("ERROR: Precondition failed: This organization number has not been granted access to the scope '%s'.", scope)
-			tx.Logger.Error(msg)
-			r.reportEvent(tx, corev1.EventTypeWarning, EventSkipped, msg)
+	valid := make([]string, 0)
+	invalid := make([]string, 0)
+	for _, scp := range desired {
+		canAccess, err := tx.DigdirClient.CanAccessScope(tx.Ctx, scp)
+		if err != nil {
+			return nil, err
 		}
+
+		if canAccess {
+			valid = append(valid, scp.Name)
+			continue
+		}
+
+		invalid = append(invalid, scp.Name)
 	}
 
-	return &registration, nil
+	if len(invalid) > 0 {
+		// TODO: this should be an error that is reflected as a status condition
+		msg := fmt.Sprintf("organization has no access to scopes: [%s]", strings.Join(invalid, ", "))
+		tx.Logger.Warnf("%s; skipping...", msg)
+		r.reportEvent(tx, corev1.EventTypeWarning, EventSkipped, msg)
+	}
+
+	return valid, nil
 }
 
 func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSecrets kubernetes.SecretLists, clientID string) error {

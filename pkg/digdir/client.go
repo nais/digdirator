@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"time"
 
+	cache "github.com/Code-Hex/go-generics-cache"
 	"github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	"gopkg.in/square/go-jose.v2"
@@ -31,6 +32,8 @@ const (
 var (
 	ServerError = errors.New("ServerError")
 	ClientError = errors.New("ClientError")
+
+	scopeCache = cache.New[string, bool]()
 )
 
 type Error struct {
@@ -144,17 +147,69 @@ func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose
 	return response, nil
 }
 
-func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) {
-	endpoint := fmt.Sprintf("%s/scopes/access/all", c.Config.DigDir.Admin.BaseURL)
-	s := make([]types.Scope, 0)
-
-	if err := c.request(ctx, http.MethodGet, endpoint, nil, &s); err != nil {
-		return nil, fmt.Errorf("fetching scopes: %w", err)
+// CanAccessScope checks if the authenticated organization can access given scope.
+func (c Client) CanAccessScope(ctx context.Context, scope nais_io_v1.ConsumedScope) (bool, error) {
+	if access, ok := scopeCache.Get(scope.Name); ok {
+		return access, nil
 	}
+
+	// cache miss, fetch fresh scope data from DigDir
+	_, err := c.GetAccessibleScopes(ctx)
+	if err != nil {
+		return false, err
+	}
+	_, err = c.GetOpenScopes(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	if access, ok := scopeCache.Get(scope.Name); ok {
+		return access, nil
+	}
+
+	return false, nil
+}
+
+// GetAccessibleScopes returns all scopes that the authenticated organization has been granted access to.
+func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) {
+	endpoint, err := url.JoinPath(c.Config.DigDir.Admin.BaseURL, "/scopes/access/all")
+	if err != nil {
+		return nil, err
+	}
+
+	s := make([]types.Scope, 0)
+	if err := c.request(ctx, http.MethodGet, endpoint, nil, &s); err != nil {
+		return nil, fmt.Errorf("fetching accessible scopes: %w", err)
+	}
+
+	for _, scope := range s {
+		// cache with reasonable expiration time to prevent stale data
+		scopeCache.Set(scope.Scope, scope.IsAccessible(), cache.WithExpiration(10*time.Minute))
+	}
+
 	return s, nil
 }
 
-func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget interface{}) error {
+// GetOpenScopes returns all scopes that are accessible to any organization.
+func (c Client) GetOpenScopes(ctx context.Context) ([]types.ScopeRegistration, error) {
+	endpoint, err := url.JoinPath(c.Config.DigDir.Admin.BaseURL, "/scopes/all?accessible_for_all=true")
+	if err != nil {
+		return nil, err
+	}
+
+	s := make([]types.ScopeRegistration, 0)
+	if err := c.request(ctx, http.MethodGet, endpoint, nil, &s); err != nil {
+		return nil, fmt.Errorf("fetching open scopes: %w", err)
+	}
+
+	for _, scope := range s {
+		scopeCache.Set(scope.Name, scope.AccessibleForAll)
+	}
+
+	return s, nil
+}
+
+func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget any) error {
 	retryable := func(ctx context.Context) error {
 		ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
 		defer cancel()
