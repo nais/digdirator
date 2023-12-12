@@ -1,18 +1,14 @@
 name: Build and deploy
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 env:
   GOOGLE_REGISTRY: "europe-north1-docker.pkg.dev"
   FEATURE_NAME: "digdirator"
-
 on:
   push:
     paths-ignore:
       - "*.md"
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -38,7 +34,6 @@ jobs:
       - name: Test Go
         run: |
           make test
-
   build_and_push:
     needs: test
     name: Publish to Google and GitHub registries
@@ -100,7 +95,6 @@ jobs:
       chart_name: ${{ steps.package_chart.outputs.name }}
       chart_version: ${{ steps.package_chart.outputs.version }}
       chart_archive: ${{ steps.package_chart.outputs.archive }}
-
   rollout:
     runs-on: fasit-deploy
     if: github.ref == 'refs/heads/master'
