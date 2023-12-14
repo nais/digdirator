@@ -67,6 +67,7 @@ type ClientRegistration struct {
 	RefreshTokenLifetime              int                     `json:"refresh_token_lifetime"`
 	RefreshTokenUsage                 RefreshTokenUsage       `json:"refresh_token_usage"`
 	Scopes                            []string                `json:"scopes"`
+	SSODisabled                       bool                    `json:"sso_disabled"`
 	TokenEndpointAuthMethod           TokenEndpointAuthMethod `json:"token_endpoint_auth_method"`
 }
 

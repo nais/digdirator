@@ -156,6 +156,11 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 		clientName = cfg.DigDir.Common.ClientName
 	}
 
+	ssoDisabled := false
+	if in.Spec.SSODisabled != nil && *in.Spec.SSODisabled {
+		ssoDisabled = true
+	}
+
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
@@ -175,6 +180,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 		RefreshTokenLifetime:    *in.Spec.SessionLifetime,
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
 		Scopes:                  in.Spec.Scopes,
+		SSODisabled:             ssoDisabled,
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
 }
