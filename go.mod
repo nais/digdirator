@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/secretmanager v1.11.4
 	github.com/Code-Hex/go-generics-cache v1.3.1
 	github.com/go-logr/zapr v1.3.0
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nais/liberator v0.0.0-20231214132143-1cb892e8f1f4
 	github.com/prometheus/client_golang v1.17.0
