@@ -32,10 +32,10 @@ digdirator:
     GOOGLE_APPLICATION_CREDENTIALS: "/var/run/secrets/google/sa.json"
   outbound:
     external:
-      - "integrasjon-ver2.difi.no"
+      - "api.test.samarbeid.digdir.no"
   secrets:
     environment:
-      DIGDIRATOR_DIGDIR_ADMIN_BASE_URL: "https://integrasjon-ver2.difi.no"
+      DIGDIRATOR_DIGDIR_ADMIN_BASE_URL: "https://api.test.samarbeid.digdir.no"
       DIGDIRATOR_CLUSTER_NAME: ""
       DIGDIRATOR_DIGDIR_IDPORTEN_CERT_CHAIN: ""
       DIGDIRATOR_DIGDIR_IDPORTEN_CLIENT_ID: ""

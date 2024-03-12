@@ -148,14 +148,14 @@ features:
   maskinporten: true
 digdir:
   admin:
-  base-url: "https://integrasjon-ver2.difi.no"
+  base-url: "https://api.test.samarbeid.digdir.no"
   idporten:
     client-id: "projects/<project>/secrets/<idporten-client-id>/versions/<version>"
     cert-chain: "projects/<project>/secrets/<idporten-cert-chain>/versions/<version>"
     kms:
       key-path: "projects/<project>/locations/<location>/keyRings/<keyring>/cryptoKeys/<key>/cryptoKeyVersions/<version>"
     scopes: "idporten:dcr.write idporten:dcr.read"
-    well-known-url: "https://oidc-ver2.difi.no/idporten-oidc-provider/.well-known/openid-configuration"
+    well-known-url: "https://test.idporten.no/idporten-oidc-provider/.well-known/openid-configuration"
   maskinporten:
     client-id: "projects/<project>/secrets/<maskinporten-client-id>/versions/<version>"
     cert-chain: "projects/<project>/secrets/<maskinporten-cert-chain>/versions/<version>"
