@@ -21,7 +21,6 @@ func TestScopeFilteringWithNewScopeAndOneExistingOne(t *testing.T) {
 	cfg := &config.Config{ClusterName: clusterName}
 	exposedScopes := createExposedScopes(currentScope)
 	currentMaskinportenClient := minimalMaskinportenWithScopeInternalExternalClient(currentObjectMeta, exposedScopes)
-	scopeContainer := ScopeStash{}
 
 	scopeRegistration := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], cfg)
 	scopeRegistration.Name = fmt.Sprintf("nav:%s", currentScope)
@@ -33,12 +32,12 @@ func TestScopeFilteringWithNewScopeAndOneExistingOne(t *testing.T) {
 	actualScopeRegistrations := make([]types.ScopeRegistration, 0)
 	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration)
 
-	result := *scopeContainer.FilterScopes(actualScopeRegistrations, currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes(), clusterName)
+	operations := Generate(actualScopeRegistrations, currentMaskinportenClient.GetExposedScopes())
 
-	assert.Equal(t, 0, len(result.ToCreate))
-	assert.Equal(t, 1, len(result.ToUpdate))
-	assert.Equal(t, currentScope, result.ToUpdate[0].CurrentScope.Name)
-	assert.True(t, result.ToUpdate[0].CurrentScope.Enabled)
+	assert.Equal(t, 0, len(operations.ToCreate))
+	assert.Equal(t, 1, len(operations.ToUpdate))
+	assert.Equal(t, currentScope, operations.ToUpdate[0].CurrentScope.Name)
+	assert.True(t, operations.ToUpdate[0].CurrentScope.Enabled)
 }
 
 func TestScopeFiltering(t *testing.T) {
@@ -50,7 +49,6 @@ func TestScopeFiltering(t *testing.T) {
 	currentObjectMeta := metaObject()
 	currentExternals := createExposedScopes(currentScope, currentScope2, noneExistingScope)
 	currentMaskinportenClient := minimalMaskinportenWithScopeInternalExternalClient(currentObjectMeta, currentExternals)
-	scopeContainer := ScopeStash{}
 	actualScopeRegistrations := make([]types.ScopeRegistration, 0)
 
 	// First case:
@@ -74,29 +72,29 @@ func TestScopeFiltering(t *testing.T) {
 	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration1)
 	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration2)
 
-	// ScopeStash not managed by digdirator should be ignored
+	// Operations not managed by digdirator should be ignored
 	actualScopeRegistrations = append(actualScopeRegistrations, types.ScopeRegistration{
 		Description: "some: random description:",
 		Name:        "nav:not/owned",
 	})
 
-	result := *scopeContainer.FilterScopes(actualScopeRegistrations, currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes(), clusterName)
+	operations := Generate(actualScopeRegistrations, currentMaskinportenClient.GetExposedScopes())
 
 	// Scopes not existing in digidir but will be added to managed
-	scopesToCreate := result.ToCreate[0]
-	assert.Equal(t, 1, len(result.ToCreate))
+	scopesToCreate := operations.ToCreate[0]
+	assert.Equal(t, 1, len(operations.ToCreate))
 	assert.Equal(t, noneExistingScope, scopesToCreate.Name)
 	assert.Equal(t, 1, len(scopesToCreate.Consumers))
 
 	// Scopes existing, owned and used by current application
-	assert.Equal(t, 2, len(result.ToUpdate))
+	assert.Equal(t, 2, len(operations.ToUpdate))
 
 	validRegistrations := map[string]string{
 		currentScope:  currentScope,
 		currentScope2: currentScope2,
 	}
 
-	for _, v := range result.ToUpdate {
+	for _, v := range operations.ToUpdate {
 		if _, ok := validRegistrations[v.ScopeRegistration.Name]; ok {
 			assert.True(t, ok, "Map should be a valid list of current scopes")
 		}

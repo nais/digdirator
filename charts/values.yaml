@@ -10,9 +10,7 @@ team: nais
 
 maskinportenHosts:
   - "test.maskinporten.no"
-  - "ver2.maskinporten.no"
 idportenHosts:
-  - "oidc-ver2.difi.no"
   - "test.idporten.no"
 
 digdirator:

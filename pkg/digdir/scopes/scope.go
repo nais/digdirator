@@ -2,6 +2,7 @@ package scopes
 
 import (
 	"fmt"
+
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -81,16 +82,6 @@ func (s Scope) HasChanged() bool {
 		return true
 	}
 	return false
-}
-
-// IsActive exposed scope should be active or not
-func (s Scope) IsActive() bool {
-	return s.CurrentScope.Enabled
-}
-
-// CanBeActivated Existing and inactive scope need to be activated again
-func (s Scope) CanBeActivated() bool {
-	return s.IsActive() && !s.ScopeRegistration.Active
 }
 
 func equals(actual, desired []string) bool {
