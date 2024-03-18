@@ -13,7 +13,7 @@ jobs:
     # Scan runs on ubuntu, mac and windows
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+    - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
     # Instructions
     # 1. Setup JDK, Node.js, Python etc depending on your project type
     # 2. Compile or build the project before invoking scan
