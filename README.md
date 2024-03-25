@@ -148,7 +148,7 @@ features:
   maskinporten: true
 digdir:
   admin:
-  base-url: "https://api.test.samarbeid.digdir.no"
+    base-url: "https://api.test.samarbeid.digdir.no"
   idporten:
     client-id: "projects/<project>/secrets/<idporten-client-id>/versions/<version>"
     cert-chain: "projects/<project>/secrets/<idporten-cert-chain>/versions/<version>"
