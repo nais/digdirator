@@ -53,12 +53,13 @@ type Client struct {
 	HttpClient *http.Client
 	Signer     jose.Signer
 	Config     *config.Config
-	instance   clients.Instance
 	ClientId   []byte
+	instance   clients.Instance
+	adminURL   *url.URL
 }
 
 func (c Client) Register(ctx context.Context, payload types.ClientRegistration) (*types.ClientRegistration, error) {
-	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.Admin.BaseURL)
+	endpoint := c.endpoint("clients")
 	registration := &types.ClientRegistration{}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -74,7 +75,7 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 }
 
 func (c Client) GetRegistration(desired clients.Instance, ctx context.Context, clusterName string) (*types.ClientRegistration, error) {
-	endpoint := fmt.Sprintf("%s/clients", c.Config.DigDir.Admin.BaseURL)
+	endpoint := c.endpoint("clients")
 	clientRegistrations := make([]types.ClientRegistration, 0)
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &clientRegistrations); err != nil {
@@ -100,7 +101,7 @@ func (c Client) Exists(ctx context.Context, desired clients.Instance, clusterNam
 }
 
 func (c Client) Update(ctx context.Context, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {
-	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.Admin.BaseURL, clientID)
+	endpoint := c.endpoint("clients", clientID)
 	registration := &types.ClientRegistration{}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -115,7 +116,7 @@ func (c Client) Update(ctx context.Context, payload types.ClientRegistration, cl
 }
 
 func (c Client) Delete(ctx context.Context, clientID string) error {
-	endpoint := fmt.Sprintf("%s/clients/%s", c.Config.DigDir.Admin.BaseURL, clientID)
+	endpoint := c.endpoint("clients", clientID)
 	if err := c.request(ctx, http.MethodDelete, endpoint, nil, nil); err != nil {
 		return fmt.Errorf("deleting ID-porten client: %w", err)
 	}
@@ -123,7 +124,7 @@ func (c Client) Delete(ctx context.Context, clientID string) error {
 }
 
 func (c Client) GetKeys(ctx context.Context, clientID string) (*types.JwksResponse, error) {
-	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.Admin.BaseURL, clientID)
+	endpoint := c.endpoint("clients", clientID, "jwks")
 	response := &types.JwksResponse{}
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, response); err != nil {
@@ -133,7 +134,7 @@ func (c Client) GetKeys(ctx context.Context, clientID string) (*types.JwksRespon
 }
 
 func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose.JSONWebKeySet) (*types.JwksResponse, error) {
-	endpoint := fmt.Sprintf("%s/clients/%s/jwks", c.Config.DigDir.Admin.BaseURL, clientID)
+	endpoint := c.endpoint("clients", clientID, "jwks")
 	response := &types.JwksResponse{}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -171,10 +172,7 @@ func (c Client) CanAccessScope(ctx context.Context, scope nais_io_v1.ConsumedSco
 
 // GetAccessibleScopes returns all scopes that the authenticated organization has been granted access to.
 func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) {
-	endpoint, err := url.JoinPath(c.Config.DigDir.Admin.BaseURL, "/scopes/access/all")
-	if err != nil {
-		return nil, err
-	}
+	endpoint := c.endpoint("scopes", "access", "all")
 
 	s := make([]types.Scope, 0)
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &s); err != nil {
@@ -191,12 +189,7 @@ func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) 
 
 // GetOpenScopes returns all scopes that are accessible to any organization.
 func (c Client) GetOpenScopes(ctx context.Context) ([]types.ScopeRegistration, error) {
-	endpoint, err := url.JoinPath(c.Config.DigDir.Admin.BaseURL, "/scopes/all")
-	if err != nil {
-		return nil, err
-	}
-
-	endpoint = endpoint + "?accessible_for_all=true"
+	endpoint := c.endpoint("scopes", "all") + "?accessible_for_all=true"
 
 	s := make([]types.ScopeRegistration, 0)
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &s); err != nil {
@@ -271,14 +264,20 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 		Do(ctx, retryable)
 }
 
-func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance clients.Instance, clientId []byte) Client {
-	return Client{
-		httpClient,
-		signer,
-		config,
-		instance,
-		clientId,
+func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance clients.Instance, clientId []byte) (Client, error) {
+	adminURL, err := url.Parse(config.DigDir.Admin.BaseURL)
+	if err != nil {
+		return Client{}, fmt.Errorf("parsing DigDir admin URL: %w", err)
 	}
+
+	return Client{
+		HttpClient: httpClient,
+		Signer:     signer,
+		Config:     config,
+		ClientId:   clientId,
+		instance:   instance,
+		adminURL:   adminURL,
+	}, nil
 }
 
 func clientMatches(actual types.ClientRegistration, desired clients.Instance, clusterName string) bool {
@@ -293,7 +292,7 @@ func clientMatches(actual types.ClientRegistration, desired clients.Instance, cl
 }
 
 func (c Client) GetScopes(ctx context.Context) ([]types.ScopeRegistration, error) {
-	endpoint := fmt.Sprintf("%s/scopes?inactive=true", c.Config.DigDir.Admin.BaseURL)
+	endpoint := c.endpoint("scopes") + "?inactive=true"
 	scopes := make([]types.ScopeRegistration, 0)
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &scopes); err != nil {
@@ -304,7 +303,7 @@ func (c Client) GetScopes(ctx context.Context) ([]types.ScopeRegistration, error
 }
 
 func (c Client) RegisterScope(ctx context.Context, payload types.ScopeRegistration) (*types.ScopeRegistration, error) {
-	endpoint := fmt.Sprintf("%s/scopes", c.Config.DigDir.Admin.BaseURL)
+	endpoint := c.endpoint("scopes")
 	registration := &types.ScopeRegistration{}
 	jsonPayload, err := json.Marshal(payload)
 
@@ -319,7 +318,7 @@ func (c Client) RegisterScope(ctx context.Context, payload types.ScopeRegistrati
 }
 
 func (c Client) UpdateScope(ctx context.Context, payload types.ScopeRegistration, scope string) (*types.ScopeRegistration, error) {
-	endpoint := fmt.Sprintf("%s/scopes?scope=%s", c.Config.DigDir.Admin.BaseURL, url.QueryEscape(scope))
+	endpoint := c.endpoint("scopes") + "?scope=" + url.QueryEscape(scope)
 	registration := &types.ScopeRegistration{}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -335,7 +334,7 @@ func (c Client) UpdateScope(ctx context.Context, payload types.ScopeRegistration
 }
 
 func (c Client) DeleteScope(ctx context.Context, scope string) (*types.ScopeRegistration, error) {
-	endpoint := fmt.Sprintf("%s/scopes?scope=%s", c.Config.DigDir.Admin.BaseURL, url.QueryEscape(scope))
+	endpoint := c.endpoint("scopes") + "?scope=" + url.QueryEscape(scope)
 	actualScopesRegistration := &types.ScopeRegistration{}
 
 	if err := c.request(ctx, http.MethodDelete, endpoint, nil, &actualScopesRegistration); err != nil {
@@ -345,7 +344,7 @@ func (c Client) DeleteScope(ctx context.Context, scope string) (*types.ScopeRegi
 }
 
 func (c Client) GetScopeACL(ctx context.Context, scope string) (*[]types.ConsumerRegistration, error) {
-	endpoint := fmt.Sprintf("%s/scopes/access?scope=%s", c.Config.DigDir.Admin.BaseURL, url.QueryEscape(scope))
+	endpoint := c.endpoint("scopes", "access") + "?scope=" + url.QueryEscape(scope)
 	registration := &[]types.ConsumerRegistration{}
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, registration); err != nil {
 		return nil, fmt.Errorf("getting scope access: %w", err)
@@ -354,7 +353,7 @@ func (c Client) GetScopeACL(ctx context.Context, scope string) (*[]types.Consume
 }
 
 func (c Client) AddToScopeACL(ctx context.Context, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
-	endpoint := fmt.Sprintf("%s/scopes/access/%s?scope=%s", c.Config.DigDir.Admin.BaseURL, consumerOrgno, url.QueryEscape(scope))
+	endpoint := c.endpoint("scopes", "access", consumerOrgno) + "?scope=" + url.QueryEscape(scope)
 	registration := &types.ConsumerRegistration{}
 
 	if err := c.request(ctx, http.MethodPut, endpoint, nil, registration); err != nil {
@@ -364,11 +363,15 @@ func (c Client) AddToScopeACL(ctx context.Context, scope, consumerOrgno string) 
 }
 
 func (c Client) DeactivateConsumer(ctx context.Context, scope, consumerOrgno string) (*types.ConsumerRegistration, error) {
-	endpoint := fmt.Sprintf("%s/scopes/access/%s?scope=%s", c.Config.DigDir.Admin.BaseURL, consumerOrgno, url.QueryEscape(scope))
+	endpoint := c.endpoint("scopes", "access", consumerOrgno) + "?scope=" + url.QueryEscape(scope)
 	registration := &types.ConsumerRegistration{}
 
 	if err := c.request(ctx, http.MethodDelete, endpoint, []byte{}, registration); err != nil {
 		return nil, fmt.Errorf("delete consumer from scope: %w", err)
 	}
 	return registration, nil
+}
+
+func (c Client) endpoint(path ...string) string {
+	return c.adminURL.JoinPath(path...).String()
 }

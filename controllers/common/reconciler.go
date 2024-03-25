@@ -116,7 +116,10 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 	}
 	instance.GetStatus().SetCorrelationID(correlationID)
 
-	digdirClient := digdir.NewClient(r.HttpClient, r.Signer, r.Config, instance, r.ClientID)
+	digdirClient, err := digdir.NewClient(r.HttpClient, r.Signer, r.Config, instance, r.ClientID)
+	if err != nil {
+		return nil, fmt.Errorf("creating Digdir client: %w", err)
+	}
 
 	logger.Infof("processing %s...", instanceType)
 

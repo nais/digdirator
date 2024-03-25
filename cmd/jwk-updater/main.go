@@ -152,7 +152,7 @@ func makeClient(ctx context.Context, cfg *config.Config) (digdir.Client, error) 
 		return digdir.Client{}, fmt.Errorf("unable to fetch maskinporten client id: %w", err)
 	}
 
-	return digdir.NewClient(http.DefaultClient, signer, cfg, &naisiov1.MaskinportenClient{}, authClientID), nil
+	return digdir.NewClient(http.DefaultClient, signer, cfg, &naisiov1.MaskinportenClient{}, authClientID)
 }
 
 func makeKeySet() (*jose.JSONWebKeySet, error) {
