@@ -58,6 +58,22 @@ type Client struct {
 	adminURL   *url.URL
 }
 
+func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance clients.Instance, clientId []byte) (Client, error) {
+	adminURL, err := url.Parse(config.DigDir.Admin.BaseURL)
+	if err != nil {
+		return Client{}, fmt.Errorf("parsing DigDir admin URL: %w", err)
+	}
+
+	return Client{
+		HttpClient: httpClient,
+		Signer:     signer,
+		Config:     config,
+		ClientId:   clientId,
+		instance:   instance,
+		adminURL:   adminURL,
+	}, nil
+}
+
 func (c Client) Register(ctx context.Context, payload types.ClientRegistration) (*types.ClientRegistration, error) {
 	endpoint := c.endpoint("clients")
 	registration := &types.ClientRegistration{}
@@ -203,94 +219,6 @@ func (c Client) GetOpenScopes(ctx context.Context) ([]types.ScopeRegistration, e
 	return s, nil
 }
 
-func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget any) error {
-	retryable := func(ctx context.Context) error {
-		ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
-		defer cancel()
-
-		token, err := c.getAuthToken(ctx)
-		if err != nil {
-			return fmt.Errorf("getting token from digdir: %w", err)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewBuffer(payload))
-		if err != nil {
-			return fmt.Errorf("creating client %s request: %w", method, err)
-		}
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
-		req.Header.Add("Content-Type", "application/json")
-
-		resp, err := c.HttpClient.Do(req)
-		if err != nil {
-			return fmt.Errorf("performing %s request to %s: %w", method, endpoint, err)
-		}
-
-		defer func(Body io.ReadCloser) {
-			_ = Body.Close()
-		}(resp.Body)
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("reading server response: %w", err)
-		}
-
-		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-			err = &Error{
-				Err:     ClientError,
-				Message: string(body),
-				Status:  resp.Status,
-			}
-		} else if resp.StatusCode >= 500 {
-			err = &Error{
-				Err:     ServerError,
-				Message: string(body),
-				Status:  resp.Status,
-			}
-		}
-		if err != nil {
-			return retry.RetryableError(err)
-		}
-
-		if unmarshalTarget != nil {
-			if err := json.Unmarshal(body, &unmarshalTarget); err != nil {
-				return fmt.Errorf("unmarshalling: %w", err)
-			}
-		}
-		return nil
-	}
-
-	return retry.Fibonacci(retryInitialDelay).
-		WithMaxAttempts(retryMaxAttempts).
-		Do(ctx, retryable)
-}
-
-func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance clients.Instance, clientId []byte) (Client, error) {
-	adminURL, err := url.Parse(config.DigDir.Admin.BaseURL)
-	if err != nil {
-		return Client{}, fmt.Errorf("parsing DigDir admin URL: %w", err)
-	}
-
-	return Client{
-		HttpClient: httpClient,
-		Signer:     signer,
-		Config:     config,
-		ClientId:   clientId,
-		instance:   instance,
-		adminURL:   adminURL,
-	}, nil
-}
-
-func clientMatches(actual types.ClientRegistration, desired clients.Instance, clusterName string) bool {
-	if desired.GetStatus() != nil && desired.GetStatus().GetClientID() != "" {
-		return actual.ClientID == desired.GetStatus().GetClientID()
-	}
-
-	// We don't have an existing client ID, so we'll have to do best-effort matching.
-	descriptionMatches := actual.Description == kubernetes.UniformResourceName(desired, clusterName)
-	integrationTypeMatches := actual.IntegrationType == clients.GetIntegrationType(desired)
-	return descriptionMatches && integrationTypeMatches
-}
-
 func (c Client) GetScopes(ctx context.Context) ([]types.ScopeRegistration, error) {
 	endpoint := c.endpoint("scopes") + "?inactive=true"
 	scopes := make([]types.ScopeRegistration, 0)
@@ -374,4 +302,76 @@ func (c Client) DeactivateConsumer(ctx context.Context, scope, consumerOrgno str
 
 func (c Client) endpoint(path ...string) string {
 	return c.adminURL.JoinPath(path...).String()
+}
+
+func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget any) error {
+	retryable := func(ctx context.Context) error {
+		ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
+		defer cancel()
+
+		token, err := c.getAuthToken(ctx)
+		if err != nil {
+			return fmt.Errorf("getting token from digdir: %w", err)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewBuffer(payload))
+		if err != nil {
+			return fmt.Errorf("creating client %s request: %w", method, err)
+		}
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
+		req.Header.Add("Content-Type", "application/json")
+
+		resp, err := c.HttpClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("performing %s request to %s: %w", method, endpoint, err)
+		}
+
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(resp.Body)
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("reading server response: %w", err)
+		}
+
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			err = &Error{
+				Err:     ClientError,
+				Message: string(body),
+				Status:  resp.Status,
+			}
+		} else if resp.StatusCode >= 500 {
+			err = &Error{
+				Err:     ServerError,
+				Message: string(body),
+				Status:  resp.Status,
+			}
+		}
+		if err != nil {
+			return retry.RetryableError(err)
+		}
+
+		if unmarshalTarget != nil {
+			if err := json.Unmarshal(body, &unmarshalTarget); err != nil {
+				return fmt.Errorf("unmarshalling: %w", err)
+			}
+		}
+		return nil
+	}
+
+	return retry.Fibonacci(retryInitialDelay).
+		WithMaxAttempts(retryMaxAttempts).
+		Do(ctx, retryable)
+}
+
+func clientMatches(actual types.ClientRegistration, desired clients.Instance, clusterName string) bool {
+	if desired.GetStatus() != nil && desired.GetStatus().GetClientID() != "" {
+		return actual.ClientID == desired.GetStatus().GetClientID()
+	}
+
+	// We don't have an existing client ID, so we'll have to do best-effort matching.
+	descriptionMatches := actual.Description == kubernetes.UniformResourceName(desired, clusterName)
+	integrationTypeMatches := actual.IntegrationType == clients.GetIntegrationType(desired)
+	return descriptionMatches && integrationTypeMatches
 }
