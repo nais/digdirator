@@ -154,7 +154,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 	if clients.NeedsSecretRotation(tx.Instance) {
 		jwk, err = crypto.GenerateJwk()
 		if err != nil {
-			return fmt.Errorf("generating new JWK for client: %w", err)
+			return fmt.Errorf("generating jwk: %w", err)
 		}
 
 		if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
@@ -184,7 +184,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistration, error) {
 	registration, err := tx.DigdirClient.GetRegistration(tx.Instance, tx.Ctx, tx.Config.ClusterName)
 	if err != nil {
-		return nil, fmt.Errorf("checking if client exists: %w", err)
+		return nil, fmt.Errorf("getting client registration: %w", err)
 	}
 
 	registrationPayload := clients.ToClientRegistration(tx.Instance, tx.Config)
@@ -241,7 +241,7 @@ func (r *Reconciler) createClient(tx *Transaction, payload types.ClientRegistrat
 
 	registrationResponse, err := tx.DigdirClient.Register(tx.Ctx, payload)
 	if err != nil {
-		return nil, fmt.Errorf("registering client to Digdir: %w", err)
+		return nil, fmt.Errorf("registering client: %w", err)
 	}
 
 	tx.Logger = tx.Logger.WithField("ClientID", registrationResponse.ClientID)
@@ -251,11 +251,11 @@ func (r *Reconciler) createClient(tx *Transaction, payload types.ClientRegistrat
 
 func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {
 	tx.Logger = tx.Logger.WithField("ClientID", clientID)
-	tx.Logger.Debug("client already exists in Digdir, updating...")
+	tx.Logger.Debug("client already exists, updating...")
 
 	registrationResponse, err := tx.DigdirClient.Update(tx.Ctx, payload, clientID)
 	if err != nil {
-		return nil, fmt.Errorf("updating client at Digdir: %w", err)
+		return nil, fmt.Errorf("updating client: %w", err)
 	}
 
 	tx.Logger.WithField("ClientID", registrationResponse.ClientID).Info("client updated")
@@ -300,7 +300,7 @@ func (r *Reconciler) filterConsumedScopes(tx *Transaction, client *naisiov1.Mask
 func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSecrets kubernetes.SecretLists, clientID string) error {
 	jwks, err := crypto.MergeJwks(jwk, managedSecrets.Used, clients.GetSecretJwkKey(tx.Instance))
 	if err != nil {
-		return fmt.Errorf("merging new JWK with JWKs in use: %w", err)
+		return fmt.Errorf("merging JWKS: %w", err)
 	}
 
 	tx.Logger.Debug("generated new JWKS for client, registering...")
@@ -308,7 +308,7 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 	jwksResponse, err := tx.DigdirClient.RegisterKeys(tx.Ctx, clientID, jwks)
 
 	if err != nil {
-		return fmt.Errorf("registering JWKS for client at Digdir: %w", err)
+		return fmt.Errorf("registering JWKS: %w", err)
 	}
 
 	tx.Instance.GetStatus().SetKeyIDs(crypto.KeyIDsFromJwks(&jwksResponse.JSONWebKeySet))

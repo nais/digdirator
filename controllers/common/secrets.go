@@ -38,7 +38,7 @@ func (r Reconciler) secrets(transaction *Transaction) secretsClient {
 }
 
 func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
-	s.Logger.Infof("processing secret with name '%s'...", s.secretName)
+	s.Logger.Infof("processing secret '%s'...", s.secretName)
 
 	labels := clients.MakeLabels(s.Instance)
 
@@ -49,7 +49,7 @@ func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
 
 	stringData, err := secretData(s.Instance, jwk, s.Reconciler.Config)
 	if err != nil {
-		return fmt.Errorf("while creating secret data: %w", err)
+		return fmt.Errorf("creating secret data: %w", err)
 	}
 
 	spec := kubernetes.OpaqueSecret(objectMeta, stringData)

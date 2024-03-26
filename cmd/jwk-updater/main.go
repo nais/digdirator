@@ -63,7 +63,7 @@ func run() error {
 	clientID := viper.GetString(ClientID)
 	existing, err := client.GetKeys(ctx, clientID)
 	if err != nil {
-		return fmt.Errorf("fetching existing jwks for client %q: %w", clientID, err)
+		return fmt.Errorf("fetching JWKS for client %q: %w", clientID, err)
 	}
 
 	seen := make(map[string]bool)

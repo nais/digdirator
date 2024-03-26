@@ -80,11 +80,11 @@ func (c Client) Register(ctx context.Context, payload types.ClientRegistration) 
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("marshalling register client payload: %w", err)
+		return nil, fmt.Errorf("marshal payload: %w", err)
 	}
 
 	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, registration); err != nil {
-		return nil, fmt.Errorf("registering ID-porten client: %w", err)
+		return nil, err
 	}
 
 	return registration, nil
@@ -95,7 +95,7 @@ func (c Client) GetRegistration(desired clients.Instance, ctx context.Context, c
 	clientRegistrations := make([]types.ClientRegistration, 0)
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &clientRegistrations); err != nil {
-		return nil, fmt.Errorf("fetching list of clients from Digdir: %w", err)
+		return nil, err
 	}
 
 	for _, actual := range clientRegistrations {
@@ -110,7 +110,7 @@ func (c Client) GetRegistration(desired clients.Instance, ctx context.Context, c
 func (c Client) Exists(ctx context.Context, desired clients.Instance, clusterName string) (bool, error) {
 	registration, err := c.GetRegistration(desired, ctx, clusterName)
 	if err != nil {
-		return false, fmt.Errorf("getting client registration: %w", err)
+		return false, err
 	}
 
 	return registration != nil, nil
@@ -122,11 +122,11 @@ func (c Client) Update(ctx context.Context, payload types.ClientRegistration, cl
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("marshalling update client payload: %w", err)
+		return nil, fmt.Errorf("marshal payload: %w", err)
 	}
 
 	if err := c.request(ctx, http.MethodPut, endpoint, jsonPayload, registration); err != nil {
-		return nil, fmt.Errorf("updating ID-porten client: %w", err)
+		return nil, err
 	}
 	return registration, nil
 }
@@ -134,7 +134,7 @@ func (c Client) Update(ctx context.Context, payload types.ClientRegistration, cl
 func (c Client) Delete(ctx context.Context, clientID string) error {
 	endpoint := c.endpoint("clients", clientID)
 	if err := c.request(ctx, http.MethodDelete, endpoint, nil, nil); err != nil {
-		return fmt.Errorf("deleting ID-porten client: %w", err)
+		return err
 	}
 	return nil
 }
@@ -144,7 +144,7 @@ func (c Client) GetKeys(ctx context.Context, clientID string) (*types.JwksRespon
 	response := &types.JwksResponse{}
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, response); err != nil {
-		return nil, fmt.Errorf("getting JWKS for client: %w", err)
+		return nil, err
 	}
 	return response, nil
 }
@@ -155,10 +155,10 @@ func (c Client) RegisterKeys(ctx context.Context, clientID string, payload *jose
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("marshalling JWKS payload: %w", err)
+		return nil, fmt.Errorf("marshal payload: %w", err)
 	}
 	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, response); err != nil {
-		return nil, fmt.Errorf("registering JWKS for client: %w", err)
+		return nil, err
 	}
 	return response, nil
 }
@@ -172,11 +172,11 @@ func (c Client) CanAccessScope(ctx context.Context, scope nais_io_v1.ConsumedSco
 	// cache miss, fetch fresh scope data from DigDir
 	_, err := c.GetAccessibleScopes(ctx)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("get accessible scopes: %w", err)
 	}
 	_, err = c.GetOpenScopes(ctx)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("get open scopes: %w", err)
 	}
 
 	if access, ok := scopeCache.Get(scope.Name); ok {
@@ -192,7 +192,7 @@ func (c Client) GetAccessibleScopes(ctx context.Context) ([]types.Scope, error) 
 
 	s := make([]types.Scope, 0)
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &s); err != nil {
-		return nil, fmt.Errorf("fetching accessible scopes: %w", err)
+		return nil, err
 	}
 
 	for _, scope := range s {
@@ -209,7 +209,7 @@ func (c Client) GetOpenScopes(ctx context.Context) ([]types.ScopeRegistration, e
 
 	s := make([]types.ScopeRegistration, 0)
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &s); err != nil {
-		return nil, fmt.Errorf("fetching open scopes: %w", err)
+		return nil, err
 	}
 
 	for _, scope := range s {
@@ -224,7 +224,7 @@ func (c Client) GetScopes(ctx context.Context) ([]types.ScopeRegistration, error
 	scopes := make([]types.ScopeRegistration, 0)
 
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, &scopes); err != nil {
-		return nil, fmt.Errorf("fetching list of scopes from Digdir: %w", err)
+		return nil, err
 	}
 
 	return scopes, nil
@@ -236,11 +236,11 @@ func (c Client) RegisterScope(ctx context.Context, payload types.ScopeRegistrati
 	jsonPayload, err := json.Marshal(payload)
 
 	if err != nil {
-		return nil, fmt.Errorf("marshalling register scope payload: %w", err)
+		return nil, fmt.Errorf("marshal payload: %w", err)
 	}
 
 	if err := c.request(ctx, http.MethodPost, endpoint, jsonPayload, registration); err != nil {
-		return nil, fmt.Errorf("registering scope: %w", err)
+		return nil, err
 	}
 	return registration, nil
 }
@@ -251,7 +251,7 @@ func (c Client) UpdateScope(ctx context.Context, payload types.ScopeRegistration
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
-		return nil, fmt.Errorf("marshalling update scope payload: %w", err)
+		return nil, fmt.Errorf("marshal payload: %w", err)
 	}
 
 	if err := c.request(ctx, http.MethodPut, endpoint, jsonPayload, registration); err != nil {
@@ -266,7 +266,7 @@ func (c Client) DeleteScope(ctx context.Context, scope string) (*types.ScopeRegi
 	actualScopesRegistration := &types.ScopeRegistration{}
 
 	if err := c.request(ctx, http.MethodDelete, endpoint, nil, &actualScopesRegistration); err != nil {
-		return nil, fmt.Errorf("deleting scope from Digdir: %w", err)
+		return nil, err
 	}
 	return actualScopesRegistration, nil
 }
@@ -275,7 +275,7 @@ func (c Client) GetScopeACL(ctx context.Context, scope string) (*[]types.Consume
 	endpoint := c.endpoint("scopes", "access") + "?scope=" + url.QueryEscape(scope)
 	registration := &[]types.ConsumerRegistration{}
 	if err := c.request(ctx, http.MethodGet, endpoint, nil, registration); err != nil {
-		return nil, fmt.Errorf("getting scope access: %w", err)
+		return nil, err
 	}
 	return registration, nil
 }
@@ -285,7 +285,7 @@ func (c Client) AddToScopeACL(ctx context.Context, scope, consumerOrgno string) 
 	registration := &types.ConsumerRegistration{}
 
 	if err := c.request(ctx, http.MethodPut, endpoint, nil, registration); err != nil {
-		return nil, fmt.Errorf("updating scope acl: %w", err)
+		return nil, err
 	}
 	return registration, nil
 }
@@ -295,7 +295,7 @@ func (c Client) DeactivateConsumer(ctx context.Context, scope, consumerOrgno str
 	registration := &types.ConsumerRegistration{}
 
 	if err := c.request(ctx, http.MethodDelete, endpoint, []byte{}, registration); err != nil {
-		return nil, fmt.Errorf("delete consumer from scope: %w", err)
+		return nil, err
 	}
 	return registration, nil
 }
@@ -311,19 +311,19 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 
 		token, err := c.getAuthToken(ctx)
 		if err != nil {
-			return fmt.Errorf("getting token from digdir: %w", err)
+			return fmt.Errorf("get auth token: %w", err)
 		}
 
 		req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewBuffer(payload))
 		if err != nil {
-			return fmt.Errorf("creating client %s request: %w", method, err)
+			return fmt.Errorf("creating %s request: %w", method, err)
 		}
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
 		req.Header.Add("Content-Type", "application/json")
 
 		resp, err := c.HttpClient.Do(req)
 		if err != nil {
-			return fmt.Errorf("performing %s request to %s: %w", method, endpoint, err)
+			return fmt.Errorf("doing %s request to %s: %w", method, endpoint, err)
 		}
 
 		defer func(Body io.ReadCloser) {
@@ -332,7 +332,7 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return fmt.Errorf("reading server response: %w", err)
+			return fmt.Errorf("reading response: %w", err)
 		}
 
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {

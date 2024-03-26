@@ -28,17 +28,17 @@ func (s *scope) Process(exposedScopes map[string]naisiov1.ExposedScope) error {
 
 	filtered, err := s.filtered(exposedScopes)
 	if err != nil {
-		return fmt.Errorf("checking if scopes exists: %w", err)
+		return err
 	}
 
 	err = s.createScopes(filtered.ToCreate)
 	if err != nil {
-		return err
+		return fmt.Errorf("creating scopes: %w", err)
 	}
 
 	err = s.updateScopes(filtered.ToUpdate)
 	if err != nil {
-		return err
+		return fmt.Errorf("updating scopes: %w", err)
 	}
 
 	return nil
@@ -56,9 +56,9 @@ func (s *scope) createScopes(toCreate []naisiov1.ExposedScope) error {
 		metrics.IncScopesCreated(s.Tx.Instance)
 
 		// add consumers
-		err = s.updateConsumers(scopes.CurrentScopeInfo(*scope, newScope))
+		err = s.updateACL(scopes.CurrentScopeInfo(*scope, newScope))
 		if err != nil {
-			return fmt.Errorf("adding new consumers to acl: %w", err)
+			return fmt.Errorf("updating ACL: %w", err)
 		}
 	}
 
@@ -85,9 +85,9 @@ func (s *scope) updateScopes(toUpdate []scopes.Scope) error {
 			return err
 		}
 
-		err = s.updateConsumers(scope)
+		err = s.updateACL(scope)
 		if err != nil {
-			return fmt.Errorf("updating scope acl: %w", err)
+			return fmt.Errorf("updating ACL: %w", err)
 		}
 	}
 
@@ -97,46 +97,45 @@ func (s *scope) updateScopes(toUpdate []scopes.Scope) error {
 func (s *scope) filtered(exposedScopes map[string]naisiov1.ExposedScope) (*scopes.Operations, error) {
 	allScopes, err := s.Tx.DigdirClient.GetScopes(s.Tx.Ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting filtered scopes: %w", err)
+		return nil, fmt.Errorf("getting scopes: %w", err)
 	}
 
 	return scopes.Generate(allScopes, exposedScopes), nil
 }
 
-func (s *scope) updateConsumers(scope scopes.Scope) error {
+func (s *scope) updateACL(scope scopes.Scope) error {
 	logger := s.Tx.Logger.WithField("scope", scope.ToString())
-	logger.Debug("checking if ACL needs update...")
 
 	acl, err := s.Tx.DigdirClient.GetScopeACL(s.Tx.Ctx, scope.ToString())
 	if err != nil {
-		return fmt.Errorf("getting ACL from Digdir: %w", err)
+		return fmt.Errorf("getting ACL: %w", err)
 	}
 
 	consumerStatus, consumerList := scope.FilterConsumers(acl)
 
 	if len(consumerList) == 0 {
-		msg := fmt.Sprintf("ACL was up to date for scope %q", scope.ToString())
+		msg := fmt.Sprintf("ACL: scope %q is up to date", scope.ToString())
 		logger.Info(msg)
 		s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
 		return nil
 	}
 
 	for _, consumer := range consumerList {
-		logger.Debug("processing ACLs...")
+		logger.Debug("ACL: processing...")
 		if consumer.ShouldBeAdded {
-			logger.Infof("adding consumer %q to ACL...", consumer.Orgno)
+			logger.Infof("ACL: adding consumer %q...", consumer.Orgno)
 			err := s.activateConsumer(scope.ToString(), consumer.Orgno)
 			if err != nil {
-				return fmt.Errorf("adding consumer to ACL: %w", err)
+				return err
 			}
 
 			consumerStatus = append(consumerStatus, consumer.Orgno)
 			metrics.IncScopesConsumersCreatedOrUpdated(s.Tx.Instance, consumer.State)
 		} else {
-			logger.Infof("removing consumer %q from ACL...", consumer.Orgno)
+			logger.Infof("ACL: removing consumer %q...", consumer.Orgno)
 			err := s.deactivateConsumer(scope.ToString(), consumer.Orgno)
 			if err != nil {
-				return fmt.Errorf("deleting consumer from ACL: %w", err)
+				return err
 			}
 
 			metrics.IncScopesConsumersDeleted(s.Tx.Instance)
@@ -149,9 +148,9 @@ func (s *scope) updateConsumers(scope scopes.Scope) error {
 func (s *scope) activateConsumer(scope, consumerOrgno string) error {
 	response, err := s.Tx.DigdirClient.AddToScopeACL(s.Tx.Ctx, scope, consumerOrgno)
 	if err != nil {
-		return err
+		return fmt.Errorf("adding consumer: %w", err)
 	}
-	msg := fmt.Sprintf("Granted access to scope %q for consumer %q", scope, consumerOrgno)
+	msg := fmt.Sprintf("ACL: granted access to scope %q for consumer %q", scope, consumerOrgno)
 	s.Tx.Logger.WithField("scope", response.Scope).Info(msg)
 	s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
 
@@ -161,9 +160,9 @@ func (s *scope) activateConsumer(scope, consumerOrgno string) error {
 func (s *scope) deactivateConsumer(scope, consumerOrgno string) error {
 	response, err := s.Tx.DigdirClient.DeactivateConsumer(s.Tx.Ctx, scope, consumerOrgno)
 	if err != nil {
-		return err
+		return fmt.Errorf("deactivating consumer: %w", err)
 	}
-	msg := fmt.Sprintf("Revoked access to scope %q for consumer %q", scope, consumerOrgno)
+	msg := fmt.Sprintf("ACL: revoked access to scope %q for consumer %q", scope, consumerOrgno)
 	s.Tx.Logger.WithField("scope", response.Scope).Info(msg)
 	s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
 
@@ -176,7 +175,7 @@ func (s *scope) update(scope scopes.Scope) error {
 
 	registrationResponse, err := s.Tx.DigdirClient.UpdateScope(s.Tx.Ctx, scopePayload, scope.ToString())
 	if err != nil {
-		return fmt.Errorf("updating scope at Digdir: %w", err)
+		return fmt.Errorf("updating scope: %w", err)
 	}
 
 	msg := fmt.Sprintf("Updated scope %q", registrationResponse.Name)
@@ -193,7 +192,7 @@ func (s *scope) create(newScope naisiov1.ExposedScope) (*types.ScopeRegistration
 
 	response, err := s.Tx.DigdirClient.RegisterScope(s.Tx.Ctx, payload)
 	if err != nil {
-		return nil, fmt.Errorf("registering client to Digdir: %w", err)
+		return nil, fmt.Errorf("registering scope: %w", err)
 	}
 
 	s.Tx.Logger.WithField("scope", response.Name).Info("scope registered")
@@ -246,11 +245,10 @@ func (s *scope) Finalize(exposedScopes map[string]naisiov1.ExposedScope) error {
 		}
 
 		s.Tx.Logger.Infof("finalizer triggered, deleting scope %q from Maskinporten... ", scope.ToString())
-		if _, err := s.Tx.DigdirClient.DeleteScope(s.Tx.Ctx, scope.ToString()); err != nil {
-			return fmt.Errorf("deactivate scope in Maskinporten: %w", err)
+		err := s.deactivate(scope)
+		if err != nil {
+			return err
 		}
-		metrics.IncScopesDeleted(s.Tx.Instance)
-		s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventDeactivatedScopeInDigDir, fmt.Sprintf("Deactivated scope %q", scope.ToString()))
 	}
 
 	return nil

@@ -34,34 +34,34 @@ type customClaims struct {
 func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 	token, err := crypto.GenerateJwt(c.Signer, c.claims())
 	if err != nil {
-		return nil, fmt.Errorf("generating JWT for ID-porten auth: %w", err)
+		return nil, fmt.Errorf("generating JWT: %w", err)
 	}
 
 	endpoint := c.Config.DigDir.Maskinporten.Metadata.TokenEndpoint
 
 	req, err := authRequest(ctx, endpoint, token)
 	if err != nil {
-		return nil, fmt.Errorf("creating auth request: %w", err)
+		return nil, err
 	}
 
 	resp, err := c.HttpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("performing http request to ID-porten: %w", err)
+		return nil, fmt.Errorf("doing request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("reading server response: %w", err)
+		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("server responded with %s: %s", resp.Status, body)
+		return nil, fmt.Errorf("invalid status %s: %s", resp.Status, body)
 	}
 
 	tokenResponse := &TokenResponse{}
 	if err := json.Unmarshal(body, tokenResponse); err != nil {
-		return nil, fmt.Errorf("decoding token response: %w", err)
+		return nil, fmt.Errorf("unmarshalling: %w", err)
 	}
 	return tokenResponse, nil
 }
@@ -90,18 +90,16 @@ func (c Client) claims() customClaims {
 }
 
 func authRequest(ctx context.Context, endpoint, token string) (*http.Request, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, authQueryParams(token))
-	if err != nil {
-		return nil, fmt.Errorf("creating http request: %w", err)
-	}
-	req.Header.Set("Content-Type", applicationFormUrlEncoded)
-	return req, nil
-}
-
-func authQueryParams(token string) io.Reader {
-	data := url.Values{
+	params := url.Values{
 		"grant_type": []string{grantType},
 		"assertion":  []string{token},
 	}
-	return strings.NewReader(data.Encode())
+	body := strings.NewReader(params.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, body)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", applicationFormUrlEncoded)
+	return req, nil
 }

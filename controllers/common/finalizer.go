@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -49,7 +50,7 @@ func (f finalizer) Process() (ctrl.Result, error) {
 
 	exists, err := f.DigdirClient.Exists(f.Ctx, f.Instance, f.Reconciler.Config.ClusterName)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("checking client existence: %w", err)
 	}
 
 	if exists {
@@ -58,7 +59,7 @@ func (f finalizer) Process() (ctrl.Result, error) {
 		} else {
 			f.Logger.Info("deleting client from DigDir...")
 			if err := f.DigdirClient.Delete(f.Ctx, f.Instance.GetStatus().GetClientID()); err != nil {
-				return ctrl.Result{}, fmt.Errorf("deleting client from DigDir: %w", err)
+				return ctrl.Result{}, fmt.Errorf("deleting client: %w", err)
 			}
 		}
 	}
@@ -70,7 +71,7 @@ func (f finalizer) Process() (ctrl.Result, error) {
 
 		if exposedScopes != nil {
 			if err := scopes.Finalize(exposedScopes); err != nil {
-				return ctrl.Result{}, fmt.Errorf("deleting scope from Maskinporten: %w", err)
+				return ctrl.Result{}, fmt.Errorf("deleting Maskinporten scope: %w", err)
 			}
 		}
 	}
@@ -80,12 +81,12 @@ func (f finalizer) Process() (ctrl.Result, error) {
 		return f.Client.Update(f.Ctx, existing)
 	})
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("removing finalizer from list: %w", err)
+		return ctrl.Result{}, fmt.Errorf("removing finalizer: %w", err)
 	}
 
 	metrics.IncClientsDeleted(f.Instance)
 
-	f.Logger.Debug("finalizer processing completed")
+	f.Logger.Debug("finalizer processed")
 	return ctrl.Result{}, nil
 }
 
