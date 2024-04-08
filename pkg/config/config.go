@@ -2,11 +2,16 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
+	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/liberator/pkg/oauth"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -51,13 +56,14 @@ type IDPorten struct {
 }
 
 type Maskinporten struct {
-	CertChain    string              `json:"cert-chain"`
-	ClientID     string              `json:"client-id"`
-	Default      MaskinportenDefault `json:"default"`
-	KMS          KMS                 `json:"kms"`
-	Scopes       string              `json:"scopes"`
-	WellKnownURL string              `json:"well-known-url"`
-	Metadata     oauth.MetadataOAuth
+	CertChain         string              `json:"cert-chain"`
+	ClientID          string              `json:"client-id"`
+	Default           MaskinportenDefault `json:"default"`
+	KMS               KMS                 `json:"kms"`
+	Scopes            string              `json:"scopes"`
+	WellKnownURL      string              `json:"well-known-url"`
+	Metadata          oauth.MetadataOAuth
+	DelegationSources map[string]types.DelegationSource
 }
 
 type MaskinportenDefault struct {
@@ -215,10 +221,47 @@ func (c Config) WithProviderMetadata(ctx context.Context) (*Config, error) {
 		return nil, err
 	}
 
+	delegationSources, err := c.delegationSources(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	c.DigDir.IDPorten.Metadata = *idportenMetadata
 	c.DigDir.Maskinporten.Metadata = *maskinportenMetadata
+	c.DigDir.Maskinporten.DelegationSources = delegationSources
 
 	return &c, nil
+}
+
+func (c Config) delegationSources(ctx context.Context) (map[string]types.DelegationSource, error) {
+	delegationSourceURL, err := url.JoinPath(c.DigDir.Admin.BaseURL, "delegationsources")
+	if err != nil {
+		return nil, fmt.Errorf("parse delegation source url")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, delegationSourceURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("make delegation source request")
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch delegation sources")
+	}
+	defer resp.Body.Close()
+
+	var delegationSources []types.DelegationSource
+	err = json.NewDecoder(resp.Body).Decode(&delegationSources)
+	if err != nil {
+		return nil, fmt.Errorf("decode delegation sources")
+	}
+
+	delegationSourceMap := make(map[string]types.DelegationSource)
+	for _, source := range delegationSources {
+		delegationSourceMap[source.Name] = source
+	}
+
+	return delegationSourceMap, nil
 }
 
 func decoderHook(dc *mapstructure.DecoderConfig) {

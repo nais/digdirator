@@ -5,6 +5,7 @@ import (
 
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/utils/ptr"
 
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
@@ -288,6 +289,72 @@ func TestMaskinportenIntegrationNameFallback(t *testing.T) {
 	assert.Equal(t, integrationName, registration2.ClientName)
 }
 
+func TestToScopeRegistration(t *testing.T) {
+	client := fixtures.MinimalMaskinportenClient()
+	cluster := "test-cluster"
+	cfg := makeConfig(cluster)
+
+	assertDefaults := func(t *testing.T, registration types.ScopeRegistration) {
+		assert.Equal(t, "testcluster:testnamespace:testapp.testproduct:testscope", registration.Description)
+		assert.Equal(t, "test-product:test-scope", registration.Subscope)
+		assert.True(t, registration.Active)
+		assert.ElementsMatch(t, []string{"maskinporten"}, registration.AllowedIntegrationType)
+		assert.Equal(t, 30, registration.AtMaxAge)
+		assert.Equal(t, 0, registration.AuthorizationMaxLifetime)
+		assert.Empty(t, registration.Name)
+		assert.Equal(t, "nav", registration.Prefix)
+		assert.Equal(t, types.TokenTypeSelfContained, registration.TokenType)
+		assert.Equal(t, types.ScopeVisibilityPublic, registration.Visibility)
+		assert.False(t, registration.RequiresPseudonymousTokens)
+		assert.False(t, registration.RequiresUserAuthentication)
+		assert.False(t, registration.RequiresUserConsent)
+	}
+
+	t.Run("minimal scope config", func(t *testing.T) {
+		scope := naisiov1.ExposedScope{
+			Enabled: true,
+			Name:    "test-scope",
+			Product: "test-product",
+		}
+		client.Spec.Scopes.ExposedScopes = []naisiov1.ExposedScope{scope}
+		registration := clients.ToScopeRegistration(client, scope, cfg)
+
+		assertDefaults(t, registration)
+		assert.False(t, registration.AccessibleForAll)
+		assert.Empty(t, registration.DelegationSource)
+	})
+
+	t.Run("accessible for all", func(t *testing.T) {
+		scope := naisiov1.ExposedScope{
+			Enabled:          true,
+			Name:             "test-scope",
+			Product:          "test-product",
+			AccessibleForAll: ptr.To(true),
+		}
+		client.Spec.Scopes.ExposedScopes = []naisiov1.ExposedScope{scope}
+		registration := clients.ToScopeRegistration(client, scope, cfg)
+
+		assertDefaults(t, registration)
+		assert.True(t, registration.AccessibleForAll)
+		assert.Empty(t, registration.DelegationSource)
+	})
+
+	t.Run("delegation", func(t *testing.T) {
+		scope := naisiov1.ExposedScope{
+			Enabled:          true,
+			Name:             "test-scope",
+			Product:          "test-product",
+			DelegationSource: ptr.To("altinn"),
+		}
+		client.Spec.Scopes.ExposedScopes = []naisiov1.ExposedScope{scope}
+		registration := clients.ToScopeRegistration(client, scope, cfg)
+
+		assertDefaults(t, registration)
+		assert.False(t, registration.AccessibleForAll)
+		assert.Equal(t, "https://altinn.example.com", registration.DelegationSource)
+	})
+}
+
 func makeConfig(clusterName string) *config.Config {
 	return &config.Config{
 		ClusterName: clusterName,
@@ -297,6 +364,17 @@ func makeConfig(clusterName string) *config.Config {
 				ClientName:          "some-client-name",
 				ClientURI:           "https://some-client-uri",
 				SessionLifetime:     7200,
+			},
+			Maskinporten: config.Maskinporten{
+				Default: config.MaskinportenDefault{
+					ScopePrefix: "nav",
+				},
+				DelegationSources: map[string]types.DelegationSource{
+					"altinn": {
+						Name:   "altinn",
+						Issuer: "https://altinn.example.com",
+					},
+				},
 			},
 		},
 	}

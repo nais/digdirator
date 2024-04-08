@@ -46,6 +46,8 @@ func handler(clientID, orgno, clientType string) http.HandlerFunc {
 		switch {
 		case matchesPath(r, "/.well-known/openid-configuration", "/.well-known/oauth-authorization-server"):
 			respond(w, fmt.Sprintf(metadataResponseTemplate, r.Host))
+		case matchesPath(r, "/delegationsources"):
+			respondFile(w, "delegationsources.json")
 		case matchesPath(r, "/token"):
 			respond(w, `{ "access_token": "token" }`)
 		case matchesPath(r, "/clients"):

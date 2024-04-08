@@ -215,11 +215,27 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, cfg *confi
 
 func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope, cfg *config.Config) types.ScopeRegistration {
 	SetDefaultScopeValues(&exposedScope)
+
+	delegationSource := ""
+	if exposedScope.DelegationSource != nil {
+		name := *exposedScope.DelegationSource
+		source, ok := cfg.DigDir.Maskinporten.DelegationSources[name]
+		if ok {
+			delegationSource = source.Issuer
+		}
+	}
+
+	accessibleForAll := false
+	if exposedScope.AccessibleForAll != nil && *exposedScope.AccessibleForAll {
+		accessibleForAll = true
+	}
+
 	return types.ScopeRegistration{
+		AccessibleForAll:           accessibleForAll,
 		Active:                     exposedScope.Enabled,
 		AllowedIntegrationType:     exposedScope.AllowedIntegrations,
 		AtMaxAge:                   *exposedScope.AtMaxAge,
-		DelegationSource:           "",
+		DelegationSource:           delegationSource,
 		Name:                       "",
 		AuthorizationMaxLifetime:   MaskinportenDefaultAuthorizationMaxLifetime,
 		Description:                kubernetes.UniformResourceScopeName(&in.ObjectMeta, cfg.ClusterName, exposedScope.Product, exposedScope.Name),
