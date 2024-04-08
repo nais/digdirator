@@ -147,3 +147,8 @@ type ConsumerRegistration struct {
 	Scope         string    `json:"scope"`
 	State         State     `json:"state"`
 }
+
+type DelegationSource struct {
+	Name   string `json:"name"`
+	Issuer string `json:"issuer"`
+}
