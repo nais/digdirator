@@ -236,24 +236,24 @@ func (c Config) WithProviderMetadata(ctx context.Context) (*Config, error) {
 func (c Config) delegationSources(ctx context.Context) (map[string]types.DelegationSource, error) {
 	delegationSourceURL, err := url.JoinPath(c.DigDir.Admin.BaseURL, "delegationsources")
 	if err != nil {
-		return nil, fmt.Errorf("parse delegation source url")
+		return nil, fmt.Errorf("parse delegation source url: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, delegationSourceURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("make delegation source request")
+		return nil, fmt.Errorf("make delegation source request: %w", err)
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("fetch delegation sources")
+		return nil, fmt.Errorf("fetch delegation sources: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var delegationSources []types.DelegationSource
 	err = json.NewDecoder(resp.Body).Decode(&delegationSources)
 	if err != nil {
-		return nil, fmt.Errorf("decode delegation sources")
+		return nil, fmt.Errorf("decode delegation sources: %w", err)
 	}
 
 	delegationSourceMap := make(map[string]types.DelegationSource)
