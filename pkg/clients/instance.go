@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/digdir/scopes"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/secrets"
 )
@@ -86,6 +87,7 @@ func GetSecretJwkKey(instance Instance) string {
 	return ""
 }
 
+// TODO: use this as an alternative fallback for getting a client ID?
 func GetSecretClientIDKey(instance Instance) string {
 	switch instance.(type) {
 	case *naisiov1.IDPortenClient:
@@ -214,7 +216,15 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, cfg *confi
 }
 
 func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScope naisiov1.ExposedScope, cfg *config.Config) types.ScopeRegistration {
-	SetDefaultScopeValues(&exposedScope)
+	allowedIntegrations := []string{MaskinportenDefaultAllowedIntegrationType}
+	if len(exposedScope.AllowedIntegrations) > 0 {
+		allowedIntegrations = exposedScope.AllowedIntegrations
+	}
+
+	accessTokenMaxAge := MaskinportenDefaultAtAgeMax
+	if exposedScope.AtMaxAge != nil {
+		accessTokenMaxAge = *exposedScope.AtMaxAge
+	}
 
 	delegationSource := ""
 	if exposedScope.DelegationSource != nil {
@@ -233,14 +243,14 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 	return types.ScopeRegistration{
 		AccessibleForAll:           accessibleForAll,
 		Active:                     exposedScope.Enabled,
-		AllowedIntegrationType:     exposedScope.AllowedIntegrations,
-		AtMaxAge:                   *exposedScope.AtMaxAge,
+		AllowedIntegrationType:     allowedIntegrations,
+		AtMaxAge:                   accessTokenMaxAge,
 		DelegationSource:           delegationSource,
 		Name:                       "",
 		AuthorizationMaxLifetime:   MaskinportenDefaultAuthorizationMaxLifetime,
-		Description:                kubernetes.UniformResourceScopeName(&in.ObjectMeta, cfg.ClusterName, exposedScope.Product, exposedScope.Name),
+		Description:                scopes.Description(&in.ObjectMeta, cfg.ClusterName, exposedScope.Product),
 		Prefix:                     cfg.DigDir.Maskinporten.Default.ScopePrefix,
-		Subscope:                   kubernetes.ToScope(exposedScope.Product, exposedScope.Name),
+		Subscope:                   scopes.Subscope(exposedScope),
 		TokenType:                  types.TokenTypeSelfContained,
 		Visibility:                 types.ScopeVisibilityPublic,
 		RequiresPseudonymousTokens: false,
@@ -271,14 +281,4 @@ func redirectURIs(in naisiov1.IDPortenClient) []string {
 	}
 
 	return res
-}
-
-func SetDefaultScopeValues(exposedScope *naisiov1.ExposedScope) {
-	if exposedScope.AllowedIntegrations == nil {
-		exposedScope.AllowedIntegrations = []string{MaskinportenDefaultAllowedIntegrationType}
-	}
-	if exposedScope.AtMaxAge == nil {
-		atAgeMax := MaskinportenDefaultAtAgeMax
-		exposedScope.AtMaxAge = &atAgeMax
-	}
 }

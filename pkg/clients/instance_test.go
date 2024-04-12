@@ -295,7 +295,7 @@ func TestToScopeRegistration(t *testing.T) {
 	cfg := makeConfig(cluster)
 
 	assertDefaults := func(t *testing.T, registration types.ScopeRegistration) {
-		assert.Equal(t, "testcluster:testnamespace:testapp.testproduct:testscope", registration.Description)
+		assert.Equal(t, "test-product - test-cluster:test-namespace:test-app", registration.Description)
 		assert.Equal(t, "test-product:test-scope", registration.Subscope)
 		assert.True(t, registration.Active)
 		assert.ElementsMatch(t, []string{"maskinporten"}, registration.AllowedIntegrationType)

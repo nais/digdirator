@@ -1,13 +1,19 @@
-package scopes
+package scopes_test
 
 import (
 	"fmt"
-	"github.com/nais/digdirator/pkg/clients"
-	"github.com/nais/digdirator/pkg/digdir/types"
-	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+	"k8s.io/utils/strings/slices"
+
+	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/digdir/scopes"
+	"github.com/nais/digdirator/pkg/digdir/types"
 )
 
 func TestConsumerFilteringWithNoChanges(t *testing.T) {
@@ -24,7 +30,7 @@ func TestConsumerFilteringWithNoChanges(t *testing.T) {
 
 	// Actual scope Consumer(s) are associated to
 	// create scope struct
-	scope := CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
+	scope := scopes.CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
 
 	consumerStatus, filteredResult := scope.FilterConsumers(&consumerRegistrations)
 
@@ -44,12 +50,12 @@ func TestConsumerFilteringWithAConsumerToRemove(t *testing.T) {
 	exposedScopeConsumers := createExposedConsumers(existingConsumer)
 	// existing consumer and consumer to remove
 	consumerRegistrations := createConsumerRegistrations(existingConsumer, expectedConsumerToRemove)
-	scope := CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
+	scope := scopes.CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
 
 	consumerStatus, result := scope.FilterConsumers(&consumerRegistrations)
 
 	assert.Equal(t, 1, len(result))
-	assert.Equal(t, CreateConsumer(false, types.ScopeStateApproved, expectedConsumerToRemove), result[0])
+	assert.Equal(t, scopes.CreateConsumer(false, types.ScopeStateApproved, expectedConsumerToRemove), result[0])
 	assert.Equal(t, 1, len(consumerStatus))
 	assert.Equal(t, existingConsumer, consumerStatus[0])
 }
@@ -65,11 +71,11 @@ func TestConsumerFilteringWithAConsumerToAdd(t *testing.T) {
 	exposedScopeConsumers := createExposedConsumers(existingConsumer, expectedConsumerToAdd)
 	// only existing consumer
 	consumerRegistrations := createConsumerRegistrations(existingConsumer)
-	scope := CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
+	scope := scopes.CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
 	consumerStatus, result := scope.FilterConsumers(&consumerRegistrations)
 
 	assert.Equal(t, 1, len(result))
-	assert.Equal(t, CreateConsumer(true, types.ScopeStateApproved, expectedConsumerToAdd), result[0])
+	assert.Equal(t, scopes.CreateConsumer(true, types.ScopeStateApproved, expectedConsumerToAdd), result[0])
 	assert.Equal(t, 1, len(consumerStatus))
 	assert.Equal(t, existingConsumer, consumerStatus[0])
 	// consumer added recently get added to consumerStatus list after remote/digdir is updated with new consumer in acl
@@ -127,16 +133,16 @@ func TestConsumerFilteringWithAConsumerToAddAndToRemoveToActivateAndExisting(t *
 		},
 	}
 
-	scope := CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
+	scope := scopes.CurrentScopeInfo(createScopeRegistrations(name, subscope)[0], createExposedScope(exposedScopeConsumers, subscope)[0])
 
 	consumerStatus, result := scope.FilterConsumers(consumerRegistrations)
 
 	assert.Equal(t, 3, len(result))
 
-	validConsumers := map[string]Consumer{
-		expectedConsumerToRemove:            CreateConsumer(false, types.ScopeStateApproved, expectedConsumerToRemove),
-		expectedConsumerToAdd:               CreateConsumer(true, types.ScopeStateApproved, expectedConsumerToAdd),
-		consumerInDeniedStateActivatedAgain: CreateConsumer(true, types.ScopeStateApproved, consumerInDeniedStateActivatedAgain),
+	validConsumers := map[string]scopes.Consumer{
+		expectedConsumerToRemove:            scopes.CreateConsumer(false, types.ScopeStateApproved, expectedConsumerToRemove),
+		expectedConsumerToAdd:               scopes.CreateConsumer(true, types.ScopeStateApproved, expectedConsumerToAdd),
+		consumerInDeniedStateActivatedAgain: scopes.CreateConsumer(true, types.ScopeStateApproved, consumerInDeniedStateActivatedAgain),
 	}
 
 	for _, v := range result {
@@ -157,7 +163,6 @@ func TestConsumerFilteringWithAConsumerToAddAndToRemoveToActivateAndExisting(t *
 }
 
 func TestDesiredExposedScopeHasChanges(t *testing.T) {
-
 	maskinportenIntegration := []string{clients.MaskinportenDefaultAllowedIntegrationType}
 	product := "arbeid"
 
@@ -171,29 +176,98 @@ func TestDesiredExposedScopeHasChanges(t *testing.T) {
 	}
 
 	exposedScope := naisiov1.ExposedScope{
-		Enabled:   true,
-		Name:      scopeRegistrations.Subscope,
-		Product:   product,
-		Consumers: []naisiov1.ExposedScopeConsumer{},
+		Enabled:             true,
+		Name:                scopeRegistrations.Subscope,
+		Product:             product,
+		Consumers:           []naisiov1.ExposedScopeConsumer{},
+		AllowedIntegrations: []string{clients.MaskinportenDefaultAllowedIntegrationType},
+		AtMaxAge:            ptr.To(clients.MaskinportenDefaultAtAgeMax),
+	}
+
+	scopeHasChanged := func(s scopes.Scope) bool {
+		atMaxAgeChanged := s.ScopeRegistration.AtMaxAge != *s.CurrentScope.AtMaxAge
+		allowedIntegrationChanged := !slices.Equal(s.ScopeRegistration.AllowedIntegrationType, s.CurrentScope.AllowedIntegrations)
+		return atMaxAgeChanged || allowedIntegrationChanged
 	}
 
 	// No changes - default values is configured for costume val
-	scope := CurrentScopeInfo(scopeRegistrations, exposedScope)
-	result := scope.HasChanged()
+	scope := scopes.CurrentScopeInfo(scopeRegistrations, exposedScope)
+	result := scopeHasChanged(scope)
 	assert.False(t, result)
 
 	// AtAgeMax has changes
 	atAgeMax := 33
 	exposedScope.AtMaxAge = &atAgeMax
-	scope = CurrentScopeInfo(scopeRegistrations, exposedScope)
-	result = scope.HasChanged()
+	scope = scopes.CurrentScopeInfo(scopeRegistrations, exposedScope)
+	result = scopeHasChanged(scope)
 	assert.True(t, result)
 
 	// AllowedIntegrationType has changes
 	scopeRegistrations.AllowedIntegrationType = []string{"krr"}
-	scope = CurrentScopeInfo(scopeRegistrations, exposedScope)
-	result = scope.HasChanged()
+	scope = scopes.CurrentScopeInfo(scopeRegistrations, exposedScope)
+	result = scopeHasChanged(scope)
 	assert.True(t, result)
+}
+
+func TestDescription(t *testing.T) {
+	product := "arbeid"
+	clusterName := "test-cluster"
+	meta := &metav1.ObjectMeta{
+		Name:      "test-app",
+		Namespace: "test-namespace",
+	}
+
+	expected := "arbeid - test-cluster:test-namespace:test-app"
+	actual := scopes.Description(meta, clusterName, product)
+	assert.Equal(t, expected, actual)
+}
+
+func TestSubscope(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		input naisiov1.ExposedScope
+		want  string
+	}{
+		{
+			name: "name without forward slash",
+			input: naisiov1.ExposedScope{
+				Name:    "test.scope",
+				Product: "arbeid",
+			},
+			want: "arbeid:test.scope",
+		},
+		{
+			name: "name with forward slash",
+			input: naisiov1.ExposedScope{
+				Name:    "test/scope",
+				Product: "arbeid",
+			},
+			want: "arbeid/test/scope",
+		},
+		{
+			name: "separator overrides, name without forward slash",
+			input: naisiov1.ExposedScope{
+				Name:      "test.scope",
+				Product:   "arbeid",
+				Separator: ptr.To("/"),
+			},
+			want: "arbeid/test.scope",
+		},
+		{
+			name: "separator overrides, name with forward slash",
+			input: naisiov1.ExposedScope{
+				Name:      "test/scope",
+				Product:   "arbeid",
+				Separator: ptr.To(":"),
+			},
+			want: "arbeid:test/scope",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := scopes.Subscope(tt.input)
+			assert.Equal(t, tt.want, actual)
+		})
+	}
 }
 
 func createScopeRegistrations(name, subscope string) []types.ScopeRegistration {

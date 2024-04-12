@@ -2,7 +2,6 @@ package scopes
 
 import (
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"github.com/nais/liberator/pkg/kubernetes"
 
 	"github.com/nais/digdirator/pkg/digdir/types"
 )
@@ -24,7 +23,7 @@ func Generate(actualScopes []types.ScopeRegistration, desiredScopes map[string]n
 	}
 
 	for _, desired := range desiredScopes {
-		desiredSubscope := kubernetes.ToScope(desired.Product, desired.Name)
+		desiredSubscope := Subscope(desired)
 
 		subscope, ok := subscopes[desiredSubscope]
 		if ok {

@@ -1,42 +1,43 @@
-package scopes
+package scopes_test
 
 import (
 	"fmt"
 	"testing"
 
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"github.com/nais/liberator/pkg/kubernetes"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/digdir/scopes"
 	"github.com/nais/digdirator/pkg/digdir/types"
 )
 
 func TestScopeFilteringWithNewScopeAndOneExistingOne(t *testing.T) {
-	currentScope := "test/scope"
-	currentObjectMeta := metaObject()
 	clusterName := "test-cluster"
 	cfg := &config.Config{ClusterName: clusterName}
-	exposedScopes := createExposedScopes(currentScope)
+
+	name := "test/scope"
+	currentObjectMeta := metaObject()
+	exposedScopes := createExposedScopes(name)
 	currentMaskinportenClient := minimalMaskinportenWithScopeInternalExternalClient(currentObjectMeta, exposedScopes)
 
-	scopeRegistration := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], cfg)
-	scopeRegistration.Name = fmt.Sprintf("nav:%s", currentScope)
+	scopeRegistration := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[name], cfg)
+	scopeRegistration.Name = fmt.Sprintf("nav:%s", name)
 	scopeRegistration.Active = true
-	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, clusterName, "arbeid", currentScope), scopeRegistration.Description)
-	assert.Equal(t, kubernetes.ToScope("arbeid", currentScope), scopeRegistration.Subscope)
+	assert.Equal(t, "arbeid - test-cluster:test-namespace:test-app", scopeRegistration.Description)
+	assert.Equal(t, "arbeid/test/scope", scopeRegistration.Subscope)
 	assert.True(t, scopeRegistration.Active)
 
 	actualScopeRegistrations := make([]types.ScopeRegistration, 0)
 	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration)
 
-	operations := Generate(actualScopeRegistrations, currentMaskinportenClient.GetExposedScopes())
+	operations := scopes.Generate(actualScopeRegistrations, currentMaskinportenClient.GetExposedScopes())
 
 	assert.Equal(t, 0, len(operations.ToCreate))
 	assert.Equal(t, 1, len(operations.ToUpdate))
-	assert.Equal(t, currentScope, operations.ToUpdate[0].CurrentScope.Name)
+	assert.Equal(t, name, operations.ToUpdate[0].CurrentScope.Name)
 	assert.True(t, operations.ToUpdate[0].CurrentScope.Enabled)
 }
 
@@ -57,15 +58,15 @@ func TestScopeFiltering(t *testing.T) {
 	// subscope: scope/api
 	scopeRegistration1 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], cfg)
 	scopeRegistration1.Name = fmt.Sprintf("nav:%s", currentScope)
-	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, clusterName, "arbeid", currentScope), scopeRegistration1.Description)
-	assert.Equal(t, kubernetes.ToScope("arbeid", currentScope), scopeRegistration1.Subscope)
+	assert.Equal(t, "arbeid - test-cluster:test-namespace:test-app", scopeRegistration1.Description)
+	assert.Equal(t, "arbeid/test/scope", scopeRegistration1.Subscope)
 
 	// Secound case new format
 	// description: cluster:team:app.scope
 	// subscope: team:app.scope
 	scopeRegistration2 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope2], cfg)
 	scopeRegistration2.Name = fmt.Sprintf("nav:%s", currentScope2)
-	assert.Equal(t, kubernetes.UniformResourceScopeName(&currentObjectMeta, clusterName, "arbeid", currentScope2), scopeRegistration2.Description)
+	assert.Equal(t, scopes.Description(&currentObjectMeta, clusterName, "arbeid"), scopeRegistration2.Description)
 	assert.Equal(t, "arbeid:test.scope2", scopeRegistration2.Subscope)
 
 	// add scopes owned by current application
@@ -78,7 +79,7 @@ func TestScopeFiltering(t *testing.T) {
 		Name:        "nav:not/owned",
 	})
 
-	operations := Generate(actualScopeRegistrations, currentMaskinportenClient.GetExposedScopes())
+	operations := scopes.Generate(actualScopeRegistrations, currentMaskinportenClient.GetExposedScopes())
 
 	// Scopes not existing in digidir but will be added to managed
 	scopesToCreate := operations.ToCreate[0]

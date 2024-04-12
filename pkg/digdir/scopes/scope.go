@@ -2,10 +2,12 @@ package scopes
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/nais/digdirator/pkg/clients"
-	"github.com/nais/digdirator/pkg/digdir/types"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/nais/digdirator/pkg/digdir/types"
 )
 
 const NumberOfPermutation = 2
@@ -73,25 +75,36 @@ func (s Scope) ToString() string {
 	return fmt.Sprintf("%s:%s", s.ScopeRegistration.Prefix, s.ScopeRegistration.Subscope)
 }
 
-func (s Scope) HasChanged() bool {
-	clients.SetDefaultScopeValues(&s.CurrentScope)
-	switch {
-	case s.ScopeRegistration.AtMaxAge != *s.CurrentScope.AtMaxAge:
-		return true
-	case !equals(s.ScopeRegistration.AllowedIntegrationType, s.CurrentScope.AllowedIntegrations):
-		return true
-	}
-	return false
+// Description generates the Maskinporten scope description.
+// TODO: this should ideally be configurable in the future Scope resource.
+func Description(resource metav1.Object, clusterName, product string) string {
+	team := resource.GetNamespace()
+	app := resource.GetName()
+
+	return fmt.Sprintf("%s - %s:%s:%s", product, clusterName, team, app)
 }
 
-func equals(actual, desired []string) bool {
-	if len(actual) != len(desired) {
-		return false
+// Subscope generates the Maskinporten subscope name.
+// If the separator is empty, it will default to ":" if the name contains a "/", otherwise it will default to ":".
+// Format: `<product><separator><name>`
+func Subscope(exposedScope naisiov1.ExposedScope) string {
+	product := exposedScope.Product
+	name := exposedScope.Name
+
+	separator := ""
+	if exposedScope.Separator != nil {
+		separator = *exposedScope.Separator
 	}
-	for i, value := range desired {
-		if value != actual[i] {
-			return false
+
+	if separator == "" {
+		// TODO: The original comment for this logic was "able to use legacy scopes from on-prem in gcp", but that doesn't really make any sense.
+		//  No one seems to know why this is needed, but we can't change this without breaking existing scope definitions.
+		//  We should remove the logic when we migrate to the new separate Scope resource.
+		separator = ":"
+		if strings.Contains(name, "/") {
+			separator = "/"
 		}
 	}
-	return true
+
+	return product + separator + name
 }
