@@ -85,8 +85,12 @@ func Description(resource metav1.Object, clusterName, product string) string {
 }
 
 // Subscope generates the Maskinporten subscope name.
-// If the separator is empty, it will default to ":" if the name contains a "/", otherwise it will default to ":".
 // Format: `<product><separator><name>`
+//
+// The default separator is `:`
+// If name contains `/`, the default separator is instead `/`
+//
+// If `separator` is defined in the exposed scope definition, it will override the default separator.
 func Subscope(exposedScope naisiov1.ExposedScope) string {
 	product := exposedScope.Product
 	name := exposedScope.Name
