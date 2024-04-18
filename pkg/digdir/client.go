@@ -12,9 +12,9 @@ import (
 	"time"
 
 	cache "github.com/Code-Hex/go-generics-cache"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
-	"gopkg.in/square/go-jose.v2"
 
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"

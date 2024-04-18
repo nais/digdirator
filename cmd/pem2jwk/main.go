@@ -11,9 +11,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-jose/go-jose/v4"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"gopkg.in/square/go-jose.v2"
 
 	"github.com/nais/digdirator/pkg/crypto"
 )

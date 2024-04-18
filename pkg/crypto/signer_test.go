@@ -1,18 +1,19 @@
 package crypto_test
 
 import (
-	"crypto"
+	libcrypto "crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"fmt"
-	"github.com/google/uuid"
-	crypto2 "github.com/nais/digdirator/pkg/crypto"
-	"github.com/stretchr/testify/assert"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
 	"testing"
 	"time"
+
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
+	"github.com/google/uuid"
+	"github.com/nais/digdirator/pkg/crypto"
+	"github.com/stretchr/testify/assert"
 )
 
 type rsaSigner struct {
@@ -30,13 +31,13 @@ func TestSignWithRsaSigner(t *testing.T) {
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ID:        uuid.New().String(),
 	}
-	privateKey, err := crypto2.GenerateRSAKey()
+	privateKey, err := crypto.GenerateRSAKey()
 
 	jwk := &jose.JSONWebKey{
 		Key:       privateKey,
 		KeyID:     uuid.New().String(),
-		Use:       crypto2.KeyUseSignature,
-		Algorithm: crypto2.KeyAlgorithm,
+		Use:       crypto.KeyUseSignature,
+		Algorithm: crypto.KeyAlgorithm,
 	}
 
 	signerOpts := jose.SignerOptions{}
@@ -44,8 +45,8 @@ func TestSignWithRsaSigner(t *testing.T) {
 	jwkSigner, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: jwk.Key}, &signerOpts)
 	rsaSigner := NewRsaSigner(jose.SigningKey{Algorithm: jose.RS256, Key: privateKey}, &signerOpts)
 
-	signedWithJwk, err := jwt.Signed(jwkSigner).Claims(claims).CompactSerialize()
-	signedWithRsa, err := jwt.Signed(rsaSigner).Claims(claims).CompactSerialize()
+	signedWithJwk, err := jwt.Signed(jwkSigner).Claims(claims).Serialize()
+	signedWithRsa, err := jwt.Signed(rsaSigner).Claims(claims).Serialize()
 	assert.NoError(t, err)
 	fmt.Println(signedWithJwk)
 	fmt.Println(signedWithRsa)
@@ -53,11 +54,11 @@ func TestSignWithRsaSigner(t *testing.T) {
 }
 
 func NewRsaSigner(key jose.SigningKey, opts *jose.SignerOptions) jose.Signer {
-	signer := &crypto2.ConfigurableSigner{
+	signer := &crypto.ConfigurableSigner{
 		SignerOptions: opts,
 		ByteSigner: &rsaSigner{
 			signingKey:   key,
-			signatureAlg: crypto2.SigningAlg,
+			signatureAlg: crypto.SigningAlg,
 			opts:         opts,
 		},
 	}
@@ -68,7 +69,7 @@ func (ctx *rsaSigner) SignBytes(payload []byte) ([]byte, error) {
 	rng := rand.Reader
 	key := ctx.signingKey.Key.(*rsa.PrivateKey)
 	hashed := sha256.Sum256(payload)
-	signature, err := rsa.SignPKCS1v15(rng, key, crypto.SHA256, hashed[:])
+	signature, err := rsa.SignPKCS1v15(rng, key, libcrypto.SHA256, hashed[:])
 	if err != nil {
 		return nil, err
 	}

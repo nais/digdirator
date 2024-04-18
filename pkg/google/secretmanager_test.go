@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/go-jose/go-jose/v4"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/square/go-jose.v2"
 
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/fake"

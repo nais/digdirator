@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-jose/go-jose/v4"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"gopkg.in/square/go-jose.v2"
 
 	"github.com/nais/digdirator/pkg/config"
 )

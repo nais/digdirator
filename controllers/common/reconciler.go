@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-jose/go-jose/v4"
 	"github.com/google/uuid"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	libfinalizer "github.com/nais/liberator/pkg/finalizer"
 	"github.com/nais/liberator/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"

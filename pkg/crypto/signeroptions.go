@@ -3,7 +3,7 @@ package crypto
 import (
 	"fmt"
 
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
 )
 
 func SetupSignerOptions(pemChain []byte) (*jose.SignerOptions, error) {

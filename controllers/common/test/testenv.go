@@ -8,10 +8,10 @@ import (
 	"net/http/httptest"
 	"time"
 
+	"github.com/go-jose/go-jose/v4"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/crd"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/square/go-jose.v2"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"

@@ -5,10 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/square/go-jose.v2"
+
+	"github.com/go-jose/go-jose/v4"
 )
 
-const SigningAlg = "RS256"
+const SigningAlg = jose.RS256
 
 type ByteSigner interface {
 	SignBytes(payload []byte) ([]byte, error)
@@ -39,7 +40,7 @@ func (ctx ConfigurableSigner) Sign(payload []byte) (*jose.JSONWebSignature, erro
 	output.WriteString(headersAndPayload.String())
 	output.WriteByte('.')
 	output.WriteString(base64.RawURLEncoding.EncodeToString(signatureInfo))
-	return jose.ParseSigned(output.String())
+	return jose.ParseSigned(output.String(), []jose.SignatureAlgorithm{SigningAlg})
 }
 
 func serializeHeadersAndPayload(opts *jose.SignerOptions, payload []byte) (bytes.Buffer, error) {

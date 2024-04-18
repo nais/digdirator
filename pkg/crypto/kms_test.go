@@ -2,11 +2,12 @@ package crypto_test
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
 	"testing"
 	"time"
+
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
+	"github.com/google/uuid"
 )
 
 func TestSignWithKms(t *testing.T) {

@@ -3,7 +3,7 @@ package crypto
 import (
 	"fmt"
 
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
 	v1 "k8s.io/api/core/v1"
 )
 

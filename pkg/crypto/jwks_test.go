@@ -1,13 +1,14 @@
 package crypto_test
 
 import (
+	"testing"
+
+	"github.com/go-jose/go-jose/v4"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/secrets"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/square/go-jose.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func TestMergeJwks(t *testing.T) {

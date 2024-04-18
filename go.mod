@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go/kms v1.15.8
 	cloud.google.com/go/secretmanager v1.12.0
 	github.com/Code-Hex/go-generics-cache v1.5.1
+	github.com/go-jose/go-jose/v4 v4.0.1
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/uuid v1.6.0
 	github.com/mitchellh/mapstructure v1.5.0
@@ -17,7 +18,6 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
-	gopkg.in/square/go-jose.v2 v2.6.0
 	k8s.io/api v0.29.3
 	k8s.io/apimachinery v0.29.3
 	k8s.io/client-go v0.29.3
