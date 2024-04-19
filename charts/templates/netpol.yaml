@@ -1,4 +1,4 @@
-{{- if not .Values.digdirator.onprem.enabled }}
+{{- if not .Values.onprem.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -37,7 +37,7 @@ spec:
       - key: team
         operator: Exists
   resources:
-    {{- if .Values.idportenHosts }}
+    {{- if .Values.idporten.hosts | required ".Values.idporten.hosts is required" }}
     - template: |
         apiVersion: networking.gke.io/v1alpha3
         kind: FQDNNetworkPolicy
@@ -52,7 +52,7 @@ spec:
                   protocol: TCP
               to:
                 - fqdns:
-                  {{- range .Values.idportenHosts }}
+                  {{- range .Values.idporten.hosts }}
                   - {{ . }}
                   {{- end }}
           podSelector:
@@ -61,7 +61,7 @@ spec:
           policyTypes:
             - Egress
     {{- end }}
-    {{- if .Values.maskinportenHosts }}
+    {{- if .Values.maskinporten.hosts | required ".Values.maskinporten.hosts is required" }}
     - template: |
         apiVersion: networking.gke.io/v1alpha3
         kind: FQDNNetworkPolicy
@@ -76,7 +76,7 @@ spec:
                   protocol: TCP
               to:
                 - fqdns:
-                  {{- range .Values.maskinportenHosts }}
+                  {{- range .Values.maskinporten.hosts }}
                   - {{ . }}
                   {{- end }}
           podSelector:
@@ -102,7 +102,7 @@ spec:
           - nais-system
           - {{ .Release.Namespace }}
   resources:
-    {{- if .Values.idportenHosts }}
+    {{- if .Values.idporten.hosts | required ".Values.idporten.hosts is required" }}
     - template: |
         apiVersion: networking.gke.io/v1alpha3
         kind: FQDNNetworkPolicy
@@ -117,7 +117,7 @@ spec:
                   protocol: TCP
               to:
                 - fqdns:
-                  {{- range .Values.idportenHosts }}
+                  {{- range .Values.idporten.hosts }}
                   - {{ . }}
                   {{- end }}
           podSelector:
@@ -126,7 +126,7 @@ spec:
           policyTypes:
             - Egress
     {{- end }}
-    {{- if .Values.maskinportenHosts }}
+    {{- if .Values.maskinporten.hosts | required ".Values.maskinporten.hosts is required" }}
     - template: |
         apiVersion: networking.gke.io/v1alpha3
         kind: FQDNNetworkPolicy
@@ -141,7 +141,7 @@ spec:
                   protocol: TCP
               to:
                 - fqdns:
-                  {{- range .Values.maskinportenHosts }}
+                  {{- range .Values.maskinporten.hosts }}
                   - {{ . }}
                   {{- end }}
           podSelector:

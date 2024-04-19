@@ -1,51 +1,37 @@
+adminApiHost: ""
 alerts: true
-apiserverIP: "" # mapping value from Fasit
-
-image:
-  repository: europe-north1-docker.pkg.dev/nais-io/nais/images
-  name: digdirator
-  tag: latest
-
-team: nais
-
-maskinportenHosts:
-  - "test.maskinporten.no"
-idportenHosts:
-  - "test.idporten.no"
-
-digdirator:
-  onprem:
-    enabled: false
+apiserverIP: "" # mapped from Fasit
+application:
   replicas:
     min: 1
     max: 1
   resources:
     limits:
-      memory: 512Mi
+      memory: 1Gi
       cpu: 2000m
     requests:
       memory: 256Mi
       cpu: 300m
-  env:
-    GOOGLE_APPLICATION_CREDENTIALS: "/var/run/secrets/google/sa.json"
-  outbound:
-    external:
-      - "api.test.samarbeid.digdir.no"
-  secrets:
-    environment:
-      DIGDIRATOR_DIGDIR_ADMIN_BASE_URL: "https://api.test.samarbeid.digdir.no"
-      DIGDIRATOR_CLUSTER_NAME: ""
-      DIGDIRATOR_DIGDIR_IDPORTEN_CERT_CHAIN: ""
-      DIGDIRATOR_DIGDIR_IDPORTEN_CLIENT_ID: ""
-      DIGDIRATOR_DIGDIR_IDPORTEN_KMS_KEY_PATH: ""
-      DIGDIRATOR_DIGDIR_IDPORTEN_SCOPES: "idporten:dcr.write idporten:dcr.read"
-      DIGDIRATOR_DIGDIR_IDPORTEN_WELL_KNOWN_URL: "https://test.idporten.no/.well-known/openid-configuration"
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_CERT_CHAIN: ""
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_CLIENT_ID: ""
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_KMS_KEY_PATH: ""
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_SCOPES: "idporten:dcr.write idporten:dcr.read idporten:scopes.write"
-      DIGDIRATOR_DIGDIR_MASKINPORTEN_WELL_KNOWN_URL: "https://test.maskinporten.no/.well-known/oauth-authorization-server"
-      DIGDIRATOR_FEATURES_MASKINPORTEN: "false"
-    google:
-      sa:
-        credentials: ""
+clusterName: "" # mapped from fasit
+idporten:
+  gcpClientIdPath: ""
+  gcpCertChainPath: ""
+  gcpKmsKeyPath: ""
+  hosts: []
+  scopes: "idporten:dcr.write idporten:dcr.read"
+  wellKnownUrl: ""
+image:
+  repository: europe-north1-docker.pkg.dev/nais-io/nais/images
+  name: digdirator
+  tag: latest
+maskinporten:
+  gcpClientIdPath: ""
+  gcpCertChainPath: ""
+  gcpKmsKeyPath: ""
+  hosts: []
+  scopes: "idporten:dcr.write idporten:dcr.read idporten:scopes.write"
+  wellKnownUrl: ""
+team: nais
+onprem:
+  enabled: false
+  gcpSaCredentials: ""

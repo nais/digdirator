@@ -49,3 +49,14 @@ Selector labels
 app.kubernetes.io/name: {{ include "digdirator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+DigDir admin API URL
+*/}}
+{{- define "adminApiUrl" -}}
+{{- if not .Values.adminApiHost }}
+{{- fail ".Values.adminApiHost is required." }}
+{{ else }}
+{{- printf "https://%s" .Values.adminApiHost }}
+{{- end }}
+{{- end }}

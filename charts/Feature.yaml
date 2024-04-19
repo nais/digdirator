@@ -8,11 +8,79 @@ environmentKinds:
   - onprem
   - legacy
 values:
+  adminApiHost:
+    description: Host for DigDir Admin API. See https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin#endepunkter
+    required: true
+    config:
+      type: string
   apiserverIP:
     displayName: API server IP
     computed:
       template: '"{{ .Env.apiserver_endpoint }}"'
-  digdirator.onprem.enabled:
+  clusterName:
+    description: Cluster name override for equivalent mapping value.
+    computed:
+      template: '"{{ .Env.name }}"'
+    config:
+      type: string
+  idporten.gcpCertChainPath:
+    description: Path to Secret Manager secret containing cert chain for ID-porten admin client
+    required: true
+    config:
+      type: string
+  idporten.gcpClientIdPath:
+    description: Path to Secret Manager secret containing client ID for ID-porten admin client
+    required: true
+    config:
+      type: string
+  idporten.gcpKmsKeyPath:
+    description: Path to Cloud KMS key for ID-porten admin client
+    required: true
+    config:
+      type: string
+  idporten.hosts:
+    description: Hosts for ID-porten, used for egress network policies for pods with label idporten=enabled
+    displayName: ID-porten hosts
+    required: true
+    config:
+      type: string_array
+  idporten.wellKnownUrl:
+    description: ID-porten well-known URL. See https://docs.digdir.no/docs/idporten/oidc/oidc_func_wellknown.html
+    required: true
+    config:
+      type: string
+  image.tag:
+    description: Image tag for digdirator
+    displayName: Image tag
+    config:
+      type: string
+  maskinporten.gcpCertChainPath:
+    description: Path to Secret Manager secret containing cert chain for Maskinporten admin client
+    required: true
+    config:
+      type: string
+  maskinporten.gcpClientIdPath:
+    description: Path to Secret Manager secret containing client ID for Maskinporten admin client
+    required: true
+    config:
+      type: string
+  maskinporten.gcpKmsKeyPath:
+    description: Path to Cloud KMS key for Maskinporten admin client
+    required: true
+    config:
+      type: string
+  maskinporten.hosts:
+    description: Hosts for Maskinporten, used for egress network policies for pods with label maskinporten=enabled
+    displayName: Maskinporten hosts
+    required: true
+    config:
+      type: string_array
+  maskinporten.wellKnownUrl:
+    description: Maskinporten well-known URL. See https://docs.digdir.no/docs/Maskinporten/maskinporten_func_wellknown
+    required: true
+    config:
+      type: string
+  onprem.enabled:
     description: Enable resources for onprem
     displayName: Enable onprem
     computed:
@@ -20,103 +88,12 @@ values:
     ignoreKind:
       - tenant
       - legacy
-  digdirator.outbound.external:
-    description: Additional external hosts to allow outbound traffic to for Digdirator
-    displayName: Digdirator external hosts
-    config:
-      type: string_array
-  digdirator.secrets.environment.DIGDIRATOR_CLUSTER_NAME:
-    description: Cluster name override for equivalent mapping value.
-    displayName: Cluster name
-    computed:
-      template: '"{{ .Env.name }}"'
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_DIGDIR_ADMIN_BASE_URL:
-    description: Admin base URL for Digdirator
-    displayName: Admin base URL
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_DIGDIR_IDPORTEN_CERT_CHAIN:
-    description: Secret path for ID-porten cert chain
-    displayName: ID-porten cert cain
-    required: true
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_DIGDIR_IDPORTEN_CLIENT_ID:
-    description: Secret path for ID-porten client ID
-    displayName: ID-porten client ID
-    required: true
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_DIGDIR_IDPORTEN_KMS_KEY_PATH:
-    description: KMS key path for ID-porten
-    displayName: ID-porten KMS path
-    required: true
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_DIGDIR_IDPORTEN_SCOPES:
-    displayName: ID-porten scopes
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_DIGDIR_IDPORTEN_WELL_KNOWN_URL:
-    displayName: ID-porten well-known
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_DIGDIR_MASKINPORTEN_CERT_CHAIN:
-    description: Secret path to Maskinporten cert chain, required if maskinporten is enabled
-    displayName: Maskinporten cert chain
-    required: true
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_DIGDIR_MASKINPORTEN_CLIENT_ID:
-    description: Secret path to Maskinporten Client ID, required if maskinporten is enabled
-    displayName: Maskinporten client ID
-    required: true
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_DIGDIR_MASKINPORTEN_KMS_KEY_PATH:
-    description: Required if maskinporten is enabled
-    displayName: Maskinporten KMS key path
-    required: true
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_DIGDIR_MASKINPORTEN_SCOPES:
-    description: Required if maskinporten is enabled
-    displayName: Maskinporten scopes
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_DIGDIR_MASKINPORTEN_WELL_KNOWN_URL:
-    description: Required if maskinporten is enabled
-    displayName: Maskinporten well-known
-    config:
-      type: string
-  digdirator.secrets.environment.DIGDIRATOR_FEATURES_MASKINPORTEN:
-    displayName: Maskinporten enabled
-    required: true
-    config:
-      type: bool
-  digdirator.secrets.google.sa.credentials:
-    description: Access Google KMS from onprem, required if onprem is enabled
-    displayName: Google sa credentials
+  onprem.gcpSaCredentials:
+    description: SA Credentials for accessing Cloud KMS from onprem. Required if onprem is enabled
+    displayName: GCP SA credentials
     config:
       type: string
       secret: true
     ignoreKind:
       - tenant
       - legacy
-  idportenHosts:
-    description: Hosts for ID-porten, used for egress network policies for pods with label idporten=enabled
-    displayName: ID-porten hosts
-    config:
-      type: string_array
-  image.tag:
-    description: Image tag for digdirator
-    displayName: Image tag
-    config:
-      type: string
-  maskinportenHosts:
-    description: Hosts for Maskinporten, used for egress network policies for pods with label maskinporten=enabled
-    displayName: Maskinporten hosts
-    config:
-      type: string_array

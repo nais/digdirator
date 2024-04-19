@@ -6,13 +6,11 @@ metadata:
     {{- include "digdirator.labels" . | nindent 4 }}
     team: {{ .Values.team }}
 spec:
-  image: "{{ .Values.image.repository }}/{{ .Values.image.name}}:{{ .Values.image.tag}}"
+  image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ .Values.image.tag }}"
   port: 8080
   strategy:
     type: Recreate
-  replicas:
-    min: {{.Values.digdirator.replicas.min}}
-    max: {{.Values.digdirator.replicas.max}}
+  {{- toYaml .Values.application | nindent 2 }}
   liveness:
     path: /metrics
   readiness:
@@ -28,26 +26,22 @@ spec:
         - application: prometheus
     outbound:
       external:
-      {{- range .Values.digdirator.outbound.external }}
+        - host: {{ .Values.adminApiHost | quote }}
+      {{- range .Values.maskinporten.hosts | required ".Values.maskinporten.hosts is required" }}
         - host: {{ . }}
       {{- end }}
-      {{- range .Values.maskinportenHosts }}
+      {{- range .Values.idporten.hosts | required ".Values.idporten.hosts is required" }}
         - host: {{ . }}
       {{- end }}
-      {{- range .Values.idportenHosts }}
-        - host: {{ . }}
-      {{- end }}
-      {{- if not .Values.digdirator.onprem.enabled }}
+      {{- if not .Values.onprem.enabled }}
         - host: cloudkms.googleapis.com
         - host: secretmanager.googleapis.com
       {{- end }}
-  {{- if .Values.digdirator.onprem.enabled }}
+  {{- if .Values.onprem.enabled }}
   webproxy: true
   env:
-  {{- range $key,$value:= .Values.digdirator.env }}
-    - name: "{{ $key}}"
-      value: {{ $value | quote }}
-  {{- end }}
+    - name: "GOOGLE_APPLICATION_CREDENTIALS"
+      value: "/var/run/secrets/google/sa.json"
   filesFrom:
     - secret: digdirator-google-service-account
       mountPath: "/var/run/secrets/google"
