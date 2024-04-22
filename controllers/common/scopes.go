@@ -85,9 +85,11 @@ func (s *scope) updateScopes(toUpdate []scopes.Scope) error {
 			return err
 		}
 
-		err = s.updateACL(scope)
-		if err != nil {
-			return fmt.Errorf("updating ACL: %w", err)
+		if wantEnabled {
+			err = s.updateACL(scope)
+			if err != nil {
+				return fmt.Errorf("updating ACL: %w", err)
+			}
 		}
 	}
 
