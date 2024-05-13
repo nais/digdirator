@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/kms v1.15.9
 	cloud.google.com/go/secretmanager v1.13.0
 	github.com/Code-Hex/go-generics-cache v1.5.1
-	github.com/go-jose/go-jose/v4 v4.0.1
+	github.com/go-jose/go-jose/v4 v4.0.2
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/uuid v1.6.0
 	github.com/mitchellh/mapstructure v1.5.0
