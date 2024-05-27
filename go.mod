@@ -6,7 +6,7 @@ toolchain go1.22.2
 
 require (
 	cloud.google.com/go/kms v1.17.1
-	cloud.google.com/go/secretmanager v1.13.0
+	cloud.google.com/go/secretmanager v1.13.1
 	github.com/Code-Hex/go-generics-cache v1.5.1
 	github.com/go-jose/go-jose/v4 v4.0.2
 	github.com/go-logr/zapr v1.3.0
