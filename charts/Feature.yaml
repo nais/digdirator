@@ -14,7 +14,6 @@ values:
     config:
       type: string
   apiserverIP:
-    displayName: API server IP
     computed:
       template: '"{{ .Env.apiserver_endpoint }}"'
   clusterName:
@@ -40,10 +39,11 @@ values:
       type: string
   idporten.hosts:
     description: Hosts for ID-porten, used for egress network policies for pods with label idporten=enabled
-    displayName: ID-porten hosts
     required: true
     config:
       type: string_array
+    ignoreKind:
+      - onprem
   idporten.wellKnownUrl:
     description: ID-porten well-known URL. See https://docs.digdir.no/docs/idporten/oidc/oidc_func_wellknown.html
     required: true
@@ -51,7 +51,6 @@ values:
       type: string
   image.tag:
     description: Image tag for digdirator
-    displayName: Image tag
     config:
       type: string
   maskinporten.gcpCertChainPath:
@@ -71,10 +70,11 @@ values:
       type: string
   maskinporten.hosts:
     description: Hosts for Maskinporten, used for egress network policies for pods with label maskinporten=enabled
-    displayName: Maskinporten hosts
     required: true
     config:
       type: string_array
+    ignoreKind:
+      - onprem
   maskinporten.wellKnownUrl:
     description: Maskinporten well-known URL. See https://docs.digdir.no/docs/Maskinporten/maskinporten_func_wellknown
     required: true
@@ -82,7 +82,6 @@ values:
       type: string
   onprem.enabled:
     description: Enable resources for onprem
-    displayName: Enable onprem
     computed:
       template: '{{ eq .Kind "onprem" }}'
     ignoreKind:
@@ -90,7 +89,6 @@ values:
       - legacy
   onprem.gcpSaCredentials:
     description: SA Credentials for accessing Cloud KMS from onprem. Required if onprem is enabled
-    displayName: GCP SA credentials
     config:
       type: string
       secret: true
