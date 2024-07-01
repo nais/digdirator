@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.22.3
 
 require (
-	cloud.google.com/go/kms v1.18.0
+	cloud.google.com/go/kms v1.18.2
 	cloud.google.com/go/secretmanager v1.13.3
 	github.com/Code-Hex/go-generics-cache v1.5.1
 	github.com/go-jose/go-jose/v4 v4.0.2
