@@ -13,15 +13,15 @@ import (
 )
 
 type scope struct {
-	Rec Reconciler
+	Rec *Reconciler
 	Tx  *Transaction
 }
 
-func (r Reconciler) scopes(transaction *Transaction) scope {
+func (r *Reconciler) scopes(transaction *Transaction) scope {
 	return scope{Rec: r, Tx: transaction}
 }
 
-func (s *scope) Process(exposedScopes map[string]naisiov1.ExposedScope) error {
+func (s scope) Process(exposedScopes map[string]naisiov1.ExposedScope) error {
 	if exposedScopes == nil || len(exposedScopes) == 0 {
 		return nil
 	}
@@ -44,7 +44,7 @@ func (s *scope) Process(exposedScopes map[string]naisiov1.ExposedScope) error {
 	return nil
 }
 
-func (s *scope) createScopes(toCreate []naisiov1.ExposedScope) error {
+func (s scope) createScopes(toCreate []naisiov1.ExposedScope) error {
 	for _, newScope := range toCreate {
 		s.Tx.Logger.Debug(fmt.Sprintf("Subscope %q does not exist in Digdir, creating...", newScope.Name))
 
@@ -65,7 +65,7 @@ func (s *scope) createScopes(toCreate []naisiov1.ExposedScope) error {
 	return nil
 }
 
-func (s *scope) updateScopes(toUpdate []scopes.Scope) error {
+func (s scope) updateScopes(toUpdate []scopes.Scope) error {
 	for _, scope := range toUpdate {
 		s.Tx.Logger.Debug(fmt.Sprintf("updating existing scope %q...", scope.ToString()))
 
@@ -96,7 +96,7 @@ func (s *scope) updateScopes(toUpdate []scopes.Scope) error {
 	return nil
 }
 
-func (s *scope) filtered(exposedScopes map[string]naisiov1.ExposedScope) (*scopes.Operations, error) {
+func (s scope) filtered(exposedScopes map[string]naisiov1.ExposedScope) (*scopes.Operations, error) {
 	allScopes, err := s.Tx.DigdirClient.GetScopes(s.Tx.Ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting scopes: %w", err)
@@ -105,7 +105,7 @@ func (s *scope) filtered(exposedScopes map[string]naisiov1.ExposedScope) (*scope
 	return scopes.Generate(allScopes, exposedScopes), nil
 }
 
-func (s *scope) updateACL(scope scopes.Scope) error {
+func (s scope) updateACL(scope scopes.Scope) error {
 	logger := s.Tx.Logger.WithField("scope", scope.ToString())
 
 	acl, err := s.Tx.DigdirClient.GetScopeACL(s.Tx.Ctx, scope.ToString())
@@ -147,7 +147,7 @@ func (s *scope) updateACL(scope scopes.Scope) error {
 	return nil
 }
 
-func (s *scope) activateConsumer(scope, consumerOrgno string) error {
+func (s scope) activateConsumer(scope, consumerOrgno string) error {
 	response, err := s.Tx.DigdirClient.AddToScopeACL(s.Tx.Ctx, scope, consumerOrgno)
 	if err != nil {
 		return fmt.Errorf("adding consumer: %w", err)
@@ -159,7 +159,7 @@ func (s *scope) activateConsumer(scope, consumerOrgno string) error {
 	return nil
 }
 
-func (s *scope) deactivateConsumer(scope, consumerOrgno string) error {
+func (s scope) deactivateConsumer(scope, consumerOrgno string) error {
 	response, err := s.Tx.DigdirClient.DeactivateConsumer(s.Tx.Ctx, scope, consumerOrgno)
 	if err != nil {
 		return fmt.Errorf("deactivating consumer: %w", err)
@@ -171,7 +171,7 @@ func (s *scope) deactivateConsumer(scope, consumerOrgno string) error {
 	return nil
 }
 
-func (s *scope) update(scope scopes.Scope) error {
+func (s scope) update(scope scopes.Scope) error {
 	scopePayload := clients.ToScopeRegistration(s.Tx.Instance, scope.CurrentScope, s.Tx.Config)
 	s.Tx.Logger.WithField("scope", scope.ToString()).Debug("updating scope...")
 
@@ -188,7 +188,7 @@ func (s *scope) update(scope scopes.Scope) error {
 	return nil
 }
 
-func (s *scope) create(newScope naisiov1.ExposedScope) (*types.ScopeRegistration, error) {
+func (s scope) create(newScope naisiov1.ExposedScope) (*types.ScopeRegistration, error) {
 	payload := clients.ToScopeRegistration(s.Tx.Instance, newScope, s.Tx.Config)
 	s.Tx.Logger.Debug("scope does not exist in Digdir, registering...")
 
@@ -201,7 +201,7 @@ func (s *scope) create(newScope naisiov1.ExposedScope) (*types.ScopeRegistration
 	return response, nil
 }
 
-func (s *scope) deactivate(scope scopes.Scope) error {
+func (s scope) deactivate(scope scopes.Scope) error {
 	registration, err := s.Tx.DigdirClient.DeleteScope(s.Tx.Ctx, scope.ToString())
 	if err != nil {
 		return fmt.Errorf("deleting scope: %w", err)
@@ -215,7 +215,7 @@ func (s *scope) deactivate(scope scopes.Scope) error {
 	return nil
 }
 
-func (s *scope) activate(scope scopes.Scope) error {
+func (s scope) activate(scope scopes.Scope) error {
 	payload := clients.ToScopeRegistration(s.Tx.Instance, scope.CurrentScope, s.Tx.Config)
 	registration, err := s.Tx.DigdirClient.UpdateScope(s.Tx.Ctx, payload, scope.ToString())
 	if err != nil {
@@ -230,7 +230,7 @@ func (s *scope) activate(scope scopes.Scope) error {
 	return nil
 }
 
-func (s *scope) Finalize(exposedScopes map[string]naisiov1.ExposedScope) error {
+func (s scope) Finalize(exposedScopes map[string]naisiov1.ExposedScope) error {
 	filteredScopes, err := s.filtered(exposedScopes)
 	if err != nil {
 		return err

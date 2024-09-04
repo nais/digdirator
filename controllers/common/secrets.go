@@ -25,11 +25,11 @@ const (
 
 type secretsClient struct {
 	*Transaction
-	Reconciler
+	*Reconciler
 	secretName string
 }
 
-func (r Reconciler) secrets(transaction *Transaction) secretsClient {
+func (r *Reconciler) secrets(transaction *Transaction) secretsClient {
 	return secretsClient{
 		Transaction: transaction,
 		Reconciler:  r,
