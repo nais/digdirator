@@ -68,6 +68,13 @@ var (
 		},
 		[]string{labelNamespace},
 	)
+	IDPortenClientsFailedInvalidConfigCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "idporten_client_failed_invalid_config_count",
+			Help: "Number of idporten clients that failed processing due to invalid configuration",
+		},
+		[]string{labelNamespace},
+	)
 	IDPortenClientsDeletedCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "idporten_client_deleted_count",
@@ -118,6 +125,13 @@ var (
 		prometheus.CounterOpts{
 			Name: "maskinporten_client_failed_processing_count",
 			Help: "Number of maskinporten clients that failed processing",
+		},
+		[]string{labelNamespace},
+	)
+	MaskinportenClientsFailedInvalidConfigCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "maskinporten_client_failed_invalid_config_count",
+			Help: "Number of maskinporten clients that failed processing due to invalid configuration",
 		},
 		[]string{labelNamespace},
 	)
@@ -199,6 +213,7 @@ var AllMetrics = []prometheus.Collector{
 	IDPortenSecretsTotal,
 	IDPortenClientsProcessedCount,
 	IDPortenClientsFailedProcessingCount,
+	IDPortenClientsFailedInvalidConfigCount,
 	IDPortenClientsCreatedCount,
 	IDPortenClientsUpdatedCount,
 	IDPortenClientsRotatedCount,
@@ -232,6 +247,7 @@ var AllCounters = []*prometheus.CounterVec{
 	IDPortenClientsDeletedCount,
 	MaskinportenClientsProcessedCount,
 	MaskinportenClientsFailedProcessingCount,
+	MaskinportenClientsFailedInvalidConfigCount,
 	MaskinportenClientsCreatedCount,
 	MaskinportenClientsUpdatedCount,
 	MaskinportenClientsRotatedCount,
@@ -264,6 +280,15 @@ func IncClientsFailedProcessing(instance clients.Instance) {
 		incWithNamespaceLabel(IDPortenClientsFailedProcessingCount, instance.GetNamespace())
 	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsFailedProcessingCount, instance.GetNamespace())
+	}
+}
+
+func IncClientsFailedInvalidConfig(instance clients.Instance) {
+	switch instance.(type) {
+	case *naisiov1.IDPortenClient:
+		incWithNamespaceLabel(IDPortenClientsFailedInvalidConfigCount, instance.GetNamespace())
+	case *naisiov1.MaskinportenClient:
+		incWithNamespaceLabel(MaskinportenClientsFailedInvalidConfigCount, instance.GetNamespace())
 	}
 }
 
