@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
+	"github.com/go-logr/zapr"
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/controllers/maskinportenclient"
@@ -15,11 +15,8 @@ import (
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/google"
 	"github.com/nais/digdirator/pkg/metrics"
-
-	"github.com/go-logr/zapr"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,13 +39,6 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = nais_io_v1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
-
-	lvl, err := log.ParseLevel(viper.GetString(config.LogLevel))
-	if err != nil {
-		lvl = log.InfoLevel
-		log.Error("unable to parse log level, setting to ", lvl)
-	}
-	log.SetLevel(lvl)
 }
 
 func main() {
@@ -63,23 +53,11 @@ func main() {
 }
 
 func run() error {
-	cfg, err := setupConfig()
+	ctx := ctrl.SetupSignalHandler()
+	cfg, err := setup(ctx)
 	if err != nil {
 		return err
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
-	cfg, err = cfg.WithProviderMetadata(ctx)
-	if err != nil {
-		return err
-	}
-
-	zapLogger, err := setupZapLogger()
-	if err != nil {
-		return err
-	}
-	ctrl.SetLogger(zapr.NewLogger(zapLogger))
 
 	setupLog.Info("instantiating manager")
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -94,8 +72,6 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
-
-	ctx = context.Background()
 
 	setupLog.Info("instantiating secret manager client")
 	secretManagerClient, err := google.NewSecretManagerClient(ctx)
@@ -207,41 +183,20 @@ func run() error {
 	go clusterMetrics.Refresh(ctx)
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		return fmt.Errorf("problem running manager: %w", err)
 	}
 
 	return nil
 }
 
-func setupZapLogger() (*zap.Logger, error) {
-	if viper.GetBool(config.DevelopmentMode) {
-		logger, err := zap.NewDevelopment()
-		if err != nil {
-			return nil, err
-		}
-		return logger, nil
-	}
-
-	formatter := log.JSONFormatter{
-		TimestampFormat: time.RFC3339Nano,
-	}
-	log.SetFormatter(&formatter)
-
-	loggerConfig := zap.NewProductionConfig()
-	level, err := zap.ParseAtomicLevel(strings.ToLower(viper.GetString(config.LogLevel)))
-	if err != nil {
-		loggerConfig.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
-	}
-	loggerConfig.Level = level
-	loggerConfig.EncoderConfig.TimeKey = "timestamp"
-	loggerConfig.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
-	return loggerConfig.Build()
-}
-
-func setupConfig() (*config.Config, error) {
+func setup(ctx context.Context) (*config.Config, error) {
 	cfg, err := config.New()
 	if err != nil {
+		return nil, err
+	}
+
+	if err := setupLoggers(cfg.LogLevel, cfg.DevelopmentMode); err != nil {
 		return nil, err
 	}
 
@@ -265,5 +220,48 @@ func setupConfig() (*config.Config, error) {
 	if err = cfg.Validate(required); err != nil {
 		return nil, err
 	}
-	return cfg, nil
+
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	return cfg.WithProviderMetadata(ctx)
+}
+
+func setupLoggers(logLevel string, developmentMode bool) error {
+	log.SetFormatter(&log.JSONFormatter{
+		TimestampFormat: time.RFC3339Nano,
+	})
+	log.SetLevel(func() log.Level {
+		level, err := log.ParseLevel(logLevel)
+		if err != nil {
+			return log.InfoLevel
+		}
+		return level
+	}())
+
+	cfg := zap.NewProductionConfig()
+	cfg.EncoderConfig.TimeKey = "timestamp"
+	cfg.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
+	cfg.Level = func() zap.AtomicLevel {
+		level, err := zap.ParseAtomicLevel(logLevel)
+		if err != nil {
+			return zap.NewAtomicLevelAt(zapcore.InfoLevel)
+		}
+		return level
+	}()
+
+	logger, err := cfg.Build()
+	if err != nil {
+		return err
+	}
+
+	if developmentMode {
+		logger, err = zap.NewDevelopment()
+		if err != nil {
+			return err
+		}
+	}
+
+	ctrl.SetLogger(zapr.NewLogger(logger))
+	return nil
 }
