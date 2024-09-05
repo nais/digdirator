@@ -31,7 +31,7 @@ func IDPortenClientSecretData(in *nais_io_v1.IDPortenClient, jwk jose.JSONWebKey
 	return map[string]string{
 		IDPortenJwkKey:           string(jwkJson),
 		IDPortenWellKnownURLKey:  config.DigDir.IDPorten.WellKnownURL,
-		IDPortenClientIDKey:      in.GetStatus().GetClientID(),
+		IDPortenClientIDKey:      in.GetStatus().ClientID,
 		IDPortenRedirectURIKey:   redirectURI(),
 		IDPortenIssuerKey:        config.DigDir.IDPorten.Metadata.Issuer,
 		IDPortenJwksUriKey:       config.DigDir.IDPorten.Metadata.JwksURI,
@@ -48,7 +48,7 @@ func MaskinportenClientSecretData(in *nais_io_v1.MaskinportenClient, jwk jose.JS
 	return map[string]string{
 		MaskinportenJwkKey:           string(jwkJson),
 		MaskinportenWellKnownURLKey:  config.DigDir.Maskinporten.WellKnownURL,
-		MaskinportenClientIDKey:      in.GetStatus().GetClientID(),
+		MaskinportenClientIDKey:      in.GetStatus().ClientID,
 		MaskinportenScopesKey:        strings.Join(in.GetConsumedScopes(), " "),
 		MaskinportenIssuerKey:        config.DigDir.Maskinporten.Metadata.Issuer,
 		MaskinportenJwksUriKey:       config.DigDir.Maskinporten.Metadata.JwksURI,
