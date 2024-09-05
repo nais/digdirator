@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nais/digdirator/pkg/clients"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	corev1 "k8s.io/api/core/v1"
-
-	"github.com/nais/digdirator/pkg/clients"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -102,7 +100,7 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 		Scopes: naisiov1.MaskinportenScope{
 			ConsumedScopes: []naisiov1.ConsumedScope{
 				{
-					Name: "not/used",
+					Name: "valid-scope",
 				},
 			},
 		},
@@ -129,7 +127,7 @@ func (c ClusterFixtures) WithMaskinportenScopesClient(scope string) ClusterFixtu
 		Scopes: naisiov1.MaskinportenScope{
 			ConsumedScopes: []naisiov1.ConsumedScope{
 				{
-					Name: "not/used",
+					Name: "valid-scope",
 				},
 			},
 			ExposedScopes: []naisiov1.ExposedScope{
