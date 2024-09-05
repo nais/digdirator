@@ -100,7 +100,7 @@ func (c Client) GetRegistration(desired clients.Instance, ctx context.Context, c
 
 	for _, actual := range clientRegistrations {
 		if clientMatches(actual, desired, clusterName) {
-			desired.GetStatus().SetClientID(actual.ClientID)
+			desired.GetStatus().ClientID = actual.ClientID
 			return &actual, nil
 		}
 	}
@@ -366,8 +366,8 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 }
 
 func clientMatches(actual types.ClientRegistration, desired clients.Instance, clusterName string) bool {
-	if desired.GetStatus() != nil && desired.GetStatus().GetClientID() != "" {
-		return actual.ClientID == desired.GetStatus().GetClientID()
+	if desired.GetStatus() != nil && desired.GetStatus().ClientID != "" {
+		return actual.ClientID == desired.GetStatus().ClientID
 	}
 
 	// We don't have an existing client ID, so we'll have to do best-effort matching.
