@@ -6,20 +6,20 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/go-jose/go-jose/v4"
-	"github.com/google/uuid"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	libfinalizer "github.com/nais/liberator/pkg/finalizer"
 	"github.com/nais/liberator/pkg/kubernetes"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
@@ -28,8 +28,6 @@ import (
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/metrics"
 )
-
-const RequeueInterval = 10 * time.Second
 
 type Reconciler struct {
 	Client     client.Client
@@ -70,63 +68,62 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	defer func() {
-		tx.Logger.Infof("finished processing request")
-	}()
-
-	finalizer := r.finalizer(tx)
-
-	if libfinalizer.IsBeingDeleted(tx.Instance) {
-		return finalizer.Process()
+	if markedForDeletion(tx.Instance) {
+		return r.finalize(tx)
 	}
 
-	if !libfinalizer.HasFinalizer(tx.Instance, FinalizerName) {
-		return finalizer.Register()
-	}
-
-	if isUpToDate, err := clients.IsUpToDate(tx.Instance); isUpToDate {
-		if err != nil {
-			return ctrl.Result{}, err
+	if !controllerutil.ContainsFinalizer(tx.Instance, FinalizerName) {
+		controllerutil.AddFinalizer(tx.Instance, FinalizerName)
+		if err := r.Client.Update(tx.Ctx, tx.Instance); err != nil {
+			return ctrl.Result{}, fmt.Errorf("registering finalizer: %w", err)
 		}
-		tx.Logger.Info("object state already reconciled, nothing to do")
+	}
+
+	if clients.IsUpToDate(tx.Instance) {
+		tx.Logger.Info("resource is up-to-date; skipping reconciliation")
 		return ctrl.Result{}, nil
 	}
 
-	err = r.process(tx)
-	if err != nil {
-		return r.handleError(tx, err)
+	if err = r.process(tx); err != nil {
+		if err := r.observeError(tx, err); err != nil {
+			return ctrl.Result{}, fmt.Errorf("observing error: %w", err)
+		}
+		return ctrl.Result{}, fmt.Errorf("processing: %w", err)
 	}
 
-	return r.complete(tx)
+	tx.Logger.Info("successfully reconciled")
+	metrics.IncClientsProcessed(tx.Instance)
+	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance clients.Instance) (*Transaction, error) {
 	instanceType := clients.GetInstanceType(instance)
-	correlationID := uuid.New().String()
-
-	logger := *log.WithFields(log.Fields{
-		"instance_type":      instanceType,
-		"instance_name":      req.Name,
-		"instance_namespace": req.Namespace,
-		"correlationID":      correlationID,
-	})
+	correlationID := controller.ReconcileIDFromContext(ctx)
 
 	if err := r.Reader.Get(ctx, req.NamespacedName, instance); err != nil {
 		return nil, err
 	}
-	instance.GetStatus().SetCorrelationID(correlationID)
+
+	status := instance.GetStatus()
+
+	fields := log.Fields{
+		"instance_type":      instanceType,
+		"instance_name":      req.Name,
+		"instance_namespace": req.Namespace,
+		"correlation_id":     correlationID,
+		"client_id":          status.ClientID,
+		"key_ids":            strings.Join(status.KeyIDs, ", "),
+	}
 
 	digdirClient, err := digdir.NewClient(r.HttpClient, r.Signer, r.Config, instance, r.ClientID)
 	if err != nil {
 		return nil, fmt.Errorf("creating Digdir client: %w", err)
 	}
 
-	logger.Infof("processing %s...", instanceType)
-
 	transaction := NewTransaction(
 		ctx,
 		instance,
-		&logger,
+		log.WithFields(fields),
 		&digdirClient,
 		r.Config,
 	)
@@ -134,14 +131,23 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 }
 
 func (r *Reconciler) process(tx *Transaction) error {
-	instanceClient, err := r.createOrUpdateClient(tx)
+	status := tx.Instance.GetStatus()
+	status.SetCondition(readyCondition(
+		metav1.ConditionFalse,
+		ConditionReasonProcessing,
+		"Started processing resource",
+		tx.Instance.GetGeneration()),
+	)
+	if err := r.Client.Status().Update(tx.Ctx, tx.Instance); err != nil {
+		return fmt.Errorf("updating status: %w", err)
+	}
+
+	registration, err := r.createOrUpdateClient(tx)
 	if err != nil {
 		return err
 	}
 
-	if len(tx.Instance.GetStatus().GetClientID()) == 0 && instanceClient != nil {
-		tx.Instance.GetStatus().SetClientID(instanceClient.ClientID)
-	}
+	status.ClientID = registration.ClientID
 
 	secretsClient := r.secrets(tx)
 	managedSecrets, err := secretsClient.GetManaged()
@@ -157,7 +163,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 			return fmt.Errorf("generating jwk: %w", err)
 		}
 
-		if err := r.registerJwk(tx, *jwk, *managedSecrets, instanceClient.ClientID); err != nil {
+		if err := r.registerJwk(tx, *jwk, *managedSecrets, registration.ClientID); err != nil {
 			return err
 		}
 
@@ -178,7 +184,93 @@ func (r *Reconciler) process(tx *Transaction) error {
 		return err
 	}
 
+	// object is overwritten with response from apiserver after Update, so status is unset
+	// preserve copy for update of status subresource later on
+	status = tx.Instance.GetStatus().DeepCopy()
+
+	// remove processed annotations
+	a := tx.Instance.GetAnnotations()
+	_, hasResync := a[clients.AnnotationResynchronize]
+	_, hasRotate := a[clients.AnnotationRotate]
+
+	if hasResync || hasRotate {
+		delete(a, clients.AnnotationResynchronize)
+		delete(a, clients.AnnotationRotate)
+
+		if err := r.Client.Update(tx.Ctx, tx.Instance); err != nil {
+			return fmt.Errorf("updating object: %w", err)
+		}
+	}
+
+	// update status
+	hash, err := tx.Instance.Hash()
+	if err != nil {
+		return err
+	}
+	generation := tx.Instance.GetGeneration()
+	status.CorrelationID = string(controller.ReconcileIDFromContext(tx.Ctx))
+	status.ObservedGeneration = ptr.To(generation)
+	status.SynchronizationHash = hash
+	status.SynchronizationSecretName = clients.GetSecretName(tx.Instance)
+	status.SetStateSynchronized()
+	status.SetCondition(readyCondition(
+		metav1.ConditionTrue,
+		ConditionReasonSynchronized,
+		"Resource is up-to-date with DigDir",
+		generation),
+	)
+	status.SetCondition(errorCondition(
+		metav1.ConditionFalse,
+		ConditionReasonSynchronized,
+		"Processing completed without errors",
+		generation),
+	)
+
+	r.reportEvent(tx, corev1.EventTypeNormal, EventSynchronized, "Resource is up-to-date")
+
+	// re-apply status to object
+	tx.Instance.SetStatus(*status)
+
+	// finally, set status subresource
+	if err := r.Client.Status().Update(tx.Ctx, tx.Instance); err != nil {
+		return fmt.Errorf("updating status: %w", err)
+	}
 	return nil
+}
+
+func (r *Reconciler) observeError(tx *Transaction, reconcileErr error) error {
+	tx.Logger.Error(fmt.Errorf("while processing resource: %w", reconcileErr))
+
+	setStatusCondition := func(message string) {
+		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedSynchronization, message)
+		tx.Instance.GetStatus().SetCondition(errorCondition(
+			metav1.ConditionTrue,
+			ConditionReasonFailed,
+			message,
+			tx.Instance.GetGeneration()),
+		)
+	}
+
+	var digdirErr *digdir.Error
+	if errors.As(reconcileErr, &digdirErr) {
+		setStatusCondition(digdirErr.Message)
+
+		if errors.Is(reconcileErr, digdir.ClientError) {
+			// Client errors usually happen due to external state or configuration
+			// that needs to be resolved upstream.
+			//
+			// For example, a desired consumer scope may not exist nor be active,
+			// or the organization has not been granted access to the scope at the time of reconciliation.
+			metrics.IncClientsFailedInvalidConfig(tx.Instance)
+		} else {
+			metrics.IncClientsFailedProcessing(tx.Instance)
+		}
+	} else {
+		setStatusCondition(reconcileErr.Error())
+		metrics.IncClientsFailedProcessing(tx.Instance)
+	}
+
+	return r.Client.Status().Update(tx.Ctx, tx.Instance)
 }
 
 func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistration, error) {
@@ -244,13 +336,13 @@ func (r *Reconciler) createClient(tx *Transaction, payload types.ClientRegistrat
 		return nil, fmt.Errorf("registering client: %w", err)
 	}
 
-	tx.Logger = tx.Logger.WithField("ClientID", registrationResponse.ClientID)
+	tx.Logger = tx.Logger.WithField("client_id", registrationResponse.ClientID)
 	tx.Logger.Info("client registered")
 	return registrationResponse, nil
 }
 
 func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {
-	tx.Logger = tx.Logger.WithField("ClientID", clientID)
+	tx.Logger = tx.Logger.WithField("client_id", clientID)
 	tx.Logger.Debug("client already exists, updating...")
 
 	registrationResponse, err := tx.DigdirClient.Update(tx.Ctx, payload, clientID)
@@ -258,7 +350,7 @@ func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistrat
 		return nil, fmt.Errorf("updating client: %w", err)
 	}
 
-	tx.Logger.WithField("ClientID", registrationResponse.ClientID).Info("client updated")
+	tx.Logger.Info("client updated")
 	return registrationResponse, err
 }
 
@@ -288,10 +380,11 @@ func (r *Reconciler) filterConsumedScopes(tx *Transaction, client *naisiov1.Mask
 	}
 
 	if len(invalid) > 0 {
-		// TODO: this should be an error that is reflected as a status condition
-		msg := fmt.Sprintf("organization has no access to scopes: [%s]", strings.Join(invalid, ", "))
-		tx.Logger.Warnf("%s; skipping...", msg)
-		r.reportEvent(tx, corev1.EventTypeWarning, EventSkipped, msg)
+		return valid, &digdir.Error{
+			Err:     digdir.ClientError,
+			Status:  http.StatusText(http.StatusBadRequest),
+			Message: fmt.Sprintf("Organization has no access to scopes: [%s]", strings.Join(invalid, ", ")),
+		}
 	}
 
 	return valid, nil
@@ -311,92 +404,14 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 		return fmt.Errorf("registering JWKS: %w", err)
 	}
 
-	tx.Instance.GetStatus().SetKeyIDs(crypto.KeyIDsFromJwks(&jwksResponse.JSONWebKeySet))
-	tx.Logger = tx.Logger.WithField("KeyIDs", strings.Join(tx.Instance.GetStatus().GetKeyIDs(), ", "))
+	tx.Instance.GetStatus().KeyIDs = crypto.KeyIDsFromJwks(&jwksResponse.JSONWebKeySet)
+	tx.Logger = tx.Logger.WithField("key_ids", strings.Join(tx.Instance.GetStatus().KeyIDs, ", "))
 	tx.Logger.Info("new JWKS for client registered")
 
 	return nil
 }
 
-func (r *Reconciler) handleError(tx *Transaction, err error) (ctrl.Result, error) {
-	tx.Logger.Error(fmt.Errorf("processing client: %w", err))
-	r.reportEvent(tx, corev1.EventTypeWarning, EventFailedSynchronization, "Failed to synchronize client")
-
-	var digdirErr *digdir.Error
-	requeue := true
-
-	if errors.As(err, &digdirErr) {
-		if errors.Is(err, digdir.ServerError) {
-			r.reportEvent(tx, corev1.EventTypeNormal, EventRetrying, digdirErr.Message)
-		} else if errors.Is(err, digdir.ClientError) {
-			r.reportEvent(tx, corev1.EventTypeWarning, EventSkipped, digdirErr.Message)
-			requeue = false
-		}
-	}
-
-	if requeue {
-		metrics.IncClientsFailedProcessing(tx.Instance)
-		tx.Logger.Infof("requeuing failed reconciliation after %s", RequeueInterval)
-		return ctrl.Result{RequeueAfter: RequeueInterval}, nil
-	}
-
-	return ctrl.Result{}, nil
-}
-
-func (r *Reconciler) complete(tx *Transaction) (ctrl.Result, error) {
-	tx.Logger.Debugf("updating status for %s", clients.GetInstanceType(tx.Instance))
-
-	hash, err := tx.Instance.Hash()
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	tx.Instance.GetStatus().SetHash(hash)
-
-	tx.Instance.GetStatus().SetStateSynchronized()
-	tx.Instance.GetStatus().SetSynchronizationSecretName(clients.GetSecretName(tx.Instance))
-
-	if err := r.updateInstance(tx.Ctx, tx.Instance, func(existing clients.Instance) error {
-		existing.SetStatus(*tx.Instance.GetStatus())
-		return r.Client.Status().Update(tx.Ctx, existing)
-	}); err != nil {
-		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedStatusUpdate, "Failed to update status")
-		return ctrl.Result{}, fmt.Errorf("updating status subresource: %w", err)
-	}
-
-	tx.Logger.Info("status subresource successfully updated")
-
-	r.reportEvent(tx, corev1.EventTypeNormal, EventSynchronized, "Client is up-to-date")
-	tx.Logger.Info("successfully reconciled")
-	metrics.IncClientsProcessed(tx.Instance)
-
-	return ctrl.Result{}, nil
-}
-
 func (r *Reconciler) reportEvent(tx *Transaction, eventType, event, message string) {
-	tx.Instance.GetStatus().SetSynchronizationState(event)
+	tx.Instance.GetStatus().SetState(event)
 	r.Recorder.Event(tx.Instance, eventType, event, message)
-}
-
-var instancesync sync.Mutex
-
-func (r *Reconciler) updateInstance(ctx context.Context, instance clients.Instance, updateFunc func(existing clients.Instance) error) error {
-	instancesync.Lock()
-	defer instancesync.Unlock()
-
-	existing := func(instance clients.Instance) clients.Instance {
-		switch instance.(type) {
-		case *naisiov1.IDPortenClient:
-			return &naisiov1.IDPortenClient{}
-		case *naisiov1.MaskinportenClient:
-			return &naisiov1.MaskinportenClient{}
-		}
-		return nil
-	}(instance)
-
-	err := r.Reader.Get(ctx, client.ObjectKey{Namespace: instance.GetNamespace(), Name: instance.GetName()}, existing)
-	if err != nil {
-		return fmt.Errorf("get newest version of %s: %s", clients.GetInstanceType(instance), err)
-	}
-
-	return updateFunc(existing)
 }
