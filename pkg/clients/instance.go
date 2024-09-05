@@ -1,7 +1,6 @@
 package clients
 
 import (
-	"fmt"
 	"reflect"
 
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -9,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/utils/ptr"
 
 	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir/scopes"
@@ -17,6 +17,9 @@ import (
 )
 
 const (
+	AnnotationResynchronize = "digdir.nais.io/resync"
+	AnnotationRotate        = "digdir.nais.io/rotate"
+
 	MaskinportenDefaultAllowedIntegrationType   = "maskinporten"
 	MaskinportenDefaultAtAgeMax                 = 30
 	MaskinportenDefaultAuthorizationMaxLifetime = 0
@@ -98,16 +101,26 @@ func GetSecretClientIDKey(instance Instance) string {
 	return ""
 }
 
-func IsUpToDate(instance Instance) (bool, error) {
-	newHash, err := instance.Hash()
-	if err != nil {
-		return false, fmt.Errorf("calculating application hash: %w", err)
+func IsUpToDate(instance Instance) bool {
+	observedGeneration := ptr.Deref(instance.GetStatus().ObservedGeneration, 0)
+	if observedGeneration == 0 {
+		return false
 	}
-	return instance.GetStatus().GetSynchronizationHash() == newHash, nil
+
+	generationChanged := instance.GetGeneration() != observedGeneration
+
+	a := instance.GetAnnotations()
+	resync := hasAnnotation(a, AnnotationResynchronize)
+	rotate := hasAnnotation(a, AnnotationRotate)
+
+	return !generationChanged && !resync && !rotate
 }
 
 func NeedsSecretRotation(instance Instance) bool {
-	return instance.GetStatus().GetSynchronizationSecretName() != GetSecretName(instance)
+	nameChanged := instance.GetStatus().SynchronizationSecretName != GetSecretName(instance)
+	hasRotateAnnotation := hasAnnotation(instance.GetAnnotations(), AnnotationRotate)
+
+	return nameChanged || hasRotateAnnotation
 }
 
 func GetIDPortenDefaultScopes(integrationType string) []string {
@@ -281,4 +294,9 @@ func redirectURIs(in naisiov1.IDPortenClient) []string {
 	}
 
 	return res
+}
+
+func hasAnnotation(annotations map[string]string, want string) bool {
+	value, found := annotations[want]
+	return found && value == "true"
 }

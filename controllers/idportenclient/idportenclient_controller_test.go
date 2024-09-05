@@ -58,9 +58,7 @@ func TestIDPortenController(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		assert.NoError(t, err)
-		b, err := clients.IsUpToDate(instance)
-		assert.NoError(t, err)
-		return b
+		return clients.IsUpToDate(instance)
 	}, test.Timeout, test.Interval, "IDPortenClient should be synchronized")
 	assert.NotEmpty(t, instance.Status.ClientID)
 	assert.NotEmpty(t, instance.Status.KeyIDs)

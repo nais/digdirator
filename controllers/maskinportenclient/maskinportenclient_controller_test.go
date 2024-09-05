@@ -56,9 +56,7 @@ func TestMaskinportenController(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		assert.NoError(t, err)
-		b, err := clients.IsUpToDate(instance)
-		assert.NoError(t, err)
-		return b
+		return clients.IsUpToDate(instance)
 	}, test.Timeout, test.Interval, "MaskinportenClient should be synchronized")
 	assert.NotEmpty(t, instance.Status.ClientID)
 	assert.NotEmpty(t, instance.Status.KeyIDs)
@@ -182,9 +180,7 @@ func TestMaskinportenControllerWithNewExternalScope(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		err := cli.Get(context.Background(), key, instance)
 		assert.NoError(t, err)
-		b, err := clients.IsUpToDate(instance)
-		assert.NoError(t, err)
-		return b
+		return clients.IsUpToDate(instance)
 	}, test.Timeout, test.Interval, "MaskinportenClient should be synchronized")
 
 	err := cli.Update(context.Background(), instance)
