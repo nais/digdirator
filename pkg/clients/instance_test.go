@@ -53,45 +53,65 @@ func TestGetSecretJwkKey(t *testing.T) {
 
 func TestIsUpToDate(t *testing.T) {
 	t.Run("Minimal IDPortenClient should be up-to-date", func(t *testing.T) {
-		actual, err := clients.IsUpToDate(fixtures.MinimalIDPortenClient())
-		assert.NoError(t, err)
-		assert.True(t, actual)
+		assert.True(t, clients.IsUpToDate(fixtures.MinimalIDPortenClient()))
 	})
 
 	t.Run("IDPortenClient with changed value should not be up-to-date", func(t *testing.T) {
 		client := fixtures.MinimalIDPortenClient()
-		client.Spec.ClientURI = "changed"
-		actual, err := clients.IsUpToDate(client)
-		assert.NoError(t, err)
-		assert.False(t, actual)
+		client.ObjectMeta.Generation++
+		assert.False(t, clients.IsUpToDate(client))
+	})
+
+	t.Run("IDPortenClient with resync annotation should not be up-to-date", func(t *testing.T) {
+		client := fixtures.MinimalIDPortenClient()
+		client.SetAnnotations(map[string]string{
+			clients.AnnotationResynchronize: "true",
+		})
+		assert.False(t, clients.IsUpToDate(client))
+	})
+
+	t.Run("IDPortenClient with rotate annotation should not be up-to-date", func(t *testing.T) {
+		client := fixtures.MinimalIDPortenClient()
+		client.SetAnnotations(map[string]string{
+			clients.AnnotationRotate: "true",
+		})
+		assert.False(t, clients.IsUpToDate(client))
 	})
 
 	t.Run("Minimal MaskinportenClient should be up-to-date", func(t *testing.T) {
-		actual, err := clients.IsUpToDate(fixtures.MinimalMaskinportenClient())
-		assert.NoError(t, err)
-		assert.True(t, actual)
+		assert.True(t, clients.IsUpToDate(fixtures.MinimalMaskinportenClient()))
 	})
 
 	t.Run("MaskinportenClient with changed value should not be up-to-date", func(t *testing.T) {
 		client := fixtures.MinimalMaskinportenClient()
-		client.Spec.SecretName = "changed"
-		actual, err := clients.IsUpToDate(client)
-		assert.NoError(t, err)
-		assert.False(t, actual)
+		client.ObjectMeta.Generation++
+		assert.False(t, clients.IsUpToDate(client))
+	})
+
+	t.Run("MaskinportenClient with resync annotation should not be up-to-date", func(t *testing.T) {
+		client := fixtures.MinimalMaskinportenClient()
+		client.SetAnnotations(map[string]string{
+			clients.AnnotationResynchronize: "true",
+		})
+		assert.False(t, clients.IsUpToDate(client))
+	})
+
+	t.Run("MaskinportenClient with rotate annotation should not be up-to-date", func(t *testing.T) {
+		client := fixtures.MinimalMaskinportenClient()
+		client.SetAnnotations(map[string]string{
+			clients.AnnotationRotate: "true",
+		})
+		assert.False(t, clients.IsUpToDate(client))
 	})
 
 	t.Run("Minimal MaskinportenClientWithExternalInternal should be up-to-date", func(t *testing.T) {
-		actual, err := clients.IsUpToDate(fixtures.MinimalMaskinportenWithScopeInternalExposedClient())
-		assert.NoError(t, err)
-		assert.True(t, actual)
+		assert.True(t, clients.IsUpToDate(fixtures.MinimalMaskinportenWithScopeInternalExposedClient()))
 	})
 
 	t.Run("MaskinportenClientWithExternalInternal with changed value should not be up-to-date", func(t *testing.T) {
 		client := fixtures.MinimalMaskinportenWithScopeInternalExposedClient()
-		client.Spec.SecretName = "changed"
-		actual, err := clients.IsUpToDate(client)
-		assert.NoError(t, err)
-		assert.False(t, actual)
+		client.ObjectMeta.Generation++
+		assert.False(t, clients.IsUpToDate(client))
 	})
 }
 
