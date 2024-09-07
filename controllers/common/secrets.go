@@ -7,7 +7,7 @@ import (
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -38,37 +38,39 @@ func (r *Reconciler) secrets(transaction *Transaction) secretsClient {
 }
 
 func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
-	s.Logger.Infof("processing secret '%s'...", s.secretName)
-
-	labels := clients.MakeLabels(s.Instance)
-
-	objectMeta := kubernetes.ObjectMeta(s.secretName, s.Instance.GetNamespace(), labels)
-	objectMeta.SetAnnotations(map[string]string{
-		StakaterReloaderKeyAnnotation: "true",
-	})
+	name := s.secretName
+	namespace := s.Instance.GetNamespace()
+	s.Logger.Infof("processing secret '%s'...", name)
 
 	stringData, err := secretData(s.Instance, jwk, s.Reconciler.Config)
 	if err != nil {
 		return fmt.Errorf("creating secret data: %w", err)
 	}
 
-	spec := kubernetes.OpaqueSecret(objectMeta, stringData)
-
-	if err := ctrl.SetControllerReference(s.Instance, &spec, s.Scheme); err != nil {
-		return fmt.Errorf("setting controller reference: %w", err)
+	data := make(map[string][]byte)
+	for key, value := range stringData {
+		data[key] = []byte(value)
 	}
 
-	err = s.Client.Create(s.Ctx, &spec)
-	res := controllerutil.OperationResultCreated
+	target := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{
+		Name:      name,
+		Namespace: namespace,
+	}}
 
-	if errors.IsAlreadyExists(err) {
-		err = s.Client.Update(s.Ctx, &spec)
-		res = controllerutil.OperationResultUpdated
-	}
+	res, err := controllerutil.CreateOrUpdate(s.Ctx, s.Client, target, func() error {
+		target.SetAnnotations(map[string]string{
+			StakaterReloaderKeyAnnotation: "true",
+		})
+		target.SetLabels(clients.MakeLabels(s.Instance))
+		target.Data = data
+
+		return ctrl.SetControllerReference(s.Instance, target, s.Scheme)
+	})
 	if err != nil {
-		return fmt.Errorf("applying secretSpec: %w", err)
+		return fmt.Errorf("creating or updating secret %s: %w", name, err)
 	}
-	s.Logger.Infof("secret '%s' %s", s.secretName, res)
+
+	s.Logger.Infof("secret '%s' %s", name, res)
 	return nil
 }
 
