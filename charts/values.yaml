@@ -1,4 +1,20 @@
-adminApiHost: ""
+admin:
+  # DigDir admin API, see https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin#endepunkter
+  apiHost: ""
+  # apiHost: "api.test.samarbeid.digdir.no"
+  clientID: ""
+  # full chain in PEM format
+  certChain: ""
+  # certChain: |
+  #   -----BEGIN CERTIFICATE-----
+  #   ...
+  #   -----END CERTIFICATE-----
+
+  # resource path to Cloud KMS key, format:
+  gcpKmsKeyPath: "some-path"
+  # projects/<project-id>/locations/<location>/keyRings/<key-ring-name>/cryptoKeys/<key-name>/cryptoKeyVersions/<key-version>
+
+  scopes: "idporten:dcr.write idporten:dcr.read idporten:scopes.write"
 alerts: true
 apiserverIP: "" # mapped from Fasit
 application:
@@ -14,22 +30,16 @@ application:
       cpu: 300m
 clusterName: "" # mapped from fasit
 idporten:
-  gcpClientIdPath: ""
-  gcpCertChainPath: ""
-  gcpKmsKeyPath: ""
   hosts: []
-  scopes: "idporten:dcr.write idporten:dcr.read"
+  # ID-porten well-known URL. See https://docs.digdir.no/docs/idporten/oidc/oidc_func_wellknown.html
   wellKnownUrl: ""
 image:
   repository: europe-north1-docker.pkg.dev/nais-io/nais/images
   name: digdirator
   tag: latest
 maskinporten:
-  gcpClientIdPath: ""
-  gcpCertChainPath: ""
-  gcpKmsKeyPath: ""
   hosts: []
-  scopes: "idporten:dcr.write idporten:dcr.read idporten:scopes.write"
+  # Maskinporten well-known URL. See https://docs.digdir.no/docs/Maskinporten/maskinporten_func_wellknown
   wellKnownUrl: ""
 team: nais
 onprem:

@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
+	"github.com/nais/digdirator/pkg/digdir"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/crd"
 	log "github.com/sirupsen/logrus"
@@ -95,15 +97,18 @@ func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Clien
 		return nil, nil, err
 	}
 
+	digdirClient, err := digdir.NewClient(digdiratorConfig, httpClient, signer)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	commonReconciler := common.NewReconciler(
 		mgr.GetClient(),
 		mgr.GetAPIReader(),
 		mgr.GetScheme(),
 		mgr.GetEventRecorderFor("digdirator"),
 		digdiratorConfig,
-		signer,
-		httpClient,
-		[]byte("client-id"),
+		digdirClient,
 	)
 
 	idportenreconciler := idportenclient.NewReconciler(commonReconciler)
@@ -146,11 +151,19 @@ func loadJwkFromPath(path string) (*jose.JSONWebKey, error) {
 func signerFromJwk(jwk *jose.JSONWebKey) (jose.Signer, error) {
 	signerOpts := jose.SignerOptions{}
 	signerOpts.WithType("JWT")
-	signerOpts.WithHeader("kid", jwk.KeyID)
+	signerOpts.WithHeader("x5c", extractX5c(jwk))
 
 	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: jwk.Key}, &signerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("creating jwt signer: %v", err)
 	}
 	return signer, nil
+}
+
+func extractX5c(jwk *jose.JSONWebKey) []string {
+	x5c := make([]string, 0)
+	for _, cert := range jwk.Certificates {
+		x5c = append(x5c, base64.StdEncoding.EncodeToString(cert.Raw))
+	}
+	return x5c
 }

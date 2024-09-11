@@ -53,23 +53,19 @@ type Client struct {
 	HttpClient *http.Client
 	Signer     jose.Signer
 	Config     *config.Config
-	ClientId   []byte
-	instance   clients.Instance
 	adminURL   *url.URL
 }
 
-func NewClient(httpClient *http.Client, signer jose.Signer, config *config.Config, instance clients.Instance, clientId []byte) (Client, error) {
+func NewClient(config *config.Config, httpClient *http.Client, signer jose.Signer) (Client, error) {
 	adminURL, err := url.Parse(config.DigDir.Admin.BaseURL)
 	if err != nil {
 		return Client{}, fmt.Errorf("parsing DigDir admin URL: %w", err)
 	}
 
 	return Client{
+		Config:     config,
 		HttpClient: httpClient,
 		Signer:     signer,
-		Config:     config,
-		ClientId:   clientId,
-		instance:   instance,
 		adminURL:   adminURL,
 	}, nil
 }

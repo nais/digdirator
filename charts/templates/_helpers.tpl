@@ -54,9 +54,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 DigDir admin API URL
 */}}
 {{- define "adminApiUrl" -}}
-{{- if not .Values.adminApiHost }}
-{{- fail ".Values.adminApiHost is required." }}
+{{- if not .Values.admin.apiHost }}
+{{- fail ".Values.admin.apiHost is required." }}
 {{ else }}
-{{- printf "https://%s" .Values.adminApiHost }}
+{{- printf "https://%s" .Values.admin.apiHost }}
 {{- end }}
 {{- end }}

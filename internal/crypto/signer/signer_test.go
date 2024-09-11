@@ -1,4 +1,4 @@
-package crypto_test
+package signer_test
 
 import (
 	libcrypto "crypto"
@@ -12,6 +12,7 @@ import (
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/google/uuid"
+	"github.com/nais/digdirator/internal/crypto/signer"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,15 +55,15 @@ func TestSignWithRsaSigner(t *testing.T) {
 }
 
 func NewRsaSigner(key jose.SigningKey, opts *jose.SignerOptions) jose.Signer {
-	signer := &crypto.ConfigurableSigner{
+	sign := &signer.ConfigurableSigner{
 		SignerOptions: opts,
 		ByteSigner: &rsaSigner{
 			signingKey:   key,
-			signatureAlg: crypto.SigningAlg,
+			signatureAlg: signer.SigningAlg,
 			opts:         opts,
 		},
 	}
-	return signer
+	return sign
 }
 
 func (ctx *rsaSigner) SignBytes(payload []byte) ([]byte, error) {

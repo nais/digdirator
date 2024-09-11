@@ -20,7 +20,7 @@ func (r *Reconciler) finalize(tx *Transaction) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	exists, err := tx.DigdirClient.Exists(tx.Ctx, tx.Instance, r.Config.ClusterName)
+	exists, err := r.DigDirClient.Exists(tx.Ctx, tx.Instance, r.Config.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("finalizer: checking client existence: %w", err)
 	}
@@ -32,7 +32,7 @@ func (r *Reconciler) finalize(tx *Transaction) (ctrl.Result, error) {
 	case shouldPreserve(tx.Instance):
 		tx.Logger.Info("finalizer: preserve annotation set, skipping external deletion...")
 	default:
-		if err := tx.DigdirClient.Delete(tx.Ctx, tx.Instance.GetStatus().ClientID); err != nil {
+		if err := r.DigDirClient.Delete(tx.Ctx, tx.Instance.GetStatus().ClientID); err != nil {
 			return ctrl.Result{}, fmt.Errorf("deleting client: %w", err)
 		}
 		tx.Logger.Info("finalizer: deleted client from DigDir")

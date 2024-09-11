@@ -13,12 +13,12 @@ import (
 )
 
 type scope struct {
-	Rec *Reconciler
-	Tx  *Transaction
+	*Reconciler
+	Tx *Transaction
 }
 
 func (r *Reconciler) scopes(transaction *Transaction) scope {
-	return scope{Rec: r, Tx: transaction}
+	return scope{Reconciler: r, Tx: transaction}
 }
 
 func (s scope) Process(exposedScopes map[string]naisiov1.ExposedScope) error {
@@ -52,7 +52,7 @@ func (s scope) createScopes(toCreate []naisiov1.ExposedScope) error {
 		if err != nil {
 			return err
 		}
-		s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventCreatedScopeInDigDir, fmt.Sprintf("Created scope %q", scope.Name))
+		s.reportEvent(s.Tx, corev1.EventTypeNormal, EventCreatedScopeInDigDir, fmt.Sprintf("Created scope %q", scope.Name))
 		metrics.IncScopesCreated(s.Tx.Instance)
 
 		// add consumers
@@ -97,7 +97,7 @@ func (s scope) updateScopes(toUpdate []scopes.Scope) error {
 }
 
 func (s scope) filtered(exposedScopes map[string]naisiov1.ExposedScope) (*scopes.Operations, error) {
-	allScopes, err := s.Tx.DigdirClient.GetScopes(s.Tx.Ctx)
+	allScopes, err := s.DigDirClient.GetScopes(s.Tx.Ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting scopes: %w", err)
 	}
@@ -108,7 +108,7 @@ func (s scope) filtered(exposedScopes map[string]naisiov1.ExposedScope) (*scopes
 func (s scope) updateACL(scope scopes.Scope) error {
 	logger := s.Tx.Logger.WithField("scope", scope.ToString())
 
-	acl, err := s.Tx.DigdirClient.GetScopeACL(s.Tx.Ctx, scope.ToString())
+	acl, err := s.DigDirClient.GetScopeACL(s.Tx.Ctx, scope.ToString())
 	if err != nil {
 		return fmt.Errorf("getting ACL: %w", err)
 	}
@@ -118,7 +118,7 @@ func (s scope) updateACL(scope scopes.Scope) error {
 	if len(consumerList) == 0 {
 		msg := fmt.Sprintf("ACL: scope %q is up to date", scope.ToString())
 		logger.Info(msg)
-		s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
+		s.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
 		return nil
 	}
 
@@ -148,51 +148,51 @@ func (s scope) updateACL(scope scopes.Scope) error {
 }
 
 func (s scope) activateConsumer(scope, consumerOrgno string) error {
-	response, err := s.Tx.DigdirClient.AddToScopeACL(s.Tx.Ctx, scope, consumerOrgno)
+	response, err := s.DigDirClient.AddToScopeACL(s.Tx.Ctx, scope, consumerOrgno)
 	if err != nil {
 		return fmt.Errorf("adding consumer: %w", err)
 	}
 	msg := fmt.Sprintf("ACL: granted access to scope %q for consumer %q", scope, consumerOrgno)
 	s.Tx.Logger.WithField("scope", response.Scope).Info(msg)
-	s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
+	s.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
 
 	return nil
 }
 
 func (s scope) deactivateConsumer(scope, consumerOrgno string) error {
-	response, err := s.Tx.DigdirClient.DeactivateConsumer(s.Tx.Ctx, scope, consumerOrgno)
+	response, err := s.DigDirClient.DeactivateConsumer(s.Tx.Ctx, scope, consumerOrgno)
 	if err != nil {
 		return fmt.Errorf("deactivating consumer: %w", err)
 	}
 	msg := fmt.Sprintf("ACL: revoked access to scope %q for consumer %q", scope, consumerOrgno)
 	s.Tx.Logger.WithField("scope", response.Scope).Info(msg)
-	s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
+	s.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
 
 	return nil
 }
 
 func (s scope) update(scope scopes.Scope) error {
-	scopePayload := clients.ToScopeRegistration(s.Tx.Instance, scope.CurrentScope, s.Tx.Config)
+	scopePayload := clients.ToScopeRegistration(s.Tx.Instance, scope.CurrentScope, s.Config)
 	s.Tx.Logger.WithField("scope", scope.ToString()).Debug("updating scope...")
 
-	registrationResponse, err := s.Tx.DigdirClient.UpdateScope(s.Tx.Ctx, scopePayload, scope.ToString())
+	registrationResponse, err := s.DigDirClient.UpdateScope(s.Tx.Ctx, scopePayload, scope.ToString())
 	if err != nil {
 		return fmt.Errorf("updating scope: %w", err)
 	}
 
 	msg := fmt.Sprintf("Updated scope %q", registrationResponse.Name)
 	s.Tx.Logger.Info(msg)
-	s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedScopeInDigDir, msg)
+	s.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedScopeInDigDir, msg)
 	metrics.IncScopesUpdated(s.Tx.Instance)
 
 	return nil
 }
 
 func (s scope) create(newScope naisiov1.ExposedScope) (*types.ScopeRegistration, error) {
-	payload := clients.ToScopeRegistration(s.Tx.Instance, newScope, s.Tx.Config)
+	payload := clients.ToScopeRegistration(s.Tx.Instance, newScope, s.Config)
 	s.Tx.Logger.Debug("scope does not exist in Digdir, registering...")
 
-	response, err := s.Tx.DigdirClient.RegisterScope(s.Tx.Ctx, payload)
+	response, err := s.DigDirClient.RegisterScope(s.Tx.Ctx, payload)
 	if err != nil {
 		return nil, fmt.Errorf("registering scope: %w", err)
 	}
@@ -202,29 +202,29 @@ func (s scope) create(newScope naisiov1.ExposedScope) (*types.ScopeRegistration,
 }
 
 func (s scope) deactivate(scope scopes.Scope) error {
-	registration, err := s.Tx.DigdirClient.DeleteScope(s.Tx.Ctx, scope.ToString())
+	registration, err := s.DigDirClient.DeleteScope(s.Tx.Ctx, scope.ToString())
 	if err != nil {
 		return fmt.Errorf("deleting scope: %w", err)
 	}
 
 	msg := fmt.Sprintf("Deactivated scope %q; consumers no longer have access", registration.Name)
 	s.Tx.Logger.Warning(msg)
-	s.Rec.reportEvent(s.Tx, corev1.EventTypeWarning, EventDeactivatedScopeInDigDir, msg)
+	s.reportEvent(s.Tx, corev1.EventTypeWarning, EventDeactivatedScopeInDigDir, msg)
 	metrics.IncScopesDeleted(s.Tx.Instance)
 
 	return nil
 }
 
 func (s scope) activate(scope scopes.Scope) error {
-	payload := clients.ToScopeRegistration(s.Tx.Instance, scope.CurrentScope, s.Tx.Config)
-	registration, err := s.Tx.DigdirClient.UpdateScope(s.Tx.Ctx, payload, scope.ToString())
+	payload := clients.ToScopeRegistration(s.Tx.Instance, scope.CurrentScope, s.Config)
+	registration, err := s.DigDirClient.UpdateScope(s.Tx.Ctx, payload, scope.ToString())
 	if err != nil {
 		return fmt.Errorf("activating scope: %w", err)
 	}
 
 	msg := fmt.Sprintf("Activated scope %q", registration.Name)
 	s.Tx.Logger.Info(msg)
-	s.Rec.reportEvent(s.Tx, corev1.EventTypeNormal, EventActivatedScopeInDigDir, msg)
+	s.reportEvent(s.Tx, corev1.EventTypeNormal, EventActivatedScopeInDigDir, msg)
 	metrics.IncScopesReactivated(s.Tx.Instance)
 
 	return nil

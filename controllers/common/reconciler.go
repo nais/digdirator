@@ -30,14 +30,12 @@ import (
 )
 
 type Reconciler struct {
-	Client     client.Client
-	Reader     client.Reader
-	Scheme     *runtime.Scheme
-	Recorder   record.EventRecorder
-	Config     *config.Config
-	Signer     jose.Signer
-	HttpClient *http.Client
-	ClientID   []byte
+	Client       client.Client
+	Reader       client.Reader
+	Scheme       *runtime.Scheme
+	Recorder     record.EventRecorder
+	Config       *config.Config
+	DigDirClient digdir.Client
 }
 
 func NewReconciler(
@@ -46,19 +44,15 @@ func NewReconciler(
 	scheme *runtime.Scheme,
 	recorder record.EventRecorder,
 	config *config.Config,
-	signer jose.Signer,
-	httpClient *http.Client,
-	clientID []byte,
+	digdirClient digdir.Client,
 ) Reconciler {
 	return Reconciler{
-		Client:     client,
-		Reader:     reader,
-		Scheme:     scheme,
-		Recorder:   recorder,
-		Config:     config,
-		Signer:     signer,
-		HttpClient: httpClient,
-		ClientID:   clientID,
+		Client:       client,
+		Reader:       reader,
+		Scheme:       scheme,
+		Recorder:     recorder,
+		Config:       config,
+		DigDirClient: digdirClient,
 	}
 }
 
@@ -115,19 +109,7 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 		"key_ids":            strings.Join(status.KeyIDs, ", "),
 	}
 
-	digdirClient, err := digdir.NewClient(r.HttpClient, r.Signer, r.Config, instance, r.ClientID)
-	if err != nil {
-		return nil, fmt.Errorf("creating Digdir client: %w", err)
-	}
-
-	transaction := NewTransaction(
-		ctx,
-		instance,
-		log.WithFields(fields),
-		&digdirClient,
-		r.Config,
-	)
-	return &transaction, nil
+	return NewTransaction(ctx, instance, log.WithFields(fields)), nil
 }
 
 func (r *Reconciler) process(tx *Transaction) error {
@@ -274,12 +256,12 @@ func (r *Reconciler) observeError(tx *Transaction, reconcileErr error) error {
 }
 
 func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistration, error) {
-	registration, err := tx.DigdirClient.GetRegistration(tx.Instance, tx.Ctx, tx.Config.ClusterName)
+	registration, err := r.DigDirClient.GetRegistration(tx.Instance, tx.Ctx, r.Config.ClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("getting client registration: %w", err)
 	}
 
-	registrationPayload := clients.ToClientRegistration(tx.Instance, tx.Config)
+	registrationPayload := clients.ToClientRegistration(tx.Instance, r.Config)
 
 	switch instance := tx.Instance.(type) {
 	case *naisiov1.MaskinportenClient:
@@ -331,7 +313,7 @@ func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistr
 func (r *Reconciler) createClient(tx *Transaction, payload types.ClientRegistration) (*types.ClientRegistration, error) {
 	tx.Logger.Debug("client does not exist in Digdir, registering...")
 
-	registrationResponse, err := tx.DigdirClient.Register(tx.Ctx, payload)
+	registrationResponse, err := r.DigDirClient.Register(tx.Ctx, payload)
 	if err != nil {
 		return nil, fmt.Errorf("registering client: %w", err)
 	}
@@ -345,7 +327,7 @@ func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistrat
 	tx.Logger = tx.Logger.WithField("client_id", clientID)
 	tx.Logger.Debug("client already exists, updating...")
 
-	registrationResponse, err := tx.DigdirClient.Update(tx.Ctx, payload, clientID)
+	registrationResponse, err := r.DigDirClient.Update(tx.Ctx, payload, clientID)
 	if err != nil {
 		return nil, fmt.Errorf("updating client: %w", err)
 	}
@@ -366,7 +348,7 @@ func (r *Reconciler) filterConsumedScopes(tx *Transaction, client *naisiov1.Mask
 	valid := make([]string, 0)
 	invalid := make([]string, 0)
 	for _, scp := range desired {
-		canAccess, err := tx.DigdirClient.CanAccessScope(tx.Ctx, scp)
+		canAccess, err := r.DigDirClient.CanAccessScope(tx.Ctx, scp)
 		if err != nil {
 			return nil, err
 		}
@@ -398,7 +380,7 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 
 	tx.Logger.Debug("generated new JWKS for client, registering...")
 
-	jwksResponse, err := tx.DigdirClient.RegisterKeys(tx.Ctx, clientID, jwks)
+	jwksResponse, err := r.DigDirClient.RegisterKeys(tx.Ctx, clientID, jwks)
 
 	if err != nil {
 		return fmt.Errorf("registering JWKS: %w", err)

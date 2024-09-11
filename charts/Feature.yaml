@@ -8,9 +8,28 @@ environmentKinds:
   - onprem
   - legacy
 values:
-  adminApiHost:
+  admin.apiHost:
     description: Host for DigDir Admin API. See https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin#endepunkter
     required: true
+    config:
+      type: string
+  admin.clientID:
+    description: Client ID / issuer for JWT assertion when authenticating with DigDir self service API
+    required: true
+    config:
+      type: string
+  admin.certChain:
+    description: Full certificate chain in PEM format for business certificate used to sign JWT assertion
+    required: true
+    config:
+      type: string
+  admin.gcpKmsKeyPath:
+    description: Resource path to Google KMS crypto key version used to sign JWT assertion
+    required: true
+    config:
+      type: string
+  admin.scopes:
+    description: List of space-separated scopes for JWT assertion when authenticating with DigDir self service API
     config:
       type: string
   apiserverIP:
@@ -20,21 +39,6 @@ values:
     description: Cluster name override for equivalent mapping value.
     computed:
       template: '"{{ .Env.name }}"'
-    config:
-      type: string
-  idporten.gcpCertChainPath:
-    description: Path to Secret Manager secret containing cert chain for ID-porten admin client
-    required: true
-    config:
-      type: string
-  idporten.gcpClientIdPath:
-    description: Path to Secret Manager secret containing client ID for ID-porten admin client
-    required: true
-    config:
-      type: string
-  idporten.gcpKmsKeyPath:
-    description: Path to Cloud KMS key for ID-porten admin client
-    required: true
     config:
       type: string
   idporten.hosts:
@@ -51,21 +55,6 @@ values:
       type: string
   image.tag:
     description: Image tag for digdirator
-    config:
-      type: string
-  maskinporten.gcpCertChainPath:
-    description: Path to Secret Manager secret containing cert chain for Maskinporten admin client
-    required: true
-    config:
-      type: string
-  maskinporten.gcpClientIdPath:
-    description: Path to Secret Manager secret containing client ID for Maskinporten admin client
-    required: true
-    config:
-      type: string
-  maskinporten.gcpKmsKeyPath:
-    description: Path to Cloud KMS key for Maskinporten admin client
-    required: true
     config:
       type: string
   maskinporten.hosts:

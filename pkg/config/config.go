@@ -43,24 +43,20 @@ type DigDirCommon struct {
 }
 
 type Admin struct {
-	BaseURL string `json:"base-url"`
+	BaseURL    string `json:"base-url"`
+	ClientID   string `json:"client-id"`
+	CertChain  string `json:"cert-chain"`
+	KMSKeyPath string `json:"kms-key-path"`
+	Scopes     string `json:"scopes"`
 }
 
 type IDPorten struct {
-	CertificateChain string `json:"cert-chain"`
-	ClientID         string `json:"client-id"`
-	KMS              KMS    `json:"kms"`
-	Scopes           string `json:"scopes"`
-	WellKnownURL     string `json:"well-known-url"`
-	Metadata         oauth.MetadataOpenID
+	WellKnownURL string `json:"well-known-url"`
+	Metadata     oauth.MetadataOpenID
 }
 
 type Maskinporten struct {
-	CertChain         string              `json:"cert-chain"`
-	ClientID          string              `json:"client-id"`
 	Default           MaskinportenDefault `json:"default"`
-	KMS               KMS                 `json:"kms"`
-	Scopes            string              `json:"scopes"`
 	WellKnownURL      string              `json:"well-known-url"`
 	Metadata          oauth.MetadataOAuth
 	DelegationSources map[string]types.DelegationSource
@@ -69,10 +65,6 @@ type Maskinporten struct {
 type MaskinportenDefault struct {
 	ClientScope string `json:"client-scope"`
 	ScopePrefix string `json:"scope-prefix"`
-}
-
-type KMS struct {
-	KeyPath string `json:"key-path"`
 }
 
 type Features struct {
@@ -85,31 +77,26 @@ type LeaderElection struct {
 }
 
 const (
-	LogLevel                        = "log-level"
-	MetricsAddress                  = "metrics-address"
-	ClusterName                     = "cluster-name"
-	DevelopmentMode                 = "development-mode"
-	LeaderElectionEnabled           = "leader-election.enabled"
-	LeaderElectionNamespace         = "leader-election.namespace"
-	DigDirAdminBaseURL              = "digdir.admin.base-url"
-	DigDirCommonClientName          = "digdir.common.client-name"
-	DigDirCommonClientURI           = "digdir.common.client-uri"
-	DigDirCommonAccessTokenLifetime = "digdir.common.access-token-lifetime"
-	DigDirCommonSessionLifetime     = "digdir.common.session-lifetime"
+	LogLevel                = "log-level"
+	MetricsAddress          = "metrics-address"
+	ClusterName             = "cluster-name"
+	DevelopmentMode         = "development-mode"
+	LeaderElectionEnabled   = "leader-election.enabled"
+	LeaderElectionNamespace = "leader-election.namespace"
 
-	DigDirIDportenClientID     = "digdir.idporten.client-id"
-	DigDirIDportenCertChain    = "digdir.idporten.cert-chain"
-	DigDirIDportenKmsKeyPath   = "digdir.idporten.kms.key-path"
-	DigDirIDportenScopes       = "digdir.idporten.scopes"
-	DigDirIDPortenWellKnownURL = "digdir.idporten.well-known-url"
+	DigDirAdminBaseURL    = "digdir.admin.base-url"
+	DigDirAdminClientID   = "digdir.admin.client-id"
+	DigDirAdminCertChain  = "digdir.admin.cert-chain"
+	DigDirAdminKmsKeyPath = "digdir.admin.kms-key-path"
+	DigDirAdminScopes     = "digdir.admin.scopes"
 
-	DigDirMaskinportenClientID  = "digdir.maskinporten.client-id"
-	DigDirMaskinportenCertChain = "digdir.maskinporten.cert-chain"
-
+	DigDirCommonClientName               = "digdir.common.client-name"
+	DigDirCommonClientURI                = "digdir.common.client-uri"
+	DigDirCommonAccessTokenLifetime      = "digdir.common.access-token-lifetime"
+	DigDirCommonSessionLifetime          = "digdir.common.session-lifetime"
+	DigDirIDPortenWellKnownURL           = "digdir.idporten.well-known-url"
 	DigDirMaskinportenDefaultClientScope = "digdir.maskinporten.default.client-scope"
 	DigDirMaskinportenDefaultScopePrefix = "digdir.maskinporten.default.scope-prefix"
-	DigDirMaskinportenKmsKeyPath         = "digdir.maskinporten.kms.key-path"
-	DigDirMaskinportenScopes             = "digdir.maskinporten.scopes"
 	DigDirMaskinportenWellKnownURL       = "digdir.maskinporten.well-known-url"
 
 	FeaturesMaskinporten = "features.maskinporten"
@@ -135,25 +122,20 @@ func init() {
 	flag.String(LeaderElectionNamespace, "", "Namespace for the leader election resource. Needed if not running in-cluster (e.g. locally). If empty, will default to the same namespace as the running application.")
 	flag.String(LogLevel, "info", "Log level for digdirator.")
 
-	flag.String(DigDirAdminBaseURL, "", "Base URL endpoint for interacting with Digdir Client Registration API")
+	flag.String(DigDirAdminBaseURL, "", "Base URL endpoint for interacting with DigDir self service API")
+	flag.String(DigDirAdminClientID, "", "Client ID / issuer for JWT assertion when authenticating with DigDir self service API.")
+	flag.String(DigDirAdminScopes, "idporten:dcr.write idporten:dcr.read idporten:scopes.write", "List of space-separated scopes for JWT assertion when authenticating with DigDir self service API.")
+	flag.String(DigDirAdminKmsKeyPath, "projects/<project-id>/locations/<location>/keyRings/<key-ring-name>/cryptoKeys/<key-name>/cryptoKeyVersions/<key-version>", "Resource path to Google KMS key used to sign JWT assertion.")
+	flag.String(DigDirAdminCertChain, "", "Full certificate chain in PEM format for business certificate used to sign JWT assertion.")
 
 	flag.String(DigDirCommonClientName, "ARBEIDS- OG VELFERDSETATEN", "Default name for all provisioned clients. Appears in the login prompt for ID-porten.")
 	flag.String(DigDirCommonClientURI, "https://www.nav.no", "Default client URI for all provisioned clients. Appears in the back-button for the login prompt for ID-porten.")
 	flag.Int(DigDirCommonAccessTokenLifetime, 3600, "Default lifetime (in seconds) for access tokens for all clients.")
 	flag.Int(DigDirCommonSessionLifetime, 7200, "Default lifetime (in seconds) for sessions (authorization and refresh token lifetime) for all clients.")
 
-	flag.String(DigDirIDportenClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirIDportenCertChain, "", "Secret path in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir.")
-	flag.String(DigDirIDportenKmsKeyPath, "", "IDPorten KMS resource path used to sign JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirIDportenScopes, "", "List of scopes for JWT assertion when authenticating to DigDir with IDporten.")
 	flag.String(DigDirIDPortenWellKnownURL, "", "URL to ID-porten well-known discovery metadata document.")
-
-	flag.String(DigDirMaskinportenClientID, "", "Client ID / issuer for JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirMaskinportenCertChain, "", "Secret path in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir.")
 	flag.String(DigDirMaskinportenDefaultClientScope, "nav:test/api", "Default scope for provisioned Maskinporten clients, if none specified in spec.")
 	flag.String(DigDirMaskinportenDefaultScopePrefix, "nav", "Default scope prefix for provisioned Maskinporten scopes.")
-	flag.String(DigDirMaskinportenKmsKeyPath, "", "Maskinporten Google KmsConfig resource path used to sign JWT assertion when authenticating to DigDir.")
-	flag.String(DigDirMaskinportenScopes, "", "List of scopes for JWT assertion when authenticating to DigDir with Maskinporten.")
 	flag.String(DigDirMaskinportenWellKnownURL, "", "URL to Maskinporten well-known discovery metadata document.")
 
 	flag.Bool(FeaturesMaskinporten, false, "Feature toggle for maskinporten")
