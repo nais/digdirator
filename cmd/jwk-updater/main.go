@@ -8,15 +8,12 @@ import (
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
-	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"github.com/nais/digdirator/internal/crypto/signer"
+	"github.com/nais/digdirator/pkg/config"
+	"github.com/nais/digdirator/pkg/digdir"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-
-	"github.com/nais/digdirator/pkg/config"
-	"github.com/nais/digdirator/pkg/crypto"
-	"github.com/nais/digdirator/pkg/digdir"
-	"github.com/nais/digdirator/pkg/google"
 )
 
 const (
@@ -117,11 +114,11 @@ func makeConfig(ctx context.Context) (*config.Config, error) {
 	if err = cfg.Validate([]string{
 		ClientID,
 		config.DigDirAdminBaseURL,
-		config.DigDirMaskinportenClientID,
-		config.DigDirMaskinportenCertChain,
-		config.DigDirMaskinportenScopes,
+		config.DigDirAdminClientID,
+		config.DigDirAdminCertChain,
+		config.DigDirAdminKmsKeyPath,
+		config.DigDirAdminScopes,
 		config.DigDirMaskinportenWellKnownURL,
-		config.DigDirMaskinportenKmsKeyPath,
 	}); err != nil {
 		return nil, err
 	}
@@ -130,29 +127,12 @@ func makeConfig(ctx context.Context) (*config.Config, error) {
 }
 
 func makeClient(ctx context.Context, cfg *config.Config) (digdir.Client, error) {
-	sm, err := google.NewSecretManagerClient(ctx)
-	if err != nil {
-		return digdir.Client{}, fmt.Errorf("getting secret manager client: %v", err)
-	}
-
-	certs, err := sm.KeyChainMetadata(ctx, cfg.DigDir.Maskinporten.CertChain)
-
-	if err != nil {
-		return digdir.Client{}, fmt.Errorf("unable to fetch maskinporten cert chain: %w", err)
-	}
-
-	signer, err := crypto.NewKmsSigner(certs, cfg.DigDir.Maskinporten.KMS, ctx)
+	kmsSigner, err := signer.NewKmsSigner(ctx, cfg.DigDir.Admin.KMSKeyPath, []byte(cfg.DigDir.Admin.CertChain))
 	if err != nil {
 		return digdir.Client{}, fmt.Errorf("unable to setup signer: %w", err)
 	}
 
-	authClientID, err := sm.ClientIdMetadata(ctx, cfg.DigDir.Maskinporten.ClientID)
-
-	if err != nil {
-		return digdir.Client{}, fmt.Errorf("unable to fetch maskinporten client id: %w", err)
-	}
-
-	return digdir.NewClient(http.DefaultClient, signer, cfg, &naisiov1.MaskinportenClient{}, authClientID)
+	return digdir.NewClient(cfg, http.DefaultClient, kmsSigner)
 }
 
 func makeKeySet() (*jose.JSONWebKeySet, error) {

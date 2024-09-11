@@ -11,9 +11,9 @@ import (
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/controllers/maskinportenclient"
+	"github.com/nais/digdirator/internal/crypto/signer"
 	"github.com/nais/digdirator/pkg/config"
-	"github.com/nais/digdirator/pkg/crypto"
-	"github.com/nais/digdirator/pkg/google"
+	"github.com/nais/digdirator/pkg/digdir"
 	"github.com/nais/digdirator/pkg/metrics"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	log "github.com/sirupsen/logrus"
@@ -29,8 +29,7 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme = runtime.NewScheme()
 )
 
 func init() {
@@ -48,8 +47,6 @@ func main() {
 		log.Error(err, "Run loop errored")
 		os.Exit(1)
 	}
-
-	setupLog.Info("Manager shutting down")
 }
 
 func run() error {
@@ -59,7 +56,6 @@ func run() error {
 		return err
 	}
 
-	setupLog.Info("instantiating manager")
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
 		Metrics: ctrlmetricsserver.Options{
@@ -70,121 +66,43 @@ func run() error {
 		LeaderElectionNamespace: cfg.LeaderElection.Namespace,
 	})
 	if err != nil {
-		return fmt.Errorf("unable to start manager: %w", err)
+		return fmt.Errorf("starting manager: %w", err)
 	}
 
-	setupLog.Info("instantiating secret manager client")
-	secretManagerClient, err := google.NewSecretManagerClient(ctx)
+	kmsSigner, err := signer.NewKmsSigner(ctx, cfg.DigDir.Admin.KMSKeyPath, []byte(cfg.DigDir.Admin.CertChain))
 	if err != nil {
-		return fmt.Errorf("getting secret manager client: %v", err)
+		return fmt.Errorf("setting up kms signer: %w", err)
 	}
 
-	setupLog.Info("fetching certificate key chain for idporten")
-	idportenKeyChain, err := secretManagerClient.KeyChainMetadata(
-		ctx,
-		cfg.DigDir.IDPorten.CertificateChain,
-	)
-
+	digdirClient, err := digdir.NewClient(cfg, http.DefaultClient, kmsSigner)
 	if err != nil {
-		return fmt.Errorf("unable to fetch idporten cert chain: %w", err)
+		return fmt.Errorf("setting up digdir client: %w", err)
 	}
 
-	setupLog.Info("setting up signer for idporten")
-	idportenSigner, err := crypto.NewKmsSigner(
-		idportenKeyChain,
-		cfg.DigDir.IDPorten.KMS,
-		ctx,
-	)
-	if err != nil {
-		return fmt.Errorf("unable to setup signer: %w", err)
-	}
-
-	setupLog.Info("fetching client-id for idporten")
-	idportenClientId, err := secretManagerClient.ClientIdMetadata(
-		ctx,
-		cfg.DigDir.IDPorten.ClientID,
-	)
-
-	if err != nil {
-		return fmt.Errorf("unable to fetch idporten client id: %w", err)
-	}
-
-	setupLog.Info("instantiating reconciler for idporten")
-	idportenReconciler := idportenclient.NewReconciler(common.NewReconciler(
+	reconciler := common.NewReconciler(
 		mgr.GetClient(),
 		mgr.GetAPIReader(),
 		mgr.GetScheme(),
 		mgr.GetEventRecorderFor("digdirator"),
 		cfg,
-		idportenSigner,
-		http.DefaultClient,
-		idportenClientId,
-	))
+		digdirClient,
+	)
 
-	setupLog.Info("setting up idporten reconciler with manager")
-	if err = idportenReconciler.SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("unable to create controller: %w", err)
+	if err = idportenclient.NewReconciler(reconciler).SetupWithManager(mgr); err != nil {
+		return fmt.Errorf("creating idportenclient controller: %w", err)
 	}
-	// +kubebuilder:scaffold:builder
 
 	if cfg.Features.Maskinporten {
-		setupLog.Info("fetching certificate key chain for maskinporten")
-		maskinportenKeyChain, err := secretManagerClient.KeyChainMetadata(
-			ctx,
-			cfg.DigDir.Maskinporten.CertChain,
-		)
-
-		if err != nil {
-			return fmt.Errorf("unable to fetch maskinporten cert chain: %w", err)
-		}
-
-		setupLog.Info("setting up signer for maskinporten")
-		maskinportenSigner, err := crypto.NewKmsSigner(
-			maskinportenKeyChain,
-			cfg.DigDir.Maskinporten.KMS,
-			ctx,
-		)
-		if err != nil {
-			return fmt.Errorf("unable to setup signer: %w", err)
-		}
-
-		setupLog.Info("fetching client-id for maskinporten")
-		maskinportenClientId, err := secretManagerClient.ClientIdMetadata(
-			ctx,
-			cfg.DigDir.Maskinporten.ClientID,
-		)
-
-		if err != nil {
-			return fmt.Errorf("unable to fetch maskinporten client id: %w", err)
-		}
-
-		setupLog.Info("instantiating reconciler for maskinporten")
-		maskinportenReconciler := maskinportenclient.NewReconciler(
-			common.NewReconciler(
-				mgr.GetClient(),
-				mgr.GetAPIReader(),
-				mgr.GetScheme(),
-				mgr.GetEventRecorderFor("digdirator"),
-				cfg,
-				maskinportenSigner,
-				http.DefaultClient,
-				maskinportenClientId,
-			))
-
-		setupLog.Info("setting up maskinporten reconciler with manager")
-		if err = maskinportenReconciler.SetupWithManager(mgr); err != nil {
-			return fmt.Errorf("unable to create controller: %w", err)
+		if err = maskinportenclient.NewReconciler(reconciler).SetupWithManager(mgr); err != nil {
+			return fmt.Errorf("creating maskinportenclient controller: %w", err)
 		}
 	}
-	// +kubebuilder:scaffold:builder
 
-	setupLog.Info("starting metrics refresh goroutine")
 	clusterMetrics := metrics.New(mgr.GetClient())
 	go clusterMetrics.Refresh(ctx)
 
-	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
-		return fmt.Errorf("problem running manager: %w", err)
+		return fmt.Errorf("running manager: %w", err)
 	}
 
 	return nil
@@ -200,20 +118,18 @@ func setup(ctx context.Context) (*config.Config, error) {
 		return nil, err
 	}
 
-	cfg.Print([]string{})
+	cfg.Print([]string{
+		config.DigDirAdminCertChain,
+	})
 
 	required := []string{
 		config.ClusterName,
 		config.DigDirAdminBaseURL,
-		config.DigDirIDportenClientID,
-		config.DigDirIDportenCertChain,
-		config.DigDirIDportenKmsKeyPath,
-		config.DigDirIDportenScopes,
+		config.DigDirAdminClientID,
+		config.DigDirAdminCertChain,
+		config.DigDirAdminKmsKeyPath,
+		config.DigDirAdminScopes,
 		config.DigDirIDPortenWellKnownURL,
-		config.DigDirMaskinportenClientID,
-		config.DigDirMaskinportenCertChain,
-		config.DigDirMaskinportenKmsKeyPath,
-		config.DigDirMaskinportenScopes,
 		config.DigDirMaskinportenWellKnownURL,
 	}
 

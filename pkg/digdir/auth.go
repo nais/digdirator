@@ -12,8 +12,6 @@ import (
 
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/google/uuid"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-
 	"github.com/nais/digdirator/pkg/crypto"
 )
 
@@ -67,25 +65,18 @@ func (c Client) getAuthToken(ctx context.Context) (*TokenResponse, error) {
 }
 
 func (c Client) claims() customClaims {
-	var scopes string
-
-	switch c.instance.(type) {
-	case *nais_io_v1.IDPortenClient:
-		scopes = c.Config.DigDir.IDPorten.Scopes
-	case *nais_io_v1.MaskinportenClient:
-		scopes = c.Config.DigDir.Maskinporten.Scopes
-	}
+	now := time.Now()
 
 	return customClaims{
 		Claims: jwt.Claims{
-			Issuer:    string(c.ClientId),
+			Issuer:    c.Config.DigDir.Admin.ClientID,
 			Audience:  []string{c.Config.DigDir.Maskinporten.Metadata.Issuer},
-			Expiry:    jwt.NewNumericDate(time.Now().Add(2 * time.Minute)),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Expiry:    jwt.NewNumericDate(now.Add(2 * time.Minute)),
+			NotBefore: jwt.NewNumericDate(now),
+			IssuedAt:  jwt.NewNumericDate(now),
 			ID:        uuid.New().String(),
 		},
-		Scope: scopes,
+		Scope: c.Config.DigDir.Admin.Scopes,
 	}
 }
 
