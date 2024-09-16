@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	cloud.google.com/go/kms v1.19.1
-	cloud.google.com/go/secretmanager v1.14.0
+	cloud.google.com/go/secretmanager v1.14.1
 	github.com/Code-Hex/go-generics-cache v1.5.1
 	github.com/go-jose/go-jose/v4 v4.0.4
 	github.com/go-logr/zapr v1.3.0
