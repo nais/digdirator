@@ -26,7 +26,7 @@ spec:
         - application: prometheus
     outbound:
       external:
-        - host: {{ .Values.adminApiHost | quote }}
+        - host: {{ .Values.admin.apiHost | quote }}
       {{- range .Values.maskinporten.hosts | required ".Values.maskinporten.hosts is required" }}
         - host: {{ . }}
       {{- end }}
@@ -35,7 +35,6 @@ spec:
       {{- end }}
       {{- if not .Values.onprem.enabled }}
         - host: cloudkms.googleapis.com
-        - host: secretmanager.googleapis.com
       {{- end }}
   {{- if .Values.onprem.enabled }}
   webproxy: true
