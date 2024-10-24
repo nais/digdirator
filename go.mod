@@ -3,23 +3,23 @@ module github.com/nais/digdirator
 go 1.23.2
 
 require (
-	cloud.google.com/go/kms v1.20.0
+	cloud.google.com/go/kms v1.19.0
 	github.com/Code-Hex/go-generics-cache v1.5.1
 	github.com/go-jose/go-jose/v4 v4.0.4
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/uuid v1.6.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nais/liberator v0.0.0-20241017120405-db1de8b60419
-	github.com/prometheus/client_golang v1.20.5
+	github.com/prometheus/client_golang v1.20.1
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
-	k8s.io/api v0.31.1
-	k8s.io/apimachinery v0.31.1
-	k8s.io/client-go v0.31.1
+	k8s.io/api v0.31.0
+	k8s.io/apimachinery v0.31.0
+	k8s.io/client-go v0.31.0
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/controller-runtime v0.19.0
 )
