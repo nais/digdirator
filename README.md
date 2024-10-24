@@ -81,7 +81,7 @@ The following flags are available:
 --cluster-name string                               The cluster in which this application should run.
 --development-mode string                           Toggle for development mode. (default "false")
 --digdir.admin.base-url string                      Base URL endpoint for interacting with DigDir self service API
---digdir.admin.cert-chain string                    Secret path in Google Secret Manager to PEM file containing certificate chain for authenticating to DigDir.
+--digdir.admin.cert-chain string                    Full certificate chain in PEM format for business certificate used to sign JWT assertion.
 --digdir.admin.client-id string                     Client ID / issuer for JWT assertion when authenticating with DigDir self service API.
 --digdir.admin.kms-key-path string                  Resource path to Google KMS key used to sign JWT assertion.
 --digdir.admin.scopes string                        List of space-separated scopes for JWT assertion when authenticating with DigDir self service API. (default "idporten:dcr.write idporten:dcr.read idporten:scopes.write")
