@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-jose/go-jose/v4"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -81,6 +82,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 	if err = r.process(tx); err != nil {
 		if err := r.observeError(tx, err); err != nil {
 			return ctrl.Result{}, fmt.Errorf("observing error: %w", err)
+		}
+		if errors.Is(err, digdir.ClientError) {
+			// Requeue client errors after a longer period of time to avoid spamming the API
+			return ctrl.Result{RequeueAfter: 1 * time.Hour}, nil
 		}
 		return ctrl.Result{}, fmt.Errorf("processing: %w", err)
 	}
