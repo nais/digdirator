@@ -25,6 +25,10 @@ func NewKmsSigner(ctx context.Context, kmsKeyPath string, pemChain []byte) (jose
 		return nil, fmt.Errorf("converting PEM cert chain to X509 cert chain: %w", err)
 	}
 
+	if len(certs) == 0 {
+		return nil, fmt.Errorf("no certificates found in PEM chain")
+	}
+
 	// Calculate and use the `x5t#S256` value as the `kid`
 	// This must match the `kid` for the pre-registered public key at the Authorization Server, exchanged out-of-band.
 	kid := crypto.X5tS256(certs[0])
