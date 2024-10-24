@@ -19,7 +19,7 @@ values:
     config:
       type: string
   admin.certChain:
-    description: Full certificate chain in PEM format for business certificate used to sign JWT assertion
+    description: Base64 encoded string of full certificate chain in PEM format for business certificate used to sign JWT assertion
     required: true
     config:
       type: string

@@ -3,12 +3,9 @@ admin:
   apiHost: ""
   # apiHost: "api.test.samarbeid.digdir.no"
   clientID: ""
-  # full chain in PEM format
+  # base64 encoded string of full chain in PEM format
   certChain: ""
-  # certChain: |
-  #   -----BEGIN CERTIFICATE-----
-  #   ...
-  #   -----END CERTIFICATE-----
+  # certChain: LS0t...
 
   # resource path to Cloud KMS key, format:
   gcpKmsKeyPath: "some-path"
