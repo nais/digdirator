@@ -76,23 +76,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 
 	if clients.IsUpToDate(tx.Instance) {
 		tx.Logger.Info("resource is up-to-date; skipping reconciliation")
-		return ctrl.Result{}, nil
+		return requeueSuccess()
 	}
 
 	if err = r.process(tx); err != nil {
 		if err := r.observeError(tx, err); err != nil {
 			return ctrl.Result{}, fmt.Errorf("observing error: %w", err)
 		}
-		if errors.Is(err, digdir.ClientError) {
-			// Requeue client errors after a longer period of time to avoid spamming the API
-			return ctrl.Result{RequeueAfter: 1 * time.Hour}, nil
-		}
 		return ctrl.Result{}, fmt.Errorf("processing: %w", err)
 	}
 
 	tx.Logger.Info("successfully reconciled")
 	metrics.IncClientsProcessed(tx.Instance)
-	return ctrl.Result{}, nil
+	return requeueSuccess()
 }
 
 func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance clients.Instance) (*Transaction, error) {
@@ -401,4 +397,9 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 func (r *Reconciler) reportEvent(tx *Transaction, eventType, event, message string) {
 	tx.Instance.GetStatus().SetState(event)
 	r.Recorder.Event(tx.Instance, eventType, event, message)
+}
+
+// requeueSuccess requeues the resource after a successful reconciliation to prevent resource drift
+func requeueSuccess() (ctrl.Result, error) {
+	return ctrl.Result{RequeueAfter: 8 * time.Hour}, nil
 }

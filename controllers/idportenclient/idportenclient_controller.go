@@ -2,9 +2,12 @@ package idportenclient
 
 import (
 	"context"
+
 	"github.com/nais/digdirator/controllers/common"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 type IDPortenReconciler struct {
@@ -26,5 +29,10 @@ func (r *IDPortenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 func (r *IDPortenReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nais_io_v1.IDPortenClient{}).
+		WithEventFilter(predicate.Or[client.Object](
+			predicate.GenerationChangedPredicate{},
+			predicate.AnnotationChangedPredicate{},
+			predicate.LabelChangedPredicate{},
+		)).
 		Complete(r)
 }
