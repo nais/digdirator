@@ -2,6 +2,7 @@ package clients
 
 import (
 	"reflect"
+	"time"
 
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
@@ -23,6 +24,8 @@ const (
 	MaskinportenDefaultAllowedIntegrationType   = "maskinporten"
 	MaskinportenDefaultAtAgeMax                 = 30
 	MaskinportenDefaultAuthorizationMaxLifetime = 0
+
+	StaleSyncThresholdDuration = 30 * 24 * time.Hour
 )
 
 // +kubebuilder:object:generate=false
@@ -102,18 +105,22 @@ func GetSecretClientIDKey(instance Instance) string {
 }
 
 func IsUpToDate(instance Instance) bool {
-	observedGeneration := ptr.Deref(instance.GetStatus().ObservedGeneration, 0)
-	if observedGeneration == 0 {
+	status := instance.GetStatus()
+	if status == nil {
 		return false
 	}
 
+	observedGeneration := ptr.Deref(status.ObservedGeneration, 0)
+	if observedGeneration == 0 {
+		return false
+	}
 	generationChanged := instance.GetGeneration() != observedGeneration
 
 	a := instance.GetAnnotations()
 	resync := hasAnnotation(a, AnnotationResynchronize)
 	rotate := hasAnnotation(a, AnnotationRotate)
 
-	return !generationChanged && !resync && !rotate
+	return !generationChanged && !resync && !rotate && !isStale(status)
 }
 
 func NeedsSecretRotation(instance Instance) bool {
@@ -299,4 +306,13 @@ func redirectURIs(in naisiov1.IDPortenClient) []string {
 func hasAnnotation(annotations map[string]string, want string) bool {
 	value, found := annotations[want]
 	return found && value == "true"
+}
+
+func isStale(status *naisiov1.DigdiratorStatus) bool {
+	lastSync := status.SynchronizationTime
+	if lastSync == nil {
+		return false
+	}
+
+	return time.Since(lastSync.Time) > StaleSyncThresholdDuration
 }

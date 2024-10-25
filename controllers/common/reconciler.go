@@ -382,7 +382,6 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 	tx.Logger.Debug("generated new JWKS for client, registering...")
 
 	jwksResponse, err := r.DigDirClient.RegisterKeys(tx.Ctx, clientID, jwks)
-
 	if err != nil {
 		return fmt.Errorf("registering JWKS: %w", err)
 	}
@@ -395,7 +394,8 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 }
 
 func (r *Reconciler) reportEvent(tx *Transaction, eventType, event, message string) {
-	tx.Instance.GetStatus().SetState(event)
+	status := tx.Instance.GetStatus()
+	status.SynchronizationState = event
 	r.Recorder.Event(tx.Instance, eventType, event, message)
 }
 

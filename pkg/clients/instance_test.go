@@ -2,9 +2,11 @@ package clients_test
 
 import (
 	"testing"
+	"time"
 
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	"github.com/nais/digdirator/pkg/clients"
@@ -78,6 +80,13 @@ func TestIsUpToDate(t *testing.T) {
 		assert.False(t, clients.IsUpToDate(client))
 	})
 
+	t.Run("IDPortenClient with synchronization time above threshold should not be up-to-date", func(t *testing.T) {
+		client := fixtures.MinimalIDPortenClient()
+		lastSyncTime := time.Now().Add(-clients.StaleSyncThresholdDuration)
+		client.Status.SynchronizationTime = ptr.To(metav1.NewTime(lastSyncTime))
+		assert.False(t, clients.IsUpToDate(client))
+	})
+
 	t.Run("Minimal MaskinportenClient should be up-to-date", func(t *testing.T) {
 		assert.True(t, clients.IsUpToDate(fixtures.MinimalMaskinportenClient()))
 	})
@@ -111,6 +120,13 @@ func TestIsUpToDate(t *testing.T) {
 	t.Run("MaskinportenClientWithExternalInternal with changed value should not be up-to-date", func(t *testing.T) {
 		client := fixtures.MinimalMaskinportenWithScopeInternalExposedClient()
 		client.ObjectMeta.Generation++
+		assert.False(t, clients.IsUpToDate(client))
+	})
+
+	t.Run("MaskinportenClient with synchronization time above threshold should not be up-to-date", func(t *testing.T) {
+		client := fixtures.MinimalMaskinportenClient()
+		lastSyncTime := time.Now().Add(-clients.StaleSyncThresholdDuration)
+		client.Status.SynchronizationTime = ptr.To(metav1.NewTime(lastSyncTime))
 		assert.False(t, clients.IsUpToDate(client))
 	})
 }
