@@ -29,14 +29,9 @@ func NewKmsSigner(ctx context.Context, kmsKeyPath string, pemChain []byte) (jose
 		return nil, fmt.Errorf("no certificates found in PEM chain")
 	}
 
-	// Calculate and use the `x5t#S256` value as the `kid`
-	// This must match the `kid` for the pre-registered public key at the Authorization Server, exchanged out-of-band.
-	kid := crypto.X5tS256(certs[0])
-
 	opts := &jose.SignerOptions{}
 	opts.WithType("JWT")
-	opts.WithHeader("kid", kid) // TODO: remove this after jwk-updater has been used to remove existing keys
-	//opts.WithHeader("x5c", crypto.ConvertX509CertificatesToX5c(certs)) // TODO: uncomment after above TODO has been removed
+	opts.WithHeader("x5c", crypto.ConvertX509CertificatesToX5c(certs))
 
 	kmsClient, err := kms.NewKeyManagementClient(ctx)
 	if err != nil {
