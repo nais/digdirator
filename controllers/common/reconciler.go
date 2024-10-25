@@ -83,7 +83,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 		if err := r.observeError(tx, err); err != nil {
 			return ctrl.Result{}, fmt.Errorf("observing error: %w", err)
 		}
-		return ctrl.Result{}, fmt.Errorf("processing: %w", err)
+
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	tx.Logger.Info("successfully reconciled")
@@ -222,8 +223,6 @@ func (r *Reconciler) process(tx *Transaction) error {
 }
 
 func (r *Reconciler) observeError(tx *Transaction, reconcileErr error) error {
-	tx.Logger.Error(fmt.Errorf("while processing resource: %w", reconcileErr))
-
 	setStatusCondition := func(message string) {
 		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedSynchronization, message)
 		tx.Instance.GetStatus().SetCondition(errorCondition(
@@ -237,19 +236,20 @@ func (r *Reconciler) observeError(tx *Transaction, reconcileErr error) error {
 	var digdirErr *digdir.Error
 	if errors.As(reconcileErr, &digdirErr) {
 		setStatusCondition(digdirErr.Message)
-
-		if errors.Is(reconcileErr, digdir.ClientError) {
-			// Client errors usually happen due to external state or configuration
-			// that needs to be resolved upstream.
-			//
-			// For example, a desired consumer scope may not exist nor be active,
-			// or the organization has not been granted access to the scope at the time of reconciliation.
-			metrics.IncClientsFailedInvalidConfig(tx.Instance)
-		} else {
-			metrics.IncClientsFailedProcessing(tx.Instance)
-		}
 	} else {
 		setStatusCondition(reconcileErr.Error())
+	}
+
+	if errors.Is(reconcileErr, digdir.ClientError) {
+		// Client errors usually happen due to external state or configuration
+		// that needs to be resolved upstream.
+		//
+		// For example, a desired consumer scope may not exist nor be active,
+		// or the organization has not been granted access to the scope at the time of reconciliation.
+		tx.Logger.Warnf("processing resource: %+v", reconcileErr)
+		metrics.IncClientsFailedInvalidConfig(tx.Instance)
+	} else {
+		tx.Logger.Errorf("processing resource: %+v", reconcileErr)
 		metrics.IncClientsFailedProcessing(tx.Instance)
 	}
 
