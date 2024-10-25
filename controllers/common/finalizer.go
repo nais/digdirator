@@ -11,12 +11,13 @@ import (
 )
 
 const (
-	FinalizerName      string = "finalizer.digdirator.nais.io"
+	FinalizerName      string = "digdirator.nais.io/finalizer"
+	OldFinalizerName   string = "finalizer.digdirator.nais.io" // deprecated as it is not domain-qualified and triggers a warning from the API server
 	PreserveAnnotation string = "digdir.nais.io/preserve"
 )
 
 func (r *Reconciler) finalize(tx *Transaction) (ctrl.Result, error) {
-	if !controllerutil.ContainsFinalizer(tx.Instance, FinalizerName) {
+	if !controllerutil.ContainsFinalizer(tx.Instance, FinalizerName) && !controllerutil.ContainsFinalizer(tx.Instance, OldFinalizerName) {
 		return ctrl.Result{}, nil
 	}
 
@@ -45,6 +46,7 @@ func (r *Reconciler) finalize(tx *Transaction) (ctrl.Result, error) {
 	}
 
 	controllerutil.RemoveFinalizer(tx.Instance, FinalizerName)
+	controllerutil.RemoveFinalizer(tx.Instance, OldFinalizerName)
 	err = r.Client.Update(tx.Ctx, tx.Instance)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("removing finalizer: %w", err)
