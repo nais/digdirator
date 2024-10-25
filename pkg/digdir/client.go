@@ -36,9 +36,10 @@ var (
 )
 
 type Error struct {
-	Err     error
-	Status  string
-	Message string
+	Err        error
+	Status     string
+	StatusCode int
+	Message    string
 }
 
 func (in *Error) Error() string {
@@ -333,15 +334,17 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 			err = &Error{
-				Err:     ClientError,
-				Message: string(body),
-				Status:  resp.Status,
+				Err:        ClientError,
+				Message:    string(body),
+				Status:     resp.Status,
+				StatusCode: resp.StatusCode,
 			}
 		} else if resp.StatusCode >= 500 {
 			err = &Error{
-				Err:     ServerError,
-				Message: string(body),
-				Status:  resp.Status,
+				Err:        ServerError,
+				Message:    string(body),
+				Status:     resp.Status,
+				StatusCode: resp.StatusCode,
 			}
 		}
 		if err != nil {

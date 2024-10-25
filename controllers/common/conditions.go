@@ -8,9 +8,10 @@ import (
 type ConditionType string
 
 const (
-	ConditionTypeReady                 ConditionType = "Ready"
-	ConditionTypeError                 ConditionType = "Error"
-	ConditionTypeInvalidConsumedScopes ConditionType = "InvalidConsumedScopes"
+	ConditionTypeReady                         ConditionType = "Ready"
+	ConditionTypeError                         ConditionType = "Error"
+	ConditionTypeInvalidConsumedScopes         ConditionType = "InvalidConsumedScopes"
+	ConditionTypeInvalidExposedScopesConsumers ConditionType = "InvalidExposedScopesConsumers"
 )
 
 type ConditionReason string
@@ -52,7 +53,17 @@ func InvalidConsumedScopesCondition(status metav1.ConditionStatus, reason Condit
 	}
 }
 
-func HasNoRetryableStatusConditions(conditions *[]metav1.Condition) bool {
+func InvalidExposedScopesConsumersCondition(status metav1.ConditionStatus, reason ConditionReason, message string, generation int64) metav1.Condition {
+	return metav1.Condition{
+		Type:               string(ConditionTypeInvalidExposedScopesConsumers),
+		Status:             status,
+		Reason:             string(reason),
+		Message:            message,
+		ObservedGeneration: generation,
+	}
+}
+
+func HasRetryableStatusCondition(conditions *[]metav1.Condition) bool {
 	if conditions == nil {
 		return false
 	}
@@ -60,7 +71,7 @@ func HasNoRetryableStatusConditions(conditions *[]metav1.Condition) bool {
 	isError := IsStatusConditionTrue(conditions, ConditionTypeError)
 	isInvalidConsumedScopes := IsStatusConditionTrue(conditions, ConditionTypeInvalidConsumedScopes)
 
-	return !isError && !isInvalidConsumedScopes
+	return isError || isInvalidConsumedScopes
 }
 
 func IsStatusConditionTrue(conditions *[]metav1.Condition, conditionType ConditionType) bool {

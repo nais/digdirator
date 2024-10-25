@@ -73,7 +73,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 		}
 	}
 
-	if clients.IsUpToDate(tx.Instance) && HasNoRetryableStatusConditions(tx.Instance.GetStatus().Conditions) {
+	if clients.IsUpToDate(tx.Instance) && !HasRetryableStatusCondition(tx.Instance.GetStatus().Conditions) {
 		tx.Logger.Info("resource is up-to-date; skipping reconciliation")
 		// requeue later to re-evaluate and prevent resource drift
 		return ctrl.Result{RequeueAfter: 8 * time.Hour}, nil
@@ -87,17 +87,23 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if IsStatusConditionTrue(tx.Instance.GetStatus().Conditions, ConditionTypeInvalidConsumedScopes) {
+	conditions := tx.Instance.GetStatus().Conditions
+	switch {
+	case IsStatusConditionTrue(conditions, ConditionTypeInvalidConsumedScopes):
 		requeueAfter := 1 * time.Hour
 		tx.Logger.Infof("resource has invalid consumed scopes; requeuing reconciliation after %s", requeueAfter)
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+
+	case IsStatusConditionTrue(conditions, ConditionTypeInvalidExposedScopesConsumers):
+		tx.Logger.Info("resource has invalid consumers in exposed scopes; will not requeue reconciliation")
+		return ctrl.Result{}, nil
+
+	default:
+		tx.Logger.Info("successfully reconciled")
+		metrics.IncClientsProcessed(tx.Instance)
+		// requeue immediately to re-evaluate resource
+		return ctrl.Result{Requeue: true}, nil
 	}
-
-	tx.Logger.Info("successfully reconciled")
-	metrics.IncClientsProcessed(tx.Instance)
-
-	// requeue immediately to re-evaluate resource
-	return ctrl.Result{Requeue: true}, nil
 }
 
 func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance clients.Instance) (*Transaction, error) {

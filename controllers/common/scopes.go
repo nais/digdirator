@@ -1,10 +1,16 @@
 package common
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 
+	"github.com/nais/digdirator/pkg/digdir"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/digdir/scopes"
@@ -106,37 +112,56 @@ func (s scope) filtered(exposedScopes map[string]naisiov1.ExposedScope) (*scopes
 }
 
 func (s scope) updateACL(scope scopes.Scope) error {
-	logger := s.Tx.Logger.WithField("scope", scope.ToString())
+	scopeName := scope.ToString()
+	logger := s.Tx.Logger.WithField("scope", scopeName)
 
-	acl, err := s.DigDirClient.GetScopeACL(s.Tx.Ctx, scope.ToString())
+	acl, err := s.DigDirClient.GetScopeACL(s.Tx.Ctx, scopeName)
 	if err != nil {
 		return fmt.Errorf("getting ACL: %w", err)
 	}
 
 	consumerStatus, consumerList := scope.FilterConsumers(acl)
+	setValidCondition := func() {
+		s.Tx.Instance.GetStatus().SetCondition(InvalidExposedScopesConsumersCondition(
+			metav1.ConditionFalse,
+			ConditionReasonValidated,
+			fmt.Sprintf("All consumers for scope %q are valid", scopeName),
+			s.Tx.Instance.GetGeneration()),
+		)
+	}
 
 	if len(consumerList) == 0 {
-		msg := fmt.Sprintf("ACL: scope %q is up to date", scope.ToString())
+		msg := fmt.Sprintf("ACL: scope %q is up to date", scopeName)
 		logger.Info(msg)
 		s.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
+		setValidCondition()
 		return nil
 	}
 
+	invalidConsumers := make([]string, 0)
+	asInvalidConsumerError := func(err error) (*digdir.Error, bool) {
+		var digdirError *digdir.Error
+		if errors.As(err, &digdirError) && digdirError.StatusCode == http.StatusBadRequest {
+			return digdirError, true
+		}
+		return nil, false
+	}
+
 	for _, consumer := range consumerList {
-		logger.Debug("ACL: processing...")
 		if consumer.ShouldBeAdded {
-			logger.Infof("ACL: adding consumer %q...", consumer.Orgno)
-			err := s.activateConsumer(scope.ToString(), consumer.Orgno)
-			if err != nil {
+			if err := s.activateConsumer(scopeName, consumer.Orgno, logger); err != nil {
+				if digdirErr, ok := asInvalidConsumerError(err); ok {
+					logger.Warnf("ACL: consumer %q is invalid: %q; skipping...", consumer.Orgno, digdirErr.Message)
+					invalidConsumers = append(invalidConsumers, consumer.Orgno)
+					continue
+				}
 				return err
 			}
 
 			consumerStatus = append(consumerStatus, consumer.Orgno)
 			metrics.IncScopesConsumersCreatedOrUpdated(s.Tx.Instance, consumer.State)
 		} else {
-			logger.Infof("ACL: removing consumer %q...", consumer.Orgno)
-			err := s.deactivateConsumer(scope.ToString(), consumer.Orgno)
-			if err != nil {
+			if err := s.deactivateConsumer(scopeName, consumer.Orgno, logger); err != nil {
 				return err
 			}
 
@@ -144,28 +169,44 @@ func (s scope) updateACL(scope scopes.Scope) error {
 		}
 	}
 
+	if len(invalidConsumers) > 0 {
+		s.Tx.Instance.GetStatus().SetCondition(InvalidExposedScopesConsumersCondition(
+			metav1.ConditionTrue,
+			ConditionReasonFailed,
+			fmt.Sprintf("Scope %q has invalid consumers [%s]", scopeName, strings.Join(invalidConsumers, ", ")),
+			s.Tx.Instance.GetGeneration()),
+		)
+	} else {
+		setValidCondition()
+	}
+
 	return nil
 }
 
-func (s scope) activateConsumer(scope, consumerOrgno string) error {
-	response, err := s.DigDirClient.AddToScopeACL(s.Tx.Ctx, scope, consumerOrgno)
+func (s scope) activateConsumer(scope, consumerOrgno string, logger *log.Entry) error {
+	logger.Infof("ACL: adding consumer %q...", consumerOrgno)
+
+	_, err := s.DigDirClient.AddToScopeACL(s.Tx.Ctx, scope, consumerOrgno)
 	if err != nil {
 		return fmt.Errorf("adding consumer: %w", err)
 	}
+
 	msg := fmt.Sprintf("ACL: granted access to scope %q for consumer %q", scope, consumerOrgno)
-	s.Tx.Logger.WithField("scope", response.Scope).Info(msg)
+	logger.Info(msg)
 	s.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
 
 	return nil
 }
 
-func (s scope) deactivateConsumer(scope, consumerOrgno string) error {
-	response, err := s.DigDirClient.DeactivateConsumer(s.Tx.Ctx, scope, consumerOrgno)
+func (s scope) deactivateConsumer(scope, consumerOrgno string, logger *log.Entry) error {
+	logger.Infof("ACL: removing consumer %q...", consumerOrgno)
+
+	_, err := s.DigDirClient.DeactivateConsumer(s.Tx.Ctx, scope, consumerOrgno)
 	if err != nil {
 		return fmt.Errorf("deactivating consumer: %w", err)
 	}
 	msg := fmt.Sprintf("ACL: revoked access to scope %q for consumer %q", scope, consumerOrgno)
-	s.Tx.Logger.WithField("scope", response.Scope).Info(msg)
+	logger.Info(msg)
 	s.reportEvent(s.Tx, corev1.EventTypeNormal, EventUpdatedACLForScopeInDigDir, msg)
 
 	return nil
