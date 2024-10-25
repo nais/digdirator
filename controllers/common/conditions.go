@@ -1,25 +1,30 @@
 package common
 
 import (
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type ConditionType string
+
 const (
-	conditionTypeReady = "Ready"
-	conditionTypeError = "Error"
+	ConditionTypeReady                 ConditionType = "Ready"
+	ConditionTypeError                 ConditionType = "Error"
+	ConditionTypeInvalidConsumedScopes ConditionType = "InvalidConsumedScopes"
 )
 
 type ConditionReason string
 
 const (
 	ConditionReasonFailed       ConditionReason = "Failed"
-	ConditionReasonProcessing                   = "Processing"
-	ConditionReasonSynchronized                 = "Synchronized"
+	ConditionReasonProcessing   ConditionReason = "Processing"
+	ConditionReasonSynchronized ConditionReason = "Synchronized"
+	ConditionReasonValidated    ConditionReason = "Validated"
 )
 
-func readyCondition(status metav1.ConditionStatus, reason ConditionReason, message string, generation int64) metav1.Condition {
+func ReadyCondition(status metav1.ConditionStatus, reason ConditionReason, message string, generation int64) metav1.Condition {
 	return metav1.Condition{
-		Type:               conditionTypeReady,
+		Type:               string(ConditionTypeReady),
 		Status:             status,
 		Reason:             string(reason),
 		Message:            message,
@@ -27,12 +32,41 @@ func readyCondition(status metav1.ConditionStatus, reason ConditionReason, messa
 	}
 }
 
-func errorCondition(status metav1.ConditionStatus, reason ConditionReason, message string, generation int64) metav1.Condition {
+func ErrorCondition(status metav1.ConditionStatus, reason ConditionReason, message string, generation int64) metav1.Condition {
 	return metav1.Condition{
-		Type:               conditionTypeError,
+		Type:               string(ConditionTypeError),
 		Status:             status,
 		Reason:             string(reason),
 		Message:            message,
 		ObservedGeneration: generation,
 	}
+}
+
+func InvalidConsumedScopesCondition(status metav1.ConditionStatus, reason ConditionReason, message string, generation int64) metav1.Condition {
+	return metav1.Condition{
+		Type:               string(ConditionTypeInvalidConsumedScopes),
+		Status:             status,
+		Reason:             string(reason),
+		Message:            message,
+		ObservedGeneration: generation,
+	}
+}
+
+func HasNoRetryableStatusConditions(conditions *[]metav1.Condition) bool {
+	if conditions == nil {
+		return false
+	}
+
+	isError := IsStatusConditionTrue(conditions, ConditionTypeError)
+	isInvalidConsumedScopes := IsStatusConditionTrue(conditions, ConditionTypeInvalidConsumedScopes)
+
+	return !isError && !isInvalidConsumedScopes
+}
+
+func IsStatusConditionTrue(conditions *[]metav1.Condition, conditionType ConditionType) bool {
+	if conditions == nil {
+		return false
+	}
+
+	return meta.IsStatusConditionTrue(*conditions, string(conditionType))
 }

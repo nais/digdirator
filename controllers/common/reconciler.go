@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -74,9 +73,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 		}
 	}
 
-	if clients.IsUpToDate(tx.Instance) {
+	if clients.IsUpToDate(tx.Instance) && HasNoRetryableStatusConditions(tx.Instance.GetStatus().Conditions) {
 		tx.Logger.Info("resource is up-to-date; skipping reconciliation")
-		return requeueSuccess()
+		// requeue later to re-evaluate and prevent resource drift
+		return ctrl.Result{RequeueAfter: 8 * time.Hour}, nil
 	}
 
 	if err = r.process(tx); err != nil {
@@ -87,9 +87,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	if IsStatusConditionTrue(tx.Instance.GetStatus().Conditions, ConditionTypeInvalidConsumedScopes) {
+		requeueAfter := 1 * time.Hour
+		tx.Logger.Infof("resource has invalid consumed scopes; requeuing reconciliation after %s", requeueAfter)
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	}
+
 	tx.Logger.Info("successfully reconciled")
 	metrics.IncClientsProcessed(tx.Instance)
-	return requeueSuccess()
+
+	// requeue immediately to re-evaluate resource
+	return ctrl.Result{Requeue: true}, nil
 }
 
 func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance clients.Instance) (*Transaction, error) {
@@ -116,7 +124,7 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 
 func (r *Reconciler) process(tx *Transaction) error {
 	status := tx.Instance.GetStatus()
-	status.SetCondition(readyCondition(
+	status.SetCondition(ReadyCondition(
 		metav1.ConditionFalse,
 		ConditionReasonProcessing,
 		"Started processing resource",
@@ -197,13 +205,13 @@ func (r *Reconciler) process(tx *Transaction) error {
 	status.SynchronizationHash = hash
 	status.SynchronizationSecretName = clients.GetSecretName(tx.Instance)
 	status.SetStateSynchronized()
-	status.SetCondition(readyCondition(
+	status.SetCondition(ReadyCondition(
 		metav1.ConditionTrue,
 		ConditionReasonSynchronized,
 		"Resource is up-to-date with DigDir",
 		generation),
 	)
-	status.SetCondition(errorCondition(
+	status.SetCondition(ErrorCondition(
 		metav1.ConditionFalse,
 		ConditionReasonSynchronized,
 		"Processing completed without errors",
@@ -225,7 +233,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 func (r *Reconciler) observeError(tx *Transaction, reconcileErr error) error {
 	setStatusCondition := func(message string) {
 		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedSynchronization, message)
-		tx.Instance.GetStatus().SetCondition(errorCondition(
+		tx.Instance.GetStatus().SetCondition(ErrorCondition(
 			metav1.ConditionTrue,
 			ConditionReasonFailed,
 			message,
@@ -240,19 +248,8 @@ func (r *Reconciler) observeError(tx *Transaction, reconcileErr error) error {
 		setStatusCondition(reconcileErr.Error())
 	}
 
-	if errors.Is(reconcileErr, digdir.ClientError) {
-		// Client errors usually happen due to external state or configuration
-		// that needs to be resolved upstream.
-		//
-		// For example, a desired consumer scope may not exist nor be active,
-		// or the organization has not been granted access to the scope at the time of reconciliation.
-		tx.Logger.Warnf("processing resource: %+v", reconcileErr)
-		metrics.IncClientsFailedInvalidConfig(tx.Instance)
-	} else {
-		tx.Logger.Errorf("processing resource: %+v", reconcileErr)
-		metrics.IncClientsFailedProcessing(tx.Instance)
-	}
-
+	tx.Logger.Errorf("processing resource: %+v", reconcileErr)
+	metrics.IncClientsFailedProcessing(tx.Instance)
 	return r.Client.Status().Update(tx.Ctx, tx.Instance)
 }
 
@@ -363,11 +360,21 @@ func (r *Reconciler) filterConsumedScopes(tx *Transaction, client *naisiov1.Mask
 	}
 
 	if len(invalid) > 0 {
-		return valid, &digdir.Error{
-			Err:     digdir.ClientError,
-			Status:  http.StatusText(http.StatusBadRequest),
-			Message: fmt.Sprintf("Organization has no access to scopes: [%s]", strings.Join(invalid, ", ")),
-		}
+		message := fmt.Sprintf("Organization has no access to scopes: [%s]", strings.Join(invalid, ", "))
+		tx.Logger.Warn(message)
+		tx.Instance.GetStatus().SetCondition(InvalidConsumedScopesCondition(
+			metav1.ConditionTrue,
+			ConditionReasonFailed,
+			message,
+			tx.Instance.GetGeneration()),
+		)
+	} else {
+		tx.Instance.GetStatus().SetCondition(InvalidConsumedScopesCondition(
+			metav1.ConditionFalse,
+			ConditionReasonValidated,
+			"Organization has access to all consumed scopes",
+			tx.Instance.GetGeneration()),
+		)
 	}
 
 	return valid, nil
@@ -397,9 +404,4 @@ func (r *Reconciler) reportEvent(tx *Transaction, eventType, event, message stri
 	status := tx.Instance.GetStatus()
 	status.SynchronizationState = event
 	r.Recorder.Event(tx.Instance, eventType, event, message)
-}
-
-// requeueSuccess requeues the resource after a successful reconciliation to prevent resource drift
-func requeueSuccess() (ctrl.Result, error) {
-	return ctrl.Result{RequeueAfter: 8 * time.Hour}, nil
 }
