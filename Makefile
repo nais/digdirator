@@ -25,9 +25,6 @@ kubebuilder:
 	wget -qO /usr/local/kubebuilder/bin/kubebuilder https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/kubebuilder_$(os)_$(arch)
 	chmod +x /usr/local/kubebuilder/bin/*
 
-pem2jwk:
-	go build -o bin/pem2jwk cmd/pem2jwk/*.go
-
 install:
 	kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_idportenclients.yaml
 	kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_maskinportenclients.yaml
