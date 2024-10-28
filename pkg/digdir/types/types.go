@@ -3,7 +3,7 @@ package types
 import (
 	"time"
 
-	"github.com/go-jose/go-jose/v4"
+	"github.com/nais/digdirator/pkg/crypto"
 )
 
 type ApplicationType string
@@ -74,7 +74,7 @@ type ClientRegistration struct {
 type JwksResponse struct {
 	Created     string `json:"created"`
 	LastUpdated string `json:"last_updated"`
-	jose.JSONWebKeySet
+	crypto.DigdirJwkSet
 }
 
 type ScopeAccessState string

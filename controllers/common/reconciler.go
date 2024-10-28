@@ -172,6 +172,10 @@ func (r *Reconciler) process(tx *Transaction) error {
 		if err != nil {
 			return err
 		}
+
+		if err := r.ensureJwkValidExternalState(tx, registration, jwk, managedSecrets); err != nil {
+			return fmt.Errorf("refreshing keys: %w", err)
+		}
 	}
 
 	if err := secretsClient.CreateOrUpdate(*jwk); err != nil {
@@ -399,10 +403,49 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 		return fmt.Errorf("registering JWKS: %w", err)
 	}
 
-	tx.Instance.GetStatus().KeyIDs = crypto.KeyIDsFromJwks(&jwksResponse.JSONWebKeySet)
+	tx.Instance.GetStatus().KeyIDs = jwksResponse.KeyIDs()
 	tx.Logger = tx.Logger.WithField("key_ids", strings.Join(tx.Instance.GetStatus().KeyIDs, ", "))
 	tx.Logger.Info("new JWKS for client registered")
 
+	return nil
+}
+
+// ensureJwkValidExternalState ensures that the JWK is registered in DigDir and is not expiring soon.
+func (r *Reconciler) ensureJwkValidExternalState(tx *Transaction, registration *types.ClientRegistration, jwk *jose.JSONWebKey, managedSecrets *kubernetes.SecretLists) error {
+	resp, err := r.DigDirClient.GetKeys(tx.Ctx, registration.ClientID)
+	if err != nil {
+		return fmt.Errorf("getting keys: %w", err)
+	}
+
+	const expiryThreshold = 30 * 24 * time.Hour // 30 days
+
+	found := false
+	expiring := false
+	for _, key := range resp.Keys {
+		if key.KeyID == jwk.KeyID {
+			found = true
+
+			if time.Until(key.ExpiryTime()) < expiryThreshold {
+				tx.Logger.Infof("key %q expires at %q, refreshing...", key.KeyID, key.ExpiryTime())
+				expiring = true
+			}
+
+			break
+		}
+	}
+
+	if found && !expiring {
+		return nil
+	}
+	if !found {
+		tx.Logger.Infof("key %q not found in DigDir, registering...", jwk.KeyID)
+	}
+
+	if err := r.registerJwk(tx, *jwk, *managedSecrets, registration.ClientID); err != nil {
+		return err
+	}
+
+	r.reportEvent(tx, corev1.EventTypeNormal, EventUpdatedInDigDir, "Client credentials is refreshed")
 	return nil
 }
 

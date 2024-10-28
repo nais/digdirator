@@ -25,7 +25,7 @@ const (
 	MaskinportenDefaultAtAgeMax                 = 30
 	MaskinportenDefaultAuthorizationMaxLifetime = 0
 
-	StaleSyncThresholdDuration = 30 * 24 * time.Hour
+	StaleSyncThresholdDuration = 7 * 24 * time.Hour
 )
 
 // +kubebuilder:object:generate=false
