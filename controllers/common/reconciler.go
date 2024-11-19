@@ -170,7 +170,15 @@ func (r *Reconciler) process(tx *Transaction) error {
 	} else {
 		jwk, err = crypto.GetPreviousJwkFromSecret(managedSecrets, clients.GetSecretJwkKey(tx.Instance))
 		if err != nil {
-			return err
+			if errors.Is(err, crypto.ErrNoPreviousJwkFound) {
+				tx.Logger.Warn("no previous JWK found in secrets, generating one...")
+				jwk, err = crypto.GenerateJwk()
+				if err != nil {
+					return fmt.Errorf("generating new JWK: %w", err)
+				}
+			} else {
+				return err
+			}
 		}
 
 		if err := r.ensureJwkValidExternalState(tx, registration, jwk, managedSecrets); err != nil {

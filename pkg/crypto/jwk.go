@@ -9,6 +9,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+var ErrNoPreviousJwkFound = fmt.Errorf("no previous JWK found in secrets")
+
 const (
 	KeyUseSignature string = "sig"
 	KeyAlgorithm    string = "RS256"
@@ -45,5 +47,5 @@ func GetPreviousJwkFromSecret(managedSecrets *kubernetes.SecretLists, secretKey 
 		return nil, fmt.Errorf("getting jwk from secret: %w", err)
 	}
 
-	return nil, fmt.Errorf("no previous jwk found from managed secret")
+	return nil, ErrNoPreviousJwkFound
 }
