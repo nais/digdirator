@@ -1,6 +1,6 @@
 module github.com/nais/digdirator
 
-go 1.23.2
+go 1.23.4
 
 require (
 	cloud.google.com/go/kms v1.20.2
