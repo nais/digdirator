@@ -15,6 +15,7 @@ import (
 	"github.com/nais/digdirator/internal/crypto/signer"
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type rsaSigner struct {
@@ -33,6 +34,7 @@ func TestSignWithRsaSigner(t *testing.T) {
 		ID:        uuid.New().String(),
 	}
 	privateKey, err := crypto.GenerateRSAKey()
+	require.NoError(t, err)
 
 	jwk := &jose.JSONWebKey{
 		Key:       privateKey,
@@ -44,9 +46,11 @@ func TestSignWithRsaSigner(t *testing.T) {
 	signerOpts := jose.SignerOptions{}
 	signerOpts.WithType("JWT")
 	jwkSigner, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: jwk.Key}, &signerOpts)
+	require.NoError(t, err)
 	rsaSigner := NewRsaSigner(jose.SigningKey{Algorithm: jose.RS256, Key: privateKey}, &signerOpts)
 
 	signedWithJwk, err := jwt.Signed(jwkSigner).Claims(claims).Serialize()
+	require.NoError(t, err)
 	signedWithRsa, err := jwt.Signed(rsaSigner).Claims(claims).Serialize()
 	assert.NoError(t, err)
 	fmt.Println(signedWithJwk)

@@ -7,6 +7,7 @@ import (
 	"github.com/nais/digdirator/pkg/crypto"
 	"github.com/nais/digdirator/pkg/secrets"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -55,5 +56,6 @@ func TestMergeJwks(t *testing.T) {
 
 	var jwk jose.JSONWebKey
 	err = jwk.UnmarshalJSON([]byte(jwkString))
+	require.NoError(t, err)
 	assert.Equal(t, jwk.Public(), jwks.Keys[1], "existing JWK in JWKS should be public")
 }

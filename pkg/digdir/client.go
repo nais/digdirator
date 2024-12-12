@@ -29,8 +29,8 @@ const (
 )
 
 var (
-	ServerError = errors.New("ServerError")
-	ClientError = errors.New("ClientError")
+	ErrServer = errors.New("ServerError")
+	ErrClient = errors.New("ClientError")
 
 	scopeCache = cache.New[string, bool]()
 )
@@ -334,14 +334,14 @@ func (c Client) request(ctx context.Context, method string, endpoint string, pay
 
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 			err = &Error{
-				Err:        ClientError,
+				Err:        ErrClient,
 				Message:    string(body),
 				Status:     resp.Status,
 				StatusCode: resp.StatusCode,
 			}
 		} else if resp.StatusCode >= 500 {
 			err = &Error{
-				Err:        ServerError,
+				Err:        ErrServer,
 				Message:    string(body),
 				Status:     resp.Status,
 				StatusCode: resp.StatusCode,

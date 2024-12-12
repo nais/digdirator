@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -141,7 +140,7 @@ func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Clien
 }
 
 func loadJwkFromPath(path string) (*jose.JSONWebKey, error) {
-	creds, err := ioutil.ReadFile(path)
+	creds, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("loading JWK from path %s: %w", path, err)
 	}

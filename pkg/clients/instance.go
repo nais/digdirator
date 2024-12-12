@@ -152,7 +152,7 @@ func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Con
 	if len(in.Spec.ClientURI) == 0 {
 		in.Spec.ClientURI = naisiov1.IDPortenURI(cfg.DigDir.Common.ClientURI)
 	}
-	if in.Spec.PostLogoutRedirectURIs == nil || len(in.Spec.PostLogoutRedirectURIs) == 0 {
+	if len(in.Spec.PostLogoutRedirectURIs) == 0 {
 		in.Spec.PostLogoutRedirectURIs = []naisiov1.IDPortenURI{naisiov1.IDPortenURI(cfg.DigDir.Common.ClientURI)}
 	}
 

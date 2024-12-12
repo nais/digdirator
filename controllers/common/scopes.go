@@ -28,7 +28,7 @@ func (r *Reconciler) scopes(transaction *Transaction) scope {
 }
 
 func (s scope) Process(exposedScopes map[string]naisiov1.ExposedScope) error {
-	if exposedScopes == nil || len(exposedScopes) == 0 {
+	if len(exposedScopes) == 0 {
 		return nil
 	}
 
