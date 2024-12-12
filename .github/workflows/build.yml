@@ -22,7 +22,10 @@ jobs:
           check-latest: true
       - name: Setup Test
         run: |
-          make kubebuilder
+          make setup-envtest
+      - name: Check for vulnerable dependencies and static code
+        run: |
+          make check
       - name: Test Go
         run: |
           make test
