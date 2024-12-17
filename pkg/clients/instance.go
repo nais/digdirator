@@ -260,6 +260,11 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 		accessibleForAll = true
 	}
 
+	visibility := types.ScopeVisibilityPublic
+	if exposedScope.Visibility != nil && *exposedScope.Visibility == "private" {
+		visibility = types.ScopeVisibilityPrivate
+	}
+
 	return types.ScopeRegistration{
 		AccessibleForAll:           accessibleForAll,
 		Active:                     exposedScope.Enabled,
@@ -272,7 +277,7 @@ func toMaskinPortenScopeRegistration(in naisiov1.MaskinportenClient, exposedScop
 		Prefix:                     cfg.DigDir.Maskinporten.Default.ScopePrefix,
 		Subscope:                   scopes.Subscope(exposedScope),
 		TokenType:                  types.TokenTypeSelfContained,
-		Visibility:                 types.ScopeVisibilityPublic,
+		Visibility:                 visibility,
 		RequiresPseudonymousTokens: false,
 		RequiresUserAuthentication: false,
 		RequiresUserConsent:        false,

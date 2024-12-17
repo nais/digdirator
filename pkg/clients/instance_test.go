@@ -340,7 +340,6 @@ func TestToScopeRegistration(t *testing.T) {
 		assert.Empty(t, registration.Name)
 		assert.Equal(t, "nav", registration.Prefix)
 		assert.Equal(t, types.TokenTypeSelfContained, registration.TokenType)
-		assert.Equal(t, types.ScopeVisibilityPublic, registration.Visibility)
 		assert.False(t, registration.RequiresPseudonymousTokens)
 		assert.False(t, registration.RequiresUserAuthentication)
 		assert.False(t, registration.RequiresUserConsent)
@@ -358,6 +357,7 @@ func TestToScopeRegistration(t *testing.T) {
 		assertDefaults(t, registration)
 		assert.False(t, registration.AccessibleForAll)
 		assert.Empty(t, registration.DelegationSource)
+		assert.Equal(t, types.ScopeVisibilityPublic, registration.Visibility)
 	})
 
 	t.Run("accessible for all", func(t *testing.T) {
@@ -373,6 +373,7 @@ func TestToScopeRegistration(t *testing.T) {
 		assertDefaults(t, registration)
 		assert.True(t, registration.AccessibleForAll)
 		assert.Empty(t, registration.DelegationSource)
+		assert.Equal(t, types.ScopeVisibilityPublic, registration.Visibility)
 	})
 
 	t.Run("delegation", func(t *testing.T) {
@@ -388,6 +389,21 @@ func TestToScopeRegistration(t *testing.T) {
 		assertDefaults(t, registration)
 		assert.False(t, registration.AccessibleForAll)
 		assert.Equal(t, "https://altinn.example.com", registration.DelegationSource)
+		assert.Equal(t, types.ScopeVisibilityPublic, registration.Visibility)
+	})
+
+	t.Run("visibility", func(t *testing.T) {
+		scope := naisiov1.ExposedScope{
+			Enabled:    true,
+			Name:       "test-scope",
+			Product:    "test-product",
+			Visibility: ptr.To("private"),
+		}
+		client.Spec.Scopes.ExposedScopes = []naisiov1.ExposedScope{scope}
+		registration := clients.ToScopeRegistration(client, scope, cfg)
+
+		assertDefaults(t, registration)
+		assert.Equal(t, types.ScopeVisibilityPrivate, registration.Visibility)
 	})
 }
 
