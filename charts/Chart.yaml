@@ -3,7 +3,7 @@ name: digdirator
 description: Helm Chart of a K8s cluster operator for automated registration and lifecycle management 
   of ID-porten and Maskinporten clients.
 type: application
-version: 2.0.0
+version: 2.1.0
 appVersion: 0.0.1
 sources:
   - https://github.com/nais/digdirator/tree/master/charts

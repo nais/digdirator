@@ -74,26 +74,13 @@ func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
 	return nil
 }
 
-func (s secretsClient) GetManaged() (*kubernetes.SecretLists, error) {
-	// fetch all application pods for this app
-	podList, err := kubernetes.ListPodsForApplication(s.Ctx, s.Reader, s.Instance.GetName(), s.Instance.GetNamespace())
-	if err != nil {
-		return nil, err
+func (s secretsClient) GetManaged() (kubernetes.SecretLists, error) {
+	objectKey := client.ObjectKey{
+		Name:      s.Instance.GetName(),
+		Namespace: s.Instance.GetNamespace(),
 	}
-
-	// fetch all managed secrets
-	var allSecrets corev1.SecretList
-	opts := []client.ListOption{
-		client.InNamespace(s.Instance.GetNamespace()),
-		client.MatchingLabels(clients.MakeLabels(s.Instance)),
-	}
-	if err := s.Reader.List(s.Ctx, &allSecrets, opts...); err != nil {
-		return nil, err
-	}
-
-	// find intersect between secrets in use by application pods and all managed secrets
-	podSecrets := kubernetes.ListUsedAndUnusedSecretsForPods(allSecrets, podList)
-	return &podSecrets, nil
+	secretLabels := clients.MakeLabels(s.Instance)
+	return kubernetes.ListSecretsForApplication(s.Ctx, s.Reader, objectKey, secretLabels)
 }
 
 func (s secretsClient) DeleteUnused(unused corev1.SecretList) error {

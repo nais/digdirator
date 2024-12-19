@@ -30,7 +30,7 @@ func GenerateJwk() (*jose.JSONWebKey, error) {
 	return jwk, nil
 }
 
-func GetPreviousJwkFromSecret(managedSecrets *kubernetes.SecretLists, secretKey string) (*jose.JSONWebKey, error) {
+func GetPreviousJwkFromSecret(managedSecrets kubernetes.SecretLists, secretKey string) (*jose.JSONWebKey, error) {
 	var newestSecret corev1.Secret
 
 	for _, secret := range append(managedSecrets.Used.Items, managedSecrets.Unused.Items...) {

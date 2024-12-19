@@ -161,7 +161,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 			return fmt.Errorf("generating jwk: %w", err)
 		}
 
-		if err := r.registerJwk(tx, *jwk, *managedSecrets, registration.ClientID); err != nil {
+		if err := r.registerJwk(tx, *jwk, managedSecrets, registration.ClientID); err != nil {
 			return err
 		}
 
@@ -419,7 +419,7 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 }
 
 // ensureJwkValidExternalState ensures that the JWK is registered in DigDir and is not expiring soon.
-func (r *Reconciler) ensureJwkValidExternalState(tx *Transaction, registration *types.ClientRegistration, jwk *jose.JSONWebKey, managedSecrets *kubernetes.SecretLists) error {
+func (r *Reconciler) ensureJwkValidExternalState(tx *Transaction, registration *types.ClientRegistration, jwk *jose.JSONWebKey, managedSecrets kubernetes.SecretLists) error {
 	resp, err := r.DigDirClient.GetKeys(tx.Ctx, registration.ClientID)
 	if err != nil {
 		return fmt.Errorf("getting keys: %w", err)
@@ -449,7 +449,7 @@ func (r *Reconciler) ensureJwkValidExternalState(tx *Transaction, registration *
 		tx.Logger.Infof("key %q not found in DigDir, registering...", jwk.KeyID)
 	}
 
-	if err := r.registerJwk(tx, *jwk, *managedSecrets, registration.ClientID); err != nil {
+	if err := r.registerJwk(tx, *jwk, managedSecrets, registration.ClientID); err != nil {
 		return err
 	}
 
