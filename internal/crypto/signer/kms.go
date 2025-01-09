@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"os"
+	"slices"
 	"time"
 
 	kms "cloud.google.com/go/kms/apiv1"
@@ -33,7 +35,7 @@ func NewKmsSigner(ctx context.Context, kmsKeyPath string, pemChain []byte) (jose
 	opts.WithType("JWT")
 	opts.WithHeader("x5c", crypto.ConvertX509CertificatesToX5c(certs))
 
-	kmsClient, err := kms.NewKeyManagementClient(ctx)
+	kmsClient, err := newKmsClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error creating key management client: %v", err)
 	}
@@ -71,4 +73,20 @@ func (k KmsByteSigner) SignBytes(payload []byte) ([]byte, error) {
 	}
 
 	return response.Signature, nil
+}
+
+func newKmsClient(ctx context.Context) (*kms.KeyManagementClient, error) {
+	hasForwardProxy := slices.ContainsFunc([]string{
+		"HTTP_PROXY",
+		"http_proxy",
+		"HTTPS_PROXY",
+		"https_proxy",
+	}, func(s string) bool {
+		return os.Getenv(s) != ""
+	})
+
+	if hasForwardProxy {
+		return kms.NewKeyManagementRESTClient(ctx)
+	}
+	return kms.NewKeyManagementClient(ctx)
 }
