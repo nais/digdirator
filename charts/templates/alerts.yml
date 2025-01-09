@@ -15,11 +15,13 @@ spec:
           for: 5m
           annotations:
             summary: {{ include "digdirator.fullname" . }} has failed processing clients for longer than usual
-            consequence: Applications that have either idporten or maskinporten enabled will not start up as they are dependant on a secret created by Digdirator.
+            consequence: Applications that have either idporten or maskinporten enabled might not start up as they are dependant on a secret created by Digdirator.
             action: |
-              * Check the logs: `kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "digdirator.fullname" . }}`"`
-              * Check DigDir status: https://status.digdir.no/ or https://testmiljo.status.digdir.no
+              * Check DigDir status pages: https://status.digdir.no/ or https://testmiljo.status.digdir.no
+              * Check the dashboard and/or logs: `kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "digdirator.fullname" . }}`"`
+            dashboard_url: "https://monitoring.nais.io/d/0Ohl03c7k/digdirator?var-tenant={{ .Values.fasit.tenant.name }}&var-cluster={{ .Values.fasit.env.name }}"
+            runbook_url: "https://github.com/nais/vakt/blob/master/digdirator.md"
           labels:
-            severity: critical
+            severity: warning
             namespace: {{ .Release.Namespace }}
 {{ end }}

@@ -42,3 +42,8 @@ team: nais
 onprem:
   enabled: false
   gcpSaCredentials: ""
+fasit: # mapped from Fasit
+  tenant:
+    name: ""
+  env:
+    name: ""
