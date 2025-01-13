@@ -18,7 +18,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/tools v0.29.0
-	golang.org/x/vuln v1.1.3
+	golang.org/x/vuln v1.1.4
 	honnef.co/go/tools v0.5.1
 	k8s.io/api v0.32.0
 	k8s.io/apimachinery v0.32.0
