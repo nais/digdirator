@@ -20,7 +20,34 @@ spec:
       from: [ ]
   podSelector:
     matchLabels:
-      app: {{ .Release.Name }}
+      {{- include "digdirator.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Egress
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-egress
+  labels:
+    {{- include "digdirator.labels" . | nindent 4 }}
+spec:
+  egress:
+    - ports:
+        - port: 443
+          protocol: TCP
+      to:
+        {{- range .Values.idporten.cidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+        {{- range .Values.maskinporten.cidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+  podSelector:
+    matchLabels:
+      {{- include "digdirator.selectorLabels" . | nindent 6 }}
   policyTypes:
     - Egress
     - Ingress
@@ -85,6 +112,46 @@ spec:
           policyTypes:
             - Egress
     {{- end }}
+    - template: |
+        apiVersion: networking.k8s.io/v1
+        kind: NetworkPolicy
+        metadata:
+          name: {{ .Release.Name }}-idporten-egress
+        spec:
+          egress:
+            - ports:
+                - port: 443
+                  protocol: TCP
+              to:
+                {{- range .Values.idporten.cidrs }}
+                - ipBlock:
+                    cidr: {{ . }}
+                {{- end }}
+          podSelector:
+            matchLabels:
+              idporten: enabled
+          policyTypes:
+            - Egress
+    - template: |
+        apiVersion: networking.k8s.io/v1
+        kind: NetworkPolicy
+        metadata:
+          name: {{ .Release.Name }}-maskinporten-egress
+        spec:
+          egress:
+            - ports:
+                - port: 443
+                  protocol: TCP
+              to:
+                {{- range .Values.maskinporten.cidrs }}
+                - ipBlock:
+                    cidr: {{ . }}
+                {{- end }}
+          podSelector:
+            matchLabels:
+              maskinporten: enabled
+          policyTypes:
+            - Egress
 ---
 apiVersion: nais.io/v1
 kind: ReplicationConfig
@@ -150,4 +217,44 @@ spec:
           policyTypes:
             - Egress
     {{- end }}
+    - template: |
+        apiVersion: networking.k8s.io/v1
+        kind: NetworkPolicy
+        metadata:
+          name: {{ .Release.Name }}-idporten-egress
+        spec:
+          egress:
+            - ports:
+                - port: 443
+                  protocol: TCP
+              to:
+                {{- range .Values.idporten.cidrs }}
+                - ipBlock:
+                    cidr: {{ . }}
+                {{- end }}
+          podSelector:
+            matchLabels:
+              idporten: enabled
+          policyTypes:
+            - Egress
+    - template: |
+        apiVersion: networking.k8s.io/v1
+        kind: NetworkPolicy
+        metadata:
+          name: {{ .Release.Name }}-maskinporten-egress
+        spec:
+          egress:
+            - ports:
+                - port: 443
+                  protocol: TCP
+              to:
+                {{- range .Values.maskinporten.cidrs }}
+                - ipBlock:
+                    cidr: {{ . }}
+                {{- end }}
+          podSelector:
+            matchLabels:
+              maskinporten: enabled
+          policyTypes:
+            - Egress
 {{- end }}

@@ -28,6 +28,10 @@ application:
 clusterName: "" # mapped from fasit
 idporten:
   hosts: []
+  # https://docs.digdir.no/docs/general/IP
+  cidrs:
+    - "139.105.36.167/32"
+    - "139.105.36.135/32"
   # ID-porten well-known URL. See https://docs.digdir.no/docs/idporten/oidc/oidc_func_wellknown.html
   wellKnownUrl: ""
 image:
@@ -36,6 +40,10 @@ image:
   tag: latest
 maskinporten:
   hosts: []
+  # https://docs.digdir.no/docs/general/IP
+  cidrs:
+    - "139.105.36.164/32"
+    - "139.105.36.132/32"
   # Maskinporten well-known URL. See https://docs.digdir.no/docs/Maskinporten/maskinporten_func_wellknown
   wellKnownUrl: ""
 team: nais
