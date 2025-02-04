@@ -27,12 +27,6 @@ spec:
     outbound:
       external:
         - host: {{ .Values.admin.apiHost | quote }}
-      {{- range .Values.maskinporten.hosts | required ".Values.maskinporten.hosts is required" }}
-        - host: {{ . }}
-      {{- end }}
-      {{- range .Values.idporten.hosts | required ".Values.idporten.hosts is required" }}
-        - host: {{ . }}
-      {{- end }}
       {{- if not .Values.onprem.enabled }}
         - host: cloudkms.googleapis.com
       {{- end }}

@@ -50,7 +50,6 @@ spec:
       {{- include "digdirator.selectorLabels" . | nindent 6 }}
   policyTypes:
     - Egress
-    - Ingress
 ---
 apiVersion: nais.io/v1
 kind: ReplicationConfig
@@ -64,54 +63,6 @@ spec:
       - key: team
         operator: Exists
   resources:
-    {{- if .Values.idporten.hosts | required ".Values.idporten.hosts is required" }}
-    - template: |
-        apiVersion: networking.gke.io/v1alpha3
-        kind: FQDNNetworkPolicy
-        metadata:
-          name: {{ .Release.Name }}-idporten-fqdn
-          annotations:
-            fqdnnetworkpolicies.networking.gke.io/aaaa-lookups: skip
-        spec:
-          egress:
-            - ports:
-                - port: 443
-                  protocol: TCP
-              to:
-                - fqdns:
-                  {{- range .Values.idporten.hosts }}
-                  - {{ . }}
-                  {{- end }}
-          podSelector:
-            matchLabels:
-              idporten: enabled
-          policyTypes:
-            - Egress
-    {{- end }}
-    {{- if .Values.maskinporten.hosts | required ".Values.maskinporten.hosts is required" }}
-    - template: |
-        apiVersion: networking.gke.io/v1alpha3
-        kind: FQDNNetworkPolicy
-        metadata:
-          name: {{ .Release.Name }}-maskinporten-fqdn
-          annotations:
-            fqdnnetworkpolicies.networking.gke.io/aaaa-lookups: skip
-        spec:
-          egress:
-            - ports:
-                - port: 443
-                  protocol: TCP
-              to:
-                - fqdns:
-                  {{- range .Values.maskinporten.hosts }}
-                  - {{ . }}
-                  {{- end }}
-          podSelector:
-            matchLabels:
-              maskinporten: enabled
-          policyTypes:
-            - Egress
-    {{- end }}
     - template: |
         apiVersion: networking.k8s.io/v1
         kind: NetworkPolicy
@@ -165,58 +116,9 @@ spec:
       - key: name
         operator: In
         values:
-          - nais
           - nais-system
           - {{ .Release.Namespace }}
   resources:
-    {{- if .Values.idporten.hosts | required ".Values.idporten.hosts is required" }}
-    - template: |
-        apiVersion: networking.gke.io/v1alpha3
-        kind: FQDNNetworkPolicy
-        metadata:
-          name: {{ .Release.Name }}-idporten-fqdn
-          annotations:
-            fqdnnetworkpolicies.networking.gke.io/aaaa-lookups: skip
-        spec:
-          egress:
-            - ports:
-                - port: 443
-                  protocol: TCP
-              to:
-                - fqdns:
-                  {{- range .Values.idporten.hosts }}
-                  - {{ . }}
-                  {{- end }}
-          podSelector:
-            matchLabels:
-              idporten: enabled
-          policyTypes:
-            - Egress
-    {{- end }}
-    {{- if .Values.maskinporten.hosts | required ".Values.maskinporten.hosts is required" }}
-    - template: |
-        apiVersion: networking.gke.io/v1alpha3
-        kind: FQDNNetworkPolicy
-        metadata:
-          name: {{ .Release.Name }}-maskinporten-fqdn
-          annotations:
-            fqdnnetworkpolicies.networking.gke.io/aaaa-lookups: skip
-        spec:
-          egress:
-            - ports:
-                - port: 443
-                  protocol: TCP
-              to:
-                - fqdns:
-                  {{- range .Values.maskinporten.hosts }}
-                  - {{ . }}
-                  {{- end }}
-          podSelector:
-            matchLabels:
-              maskinporten: enabled
-          policyTypes:
-            - Egress
-    {{- end }}
     - template: |
         apiVersion: networking.k8s.io/v1
         kind: NetworkPolicy

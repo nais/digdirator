@@ -41,13 +41,6 @@ values:
       template: '"{{ .Env.name }}"'
     config:
       type: string
-  idporten.hosts:
-    description: Hosts for ID-porten, used for egress network policies for pods with label idporten=enabled
-    required: true
-    config:
-      type: string_array
-    ignoreKind:
-      - onprem
   idporten.wellKnownUrl:
     description: ID-porten well-known URL. See https://docs.digdir.no/docs/idporten/oidc/oidc_func_wellknown.html
     required: true
@@ -57,13 +50,6 @@ values:
     description: Image tag for digdirator
     config:
       type: string
-  maskinporten.hosts:
-    description: Hosts for Maskinporten, used for egress network policies for pods with label maskinporten=enabled
-    required: true
-    config:
-      type: string_array
-    ignoreKind:
-      - onprem
   maskinporten.wellKnownUrl:
     description: Maskinporten well-known URL. See https://docs.digdir.no/docs/Maskinporten/maskinporten_func_wellknown
     required: true
