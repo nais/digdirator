@@ -23,6 +23,7 @@ values:
     required: true
     config:
       type: string
+      secret: true
   admin.gcpKmsKeyPath:
     description: Resource path to Google KMS crypto key version used to sign JWT assertion
     required: true
