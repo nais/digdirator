@@ -20,9 +20,9 @@ require (
 	golang.org/x/tools v0.30.0
 	golang.org/x/vuln v1.1.4
 	honnef.co/go/tools v0.6.0
-	k8s.io/api v0.32.1
-	k8s.io/apimachinery v0.32.1
-	k8s.io/client-go v0.32.1
+	k8s.io/api v0.32.2
+	k8s.io/apimachinery v0.32.2
+	k8s.io/client-go v0.32.2
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	mvdan.cc/gofumpt v0.7.0
 	sigs.k8s.io/controller-runtime v0.20.1
