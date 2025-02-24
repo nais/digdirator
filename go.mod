@@ -5,7 +5,7 @@ go 1.23.6
 require (
 	cloud.google.com/go/kms v1.20.5
 	github.com/Code-Hex/go-generics-cache v1.5.1
-	github.com/go-jose/go-jose/v4 v4.0.4
+	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/uuid v1.6.0
 	github.com/mitchellh/mapstructure v1.5.0
