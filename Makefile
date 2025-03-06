@@ -10,20 +10,15 @@ $(LOCALBIN):
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 # Run tests excluding integration tests
-test: fmt vet
+test: fmt
 	go test ./... -coverprofile cover.out -short
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: fmt vet
+run: fmt
 	go run cmd/digdirator/main.go
 
-# Run go fmt against code
 fmt:
-	go fmt ./...
-
-# Run go vet against code
-vet:
-	go vet ./...
+	go tool gofumpt -w ./
 
 install:
 	kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_idportenclients.yaml
@@ -36,9 +31,9 @@ sample:
 
 check:
 	go vet ./...
-	go run honnef.co/go/tools/cmd/staticcheck ./...
-	go run golang.org/x/vuln/cmd/govulncheck -show=traces ./...
-	go run golang.org/x/tools/cmd/deadcode -filter "internal/test/client.go" -filter "internal/test/test.go" -test ./...
+	go tool staticcheck ./...
+	go tool govulncheck -show=traces ./...
+	go tool deadcode -filter "internal/test/client.go" -filter "internal/test/test.go" -test ./...
 
 ##@ Dependencies
 setup-envtest: envtest ## Download the binaries required for ENVTEST in the local bin directory.
