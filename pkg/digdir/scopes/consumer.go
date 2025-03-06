@@ -30,7 +30,6 @@ func (c Consumer) findIn(consumers map[string]Consumer) bool {
 }
 
 func (c Consumer) addOrUpdate(found, swapped bool, consumerList []Consumer) []Consumer {
-
 	// Consumer is not in digdir acl
 	if !found {
 		// Compare exposedConsumer against digdir acl

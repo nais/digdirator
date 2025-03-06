@@ -17,7 +17,6 @@ import (
 )
 
 func TestConsumerFilteringWithNoChanges(t *testing.T) {
-
 	expectedConsumer := "1010101010"
 	subscope := "test/scope"
 	name := fmt.Sprintf("nav:%s", subscope)
@@ -40,7 +39,6 @@ func TestConsumerFilteringWithNoChanges(t *testing.T) {
 }
 
 func TestConsumerFilteringWithAConsumerToRemove(t *testing.T) {
-
 	expectedConsumerToRemove := "123456789"
 	existingConsumer := "1010101010"
 	subscope := "test/scope"
@@ -61,7 +59,6 @@ func TestConsumerFilteringWithAConsumerToRemove(t *testing.T) {
 }
 
 func TestConsumerFilteringWithAConsumerToAdd(t *testing.T) {
-
 	expectedConsumerToAdd := "123456789"
 	existingConsumer := "1010101010"
 	subscope := "test/scope"
@@ -82,7 +79,6 @@ func TestConsumerFilteringWithAConsumerToAdd(t *testing.T) {
 }
 
 func TestConsumerFilteringWithAConsumerToAddAndToRemoveToActivateAndExisting(t *testing.T) {
-
 	// More complex test
 	expectedConsumerToAdd := "123456789"
 	existingConsumer := "923456781"

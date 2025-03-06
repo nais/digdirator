@@ -231,7 +231,6 @@ func (c Client) RegisterScope(ctx context.Context, payload types.ScopeRegistrati
 	endpoint := c.endpoint("scopes")
 	registration := &types.ScopeRegistration{}
 	jsonPayload, err := json.Marshal(payload)
-
 	if err != nil {
 		return nil, fmt.Errorf("marshal payload: %w", err)
 	}

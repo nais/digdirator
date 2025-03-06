@@ -25,7 +25,7 @@ func IDPortenHandler(clientID string) http.HandlerFunc {
 }
 
 func handler(clientID, orgno, clientType string) http.HandlerFunc {
-	var clientExists = false
+	clientExists := false
 	clientTypeDir := path.Join(testdataDir, clientType)
 
 	respond := func(w http.ResponseWriter, body string) {

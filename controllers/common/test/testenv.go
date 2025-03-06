@@ -68,7 +68,6 @@ func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Clien
 			BindAddress: "0",
 		},
 	})
-
 	if err != nil {
 		return nil, nil, err
 	}

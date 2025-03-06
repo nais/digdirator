@@ -72,7 +72,7 @@ func assertPemStringsEqualsX5cStrings(t *testing.T, x5c []string, certs []*x509.
 			return "", err
 		}
 
-		var certString = b.String()
+		certString := b.String()
 		certString = strings.ReplaceAll(certString, "\n", "")
 		certString = strings.TrimPrefix(certString, prefix)
 		certString = strings.TrimSuffix(certString, suffix)

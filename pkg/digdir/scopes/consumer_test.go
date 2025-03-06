@@ -1,13 +1,13 @@
 package scopes
 
 import (
+	"testing"
+
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestConsumerFilteringForExistingConsumersInDifferentStates(t *testing.T) {
-
 	// Preconditions
 
 	// found

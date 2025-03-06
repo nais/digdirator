@@ -28,9 +28,7 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
-var (
-	scheme = runtime.NewScheme()
-)
+var scheme = runtime.NewScheme()
 
 func init() {
 	ctrlmetrics.Registry.MustRegister(metrics.AllMetrics...)
@@ -42,7 +40,6 @@ func init() {
 
 func main() {
 	err := run()
-
 	if err != nil {
 		log.Error(err, "Run loop errored")
 		os.Exit(1)
