@@ -228,7 +228,6 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, cfg *confi
 		IntegrationType:         types.IntegrationTypeMaskinporten,
 		PostLogoutRedirectURIs:  nil,
 		RedirectURIs:            nil,
-		RefreshTokenLifetime:    0,
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
 		Scopes:                  in.GetConsumedScopes(),
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,

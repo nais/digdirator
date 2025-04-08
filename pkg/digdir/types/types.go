@@ -64,7 +64,7 @@ type ClientRegistration struct {
 	IntegrationType                   IntegrationType         `json:"integration_type"`
 	PostLogoutRedirectURIs            []string                `json:"post_logout_redirect_uris"`
 	RedirectURIs                      []string                `json:"redirect_uris"`
-	RefreshTokenLifetime              int                     `json:"refresh_token_lifetime"`
+	RefreshTokenLifetime              int                     `json:"refresh_token_lifetime,omitzero"`
 	RefreshTokenUsage                 RefreshTokenUsage       `json:"refresh_token_usage"`
 	Scopes                            []string                `json:"scopes"`
 	SSODisabled                       bool                    `json:"sso_disabled"`
