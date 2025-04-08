@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	cache "github.com/Code-Hex/go-generics-cache"
@@ -61,6 +62,10 @@ func NewClient(config *config.Config, httpClient *http.Client, signer jose.Signe
 	adminURL, err := url.Parse(config.DigDir.Admin.BaseURL)
 	if err != nil {
 		return Client{}, fmt.Errorf("parsing DigDir admin URL: %w", err)
+	}
+
+	if !strings.HasSuffix(adminURL.Path, "/api/v1") {
+		adminURL = adminURL.JoinPath("/api/v1")
 	}
 
 	return Client{
