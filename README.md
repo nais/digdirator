@@ -1,31 +1,158 @@
 # digdirator
 
-Digdirator is a Kubernetes cluster operator for automated registration and lifecycle management of ID-porten and
-Maskinporten clients (integrations) with feature Maskinporten Scopes (APIS).
+Digdirator is a Kubernetes operator for declarative registration and lifecycle management of
+various resources within [Digdir](https://docs.digdir.no/) through
+its [self-service API](https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin).
+It currently supports:
 
-## CRD
+- [ID-porten clients / integrations](https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin.html)
+- [Maskinporten clients / integrations](https://docs.digdir.no/docs/Maskinporten/maskinporten_sjolvbetjening_api.html)
+- [Maskinporten scopes / APIs](https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin_maskinporten.html)
 
-The operator introduces two new Kinds:  
-`IDPortenClient` (shortname `idportenclient`) and `MaskinportenClient` (shortname `maskinportenclient`), and acts upon
-changes to these.
+## CRDs
 
-See the specs in [liberator](https://github.com/nais/liberator) for details:
+The operator uses two custom resource definitions (CRDs):
 
-- [config/crd/nais.io_idportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_idportenclients.yaml)
-  and
-- [config/crd/nais.io_maskinportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_maskinportenclients.yaml)
-  for details.
+### `IDPortenClient`
 
-Sample resources:
+```yaml
+apiVersion: nais.io/v1
+kind: IDPortenClient
+metadata:
+  name: my-app
+  namespace: my-team
+spec:
+  clientURI: "https://domain.example"
+  frontchannelLogoutURI: "https://domain.example/oauth2/logout/frontchannel"
+  redirectURIs:
+    - "https://domain.example/oauth2/callback"
+  postLogoutRedirectURIs:
+    - "https://domain.example/oauth2/logout/callback"
+  secretName: my-secret
+```
 
-- [config/samples/idportenclient.yaml](config/samples/idportenclient.yaml)
-- [config/samples/maskinportenclient.yaml](config/samples/maskinportenclient.yaml).
+For the full CRD specification with all possible options, see
+[nais/liberator/config/crd/nais.io_idportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_idportenclients.yaml)
+
+An `IDPortenClient` resource contains:
+
+- the client configuration
+- the name of the Kubernetes secret that the application expects to contain the client's credentials
+
+The Kubernetes secret contains the following keys:
+
+| Key                        | Description                                                                                     |
+|----------------------------|-------------------------------------------------------------------------------------------------|
+| `IDPORTEN_CLIENT_ID`       | The application's client ID.                                                                    |
+| `IDPORTEN_CLIENT_JWK`      | The application's private JSON Web Key (JWK) for client authentication (RFC 7523, section 2.2). |
+| `IDPORTEN_WELL_KNOWN_URL`  | The URL pointing to the ID-porten's well-known metadata document.                               |
+| `IDPORTEN_ISSUER`          | The `issuer` property from the metadata document.                                               |
+| `IDPORTEN_JWKS_URI`        | The `jwks_uri` property from the metadata document.                                             |
+| `IDPORTEN_TOKEN_ENDPOINT`  | The `token_endpoint` property from the metadata document.                                       |
+
+### `MaskinportenClient`
+
+```yaml
+---
+apiVersion: nais.io/v1
+kind: MaskinportenClient
+metadata:
+  name: my-app
+  namespace: my-team
+spec:
+  secretName: my-secret
+  scopes:
+    exposes:
+      # results in the fully qualified scope name:
+      # `prefix:product:some/scope`
+      - product: "product"
+        name: "some/scope"
+        enabled: true
+        consumers:
+          - orgno: "889640782"
+    consumes:
+      - name: "prefix:some/api.read"
+```
+
+For the full CRD specification with all possible options, see
+[config/crd/nais.io_maskinportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_maskinportenclients.yaml)
+
+A `MaskinportenClient` resource contains:
+
+- a list of scopes the application _consumes_ or needs access to (optional)
+- a list of scopes the application _exposes_ (optional)
+  - note: this will be extracted to its own CRD at some point
+- the name of the Kubernetes secret that the application expects to contain the client's credentials
+
+The Kubernetes secret contains the following keys:
+
+| Key                           | Description                                                                                     |
+|-------------------------------|-------------------------------------------------------------------------------------------------|
+| `MASKINPORTEN_CLIENT_ID`      | The application's client ID.                                                                    |
+| `MASKINPORTEN_CLIENT_JWK`     | The application's private JSON Web Key (JWK) for client authentication (RFC 7523, section 2.2). |
+| `MASKINPORTEN_WELL_KNOWN_URL` | The URL pointing to Maskinporten's well-known metadata document.                                |
+| `MASKINPORTEN_ISSUER`         | The `issuer` property from the metadata document.                                               |
+| `MASKINPORTEN_JWKS_URI`       | The `jwks_uri` property from the metadata document.                                             |
+| `MASKINPORTEN_TOKEN_ENDPOINT` | The `token_endpoint` property from the metadata document.                                       |
 
 ## Lifecycle
 
-![overview][overview]
+```mermaid
+sequenceDiagram
+    actor developer as Developer or<br/>Operator
+    box rgba(33,66,99,0.5) Kubernetes Cluster
+        participant crd as IDPortenClient or<br/>MaskinportenClient
+        participant secrets as Secrets
+        participant digdirator as Digdirator
+    end
+    participant kms as Google Cloud KMS
+    participant digdir as Digdir Admin API
 
-[overview]: ./docs/sequence.png "Sequence diagram"
+    loop forever
+      digdirator ->> crd: watches
+    end
+    developer ->> crd: apply resource
+    digdirator ->> crd: get resource
+    crd ->> secrets: owns
+    digdirator ->> secrets: get all owned by resource
+    alt `spec.secretName` has changed
+      digdirator ->> digdirator: create new private key
+    else `spec.secretName` is unchanged
+      digdirator ->> digdirator: re-use private key from existing secret
+    end
+    loop for each API request
+      digdirator ->> digdirator: create client assertion
+      digdirator ->> kms: sign client assertion
+    end
+    digdirator ->> digdir: create/update client
+    digdirator ->> digdir: create/update client jwks
+    alt if exposes maskinporten scopes
+      digdirator ->> digdir: create/update scopes
+      digdirator ->> digdir: add/remove consumers
+    end
+    digdirator ->> secrets: create/update
+    loop for each owned secret
+      alt name equals `spec.secretName`
+        digdirator ->> secrets: keep secret
+      else
+        digdirator ->> secrets: delete if<br/>unreferenced
+      end
+    end
+```
+
+1. When an `IDPortenClient` or a `MaskinportenClient` resource is applied to the cluster (either by a developer or another operator), the Digdirator controller will reconcile it.
+2. Digdirator reads the resource and retrieves all existing secrets owned by the resource.
+3. Digdirator then checks if the `spec.secretName` has changed:
+    1. If the secret name has changed, it creates a new private key for the application.
+    2. If the secret name is unchanged, it reuses the private key from the existing secret.
+4. For each request to Digdir's admin API, Digdirator creates a client assertion for authentication.
+5. The application's configuration and public keys (JWKS) are registered/updated through the API.
+    1. The JWKS contains all currently used public keys to ensure key rotation works properly.
+    2. If the `MaskinportenClient` resource exposes Maskinporten scopes, these are also registered/updated. Consumers are added/removed as needed.
+6. The operator creates or updates the Kubernetes secret with the specified `spec.secretName`.
+7. Finally, any unreferenced secrets are deleted to clean up resources.
+    1. Secrets are considered referenced if mounted as files or environment variables in a `Pod`.
+       The `Pod` must have a label `app=<name>` where `<name>` is equal to `.metadata.name` in the `IDPortenClient` or `MaskinportenClient` resource.
 
 ## Usage
 
@@ -35,9 +162,9 @@ Sample resources:
 make install
 ```
 
-### DigDir Setup
+### Digdir Setup
 
-See the documentation over at DigDir for acquiring clients with the required scopes to access the self-service APIs:
+See the documentation over at Digdir for acquiring clients with the required scopes to access the self-service APIs:
 
 - <https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin_maskinporten#hvordan-f%C3%A5-tilgang->
 - <https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin#hvordan-f%C3%A5-tilgang->
@@ -68,36 +195,29 @@ The private key should be imported with the purpose set to `ASYMMETRIC_SIGN`, an
 
 ### Configuration
 
-Digdirator can be configured using either command-line flags or equivalent environment variables (i.e. `-`, `.` -> `_`
-and uppercase), with `DIGDIRATOR_` as prefix. E.g.:
+Digdirator can be configured using command-line flags:
 
-```text
-digdir.admin.base-url -> DIGDIRATOR_ADMIN_BASE_URL
-```
-
-The following flags are available:
-
-```shell
---cluster-name string                               The cluster in which this application should run.
---development-mode string                           Toggle for development mode. (default "false")
---digdir.admin.base-url string                      Base URL endpoint for interacting with DigDir self service API
---digdir.admin.cert-chain string                    Full certificate chain in PEM format for business certificate used to sign JWT assertion.
---digdir.admin.client-id string                     Client ID / issuer for JWT assertion when authenticating with DigDir self service API.
---digdir.admin.kms-key-path string                  Resource path to Google KMS key used to sign JWT assertion.
---digdir.admin.scopes string                        List of space-separated scopes for JWT assertion when authenticating with DigDir self service API. (default "idporten:dcr.write idporten:dcr.read idporten:scopes.write")
---digdir.common.access-token-lifetime int           Default lifetime (in seconds) for access tokens for all clients. (default 3600)
---digdir.common.client-name string                  Default name for all provisioned clients. Appears in the login prompt for ID-porten. (default "ARBEIDS- OG VELFERDSETATEN")
---digdir.common.client-uri string                   Default client URI for all provisioned clients. Appears in the back-button for the login prompt for ID-porten. (default "https://www.nav.no")
---digdir.common.session-lifetime int                Default lifetime (in seconds) for sessions (authorization and refresh token lifetime) for all clients. (default 7200)
---digdir.idporten.well-known-url string             URL to ID-porten well-known discovery metadata document.
---digdir.maskinporten.default.client-scope string   Default scope for provisioned Maskinporten clients, if none specified in spec. (default "nav:test/api")
---digdir.maskinporten.default.scope-prefix string   Default scope prefix for provisioned Maskinporten scopes. (default "nav")
---digdir.maskinporten.well-known-url string         URL to Maskinporten well-known discovery metadata document.
---features.maskinporten                             Feature toggle for maskinporten
---leader-election.enabled                           Toggle for enabling leader election. (default "false")
---leader-election.namespace string                  Namespace for the leader election resource. Needed if not running in-cluster (e.g. locally). If empty, will default to the same namespace as the running application. (default "")
---metrics-address string                            The address the metric endpoint binds to. (default ":8080")
-```
+| Flag                                         | Type    | Default Value                                                | Description                                                                                                                         |
+|:---------------------------------------------|:--------|:-------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------|
+| `--cluster-name`                             | string  |                                                              | The cluster in which this application should run.                                                                                   |
+| `--development-mode`                         | string  | `false`                                                      | Toggle for development mode.                                                                                                        |
+| `--digdir.admin.base-url`                    | string  |                                                              | Base URL endpoint for interacting with DigDir self service API.                                                                     |
+| `--digdir.admin.cert-chain`                  | string  |                                                              | Full certificate chain in PEM format for business certificate used to sign JWT assertion.                                           |
+| `--digdir.admin.client-id`                   | string  |                                                              | Client ID / issuer for JWT assertion when authenticating with DigDir self service API.                                              |
+| `--digdir.admin.kms-key-path`                | string  |                                                              | Resource path to Google KMS key used to sign JWT assertion.                                                                         |
+| `--digdir.admin.scopes`                      | string  | `idporten:dcr.write idporten:dcr.read idporten:scopes.write` | List of space-separated scopes for JWT assertion when authenticating with DigDir self service API.                                  |
+| `--digdir.common.access-token-lifetime`      | int     | `3600`                                                       | Default lifetime (in seconds) for access tokens for all clients.                                                                    |
+| `--digdir.common.client-name`                | string  | `ARBEIDS- OG VELFERDSETATEN`                                 | Default name for all provisioned clients. Appears in the login prompt for ID-porten.                                                |
+| `--digdir.common.client-uri`                 | string  | `https://www.nav.no`                                         | Default client URI for all provisioned clients. Appears in the back-button for the login prompt for ID-porten.                      |
+| `--digdir.common.session-lifetime`           | int     | `7200`                                                       | Default lifetime (in seconds) for sessions (authorization and refresh token lifetime) for all clients.                              |
+| `--digdir.idporten.well-known-url`           | string  |                                                              | URL to [ID-porten well-known discovery metadata document](https://docs.digdir.no/docs/idporten/oidc/oidc_func_wellknown.html).      |
+| `--digdir.maskinporten.default.client-scope` | string  | `nav:test/api`                                               | Default scope for provisioned Maskinporten clients, if none specified in spec.                                                      |
+| `--digdir.maskinporten.default.scope-prefix` | string  | `nav`                                                        | Default scope prefix for provisioned Maskinporten scopes.                                                                           |
+| `--digdir.maskinporten.well-known-url`       | string  |                                                              | URL to [Maskinporten well-known discovery metadata document](https://docs.digdir.no/docs/Maskinporten/maskinporten_func_wellknown). |
+| `--features.maskinporten`                    | boolean | `false`                                                      | Feature toggle for maskinporten.                                                                                                    |
+| `--leader-election.enabled`                  | boolean | `false`                                                      | Toggle for enabling leader election.                                                                                                |
+| `--leader-election.namespace`                | string  |                                                              | Namespace for the leader election resource. Needed if not running in-cluster (e.g. locally).                                        |
+| `--metrics-address`                          | string  | `:8080`                                                      | The address the metric endpoint binds to.                                                                                           |
 
 At minimum, the following configuration must be provided:
 
@@ -110,7 +230,19 @@ At minimum, the following configuration must be provided:
 - `digdir.idporten.well-known-url`
 - `digdir.maskinporten.well-known-url`
 
-Equivalently, one can specify these properties using JSON, TOML, YAML, HCL, envfile and Java properties config files.
+The properties can also be set using environment variables using the following convention:
+
+- convert to uppercase
+- replace dashes (`-`) and dots (`.`) with underscores (`_`)
+- prefix the property with `DIGDIRATOR_`
+
+For example:
+
+```text
+digdir.admin.base-url -> DIGDIRATOR_ADMIN_BASE_URL
+```
+
+Properties can also be specified using JSON, TOML or YAML config files.
 Digdirator looks for a file named `digdirator.<ext>` in the directories [`.`, `/etc/`].
 
 Example configuration in YAML:
