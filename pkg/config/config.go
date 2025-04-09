@@ -189,6 +189,11 @@ func (c Config) Validate(required []string) error {
 	if len(errs) > 0 {
 		return errors.New("missing configuration values")
 	}
+
+	if _, err := url.Parse(c.DigDir.Admin.BaseURL); err != nil {
+		return fmt.Errorf("parsing %q: %w", DigDirAdminBaseURL, err)
+	}
+
 	return nil
 }
 
@@ -216,11 +221,7 @@ func (c Config) WithProviderMetadata(ctx context.Context) (*Config, error) {
 }
 
 func (c Config) delegationSources(ctx context.Context) (map[string]types.DelegationSource, error) {
-	delegationSourceURL, err := url.JoinPath(c.DigDir.Admin.BaseURL, "delegationsources")
-	if err != nil {
-		return nil, fmt.Errorf("parse delegation source url: %w", err)
-	}
-
+	delegationSourceURL := c.DigDir.Admin.ApiV1URL().JoinPath("delegationsources").String()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, delegationSourceURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("make delegation source request: %w", err)
@@ -244,6 +245,18 @@ func (c Config) delegationSources(ctx context.Context) (map[string]types.Delegat
 	}
 
 	return delegationSourceMap, nil
+}
+
+func (a Admin) ApiV1URL() *url.URL {
+	adminURL, err := url.Parse(a.BaseURL)
+	if err != nil {
+		log.Fatalf("parsing admin URL: %s", err)
+	}
+
+	if strings.HasSuffix(adminURL.Path, "/api/v1") {
+		return adminURL
+	}
+	return adminURL.JoinPath("/api/v1")
 }
 
 func decoderHook(dc *mapstructure.DecoderConfig) {

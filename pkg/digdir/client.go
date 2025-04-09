@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	cache "github.com/Code-Hex/go-generics-cache"
@@ -55,24 +54,13 @@ type Client struct {
 	HttpClient *http.Client
 	Signer     jose.Signer
 	Config     *config.Config
-	adminURL   *url.URL
 }
 
 func NewClient(config *config.Config, httpClient *http.Client, signer jose.Signer) (Client, error) {
-	adminURL, err := url.Parse(config.DigDir.Admin.BaseURL)
-	if err != nil {
-		return Client{}, fmt.Errorf("parsing DigDir admin URL: %w", err)
-	}
-
-	if !strings.HasSuffix(adminURL.Path, "/api/v1") {
-		adminURL = adminURL.JoinPath("/api/v1")
-	}
-
 	return Client{
 		Config:     config,
 		HttpClient: httpClient,
 		Signer:     signer,
-		adminURL:   adminURL,
 	}, nil
 }
 
@@ -302,7 +290,7 @@ func (c Client) DeactivateConsumer(ctx context.Context, scope, consumerOrgno str
 }
 
 func (c Client) endpoint(path ...string) string {
-	return c.adminURL.JoinPath(path...).String()
+	return c.Config.DigDir.Admin.ApiV1URL().JoinPath(path...).String()
 }
 
 func (c Client) request(ctx context.Context, method string, endpoint string, payload []byte, unmarshalTarget any) error {
