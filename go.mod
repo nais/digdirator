@@ -16,7 +16,7 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/google/uuid v1.6.0
-	github.com/nais/liberator v0.0.0-20250415063409-1f1c95868c49
+	github.com/nais/liberator v0.0.0-20250428065725-7619bf4635da
 	github.com/prometheus/client_golang v1.22.0
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.3
