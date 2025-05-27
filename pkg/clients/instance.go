@@ -141,6 +141,9 @@ func GetIDPortenDefaultScopes(integrationType string) []string {
 }
 
 func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Config) {
+	if in.Spec.ApplicationType == "" {
+		in.Spec.ApplicationType = string(types.ApplicationTypeWeb)
+	}
 	if in.Spec.AccessTokenLifetime == nil {
 		lifetime := cfg.DigDir.Common.AccessTokenLifetime
 		in.Spec.AccessTokenLifetime = &lifetime
@@ -183,9 +186,15 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 		ssoDisabled = true
 	}
 
+	// Set token endpoint auth method based on application type
+	tokenEndpointAuthMethod := types.TokenEndpointAuthMethodPrivateKeyJwt
+	if in.Spec.ApplicationType != string(types.ApplicationTypeWeb) {
+		tokenEndpointAuthMethod = types.TokenEndpointAuthMethodNone
+	}
+
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
-		ApplicationType:                   types.ApplicationTypeWeb,
+		ApplicationType:                   types.ApplicationType(in.Spec.ApplicationType),
 		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
 		ClientName:                        clientName,
 		ClientURI:                         string(in.Spec.ClientURI),
@@ -203,7 +212,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
 		Scopes:                  in.Spec.Scopes,
 		SSODisabled:             ssoDisabled,
-		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
+		TokenEndpointAuthMethod: tokenEndpointAuthMethod,
 	}
 }
 

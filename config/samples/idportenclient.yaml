@@ -5,6 +5,7 @@ metadata:
   name: my-app
   namespace: myteam
 spec:
+  applicationType: "web"
   clientURI: "https://min-app.nav.no"
   redirectURIs:
     - https://min-app.nav.no/oauth2/callback
