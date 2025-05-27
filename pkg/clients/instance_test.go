@@ -407,6 +407,47 @@ func TestToScopeRegistration(t *testing.T) {
 	})
 }
 
+func TestApplicationTypeAndAuthMethod(t *testing.T) {
+	client := fixtures.MinimalIDPortenClient()
+	cluster := "test-cluster"
+	cfg := makeConfig(cluster)
+
+	testCases := []struct {
+		name                string
+		setApplicationType  string
+		wantAuthMethod      types.TokenEndpointAuthMethod
+		wantApplicationType types.ApplicationType
+	}{
+		{
+			name:                "web application type should use private_key_jwt",
+			setApplicationType:  string(types.ApplicationTypeWeb),
+			wantAuthMethod:      types.TokenEndpointAuthMethodPrivateKeyJwt,
+			wantApplicationType: types.ApplicationTypeWeb,
+		},
+		{
+			name:                "native application type should use none",
+			setApplicationType:  string(types.ApplicationTypeNative),
+			wantAuthMethod:      types.TokenEndpointAuthMethodNone,
+			wantApplicationType: types.ApplicationTypeNative,
+		},
+		{
+			name:                "browser application type should use none",
+			setApplicationType:  string(types.ApplicationTypeBrowser),
+			wantAuthMethod:      types.TokenEndpointAuthMethodNone,
+			wantApplicationType: types.ApplicationTypeBrowser,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			client.Spec.ApplicationType = testCase.setApplicationType
+			registration := clients.ToClientRegistration(client, cfg)
+			assert.Equal(t, testCase.wantAuthMethod, registration.TokenEndpointAuthMethod, "token endpoint auth method should match")
+			assert.Equal(t, testCase.wantApplicationType, registration.ApplicationType, "application type should match")
+		})
+	}
+}
+
 func makeConfig(clusterName string) *config.Config {
 	return &config.Config{
 		ClusterName: clusterName,
