@@ -1,6 +1,6 @@
 module github.com/nais/digdirator
 
-go 1.24.2
+go 1.24.5
 
 tool (
 	golang.org/x/tools/cmd/deadcode
