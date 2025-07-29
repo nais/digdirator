@@ -14,7 +14,7 @@ require (
 	github.com/Code-Hex/go-generics-cache v1.5.1
 	github.com/go-jose/go-jose/v4 v4.1.0
 	github.com/go-logr/zapr v1.3.0
-	github.com/go-viper/mapstructure/v2 v2.2.1
+	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/google/uuid v1.6.0
 	github.com/nais/liberator v0.0.0-20250428065725-7619bf4635da
 	github.com/prometheus/client_golang v1.22.0
