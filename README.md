@@ -239,7 +239,7 @@ The properties can also be set using environment variables using the following c
 For example:
 
 ```text
-digdir.admin.base-url -> DIGDIRATOR_ADMIN_BASE_URL
+digdir.admin.base-url -> DIGDIRATOR_DIGDIR_ADMIN_BASE_URL
 ```
 
 Properties can also be specified using JSON, TOML or YAML config files.
