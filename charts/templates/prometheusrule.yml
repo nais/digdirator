@@ -25,17 +25,17 @@ spec:
             severity: warning
             namespace: {{ .Release.Namespace }}
         - alert: {{ include "digdirator.fullname" . }} failed provisioning Maskinporten clients
-            expr: sum(rate(maskinporten_client_failed_processing_count[5m])) > 0
-            for: 15m
-            annotations:
-              summary: {{ include "digdirator.fullname" . }} has failed processing Maskinporten clients for more than 15 minutes
-              consequence: Applications that have maskinporten enabled might not start up as they are dependant on a secret created by Digdirator.
-              action: |
-                * Check DigDir status pages: https://status.digdir.no/ or https://testmiljo.status.digdir.no
-                * Check the dashboard and/or logs: `kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "digdirator.fullname" . }}`"`
-              dashboard_url: "https://monitoring.nais.io/d/0Ohl03c7k/digdirator?var-tenant={{ .Values.fasit.tenant.name }}&var-cluster={{ .Values.fasit.env.name }}"
-              runbook_url: "https://github.com/nais/vakt/blob/master/digdirator.md"
-            labels:
-              severity: warning
-              namespace: {{ .Release.Namespace }}
+          expr: sum(rate(maskinporten_client_failed_processing_count[5m])) > 0
+          for: 15m
+          annotations:
+            summary: {{ include "digdirator.fullname" . }} has failed processing Maskinporten clients for more than 15 minutes
+            consequence: Applications that have maskinporten enabled might not start up as they are dependant on a secret created by Digdirator.
+            action: |
+              * Check DigDir status pages: https://status.digdir.no/ or https://testmiljo.status.digdir.no
+              * Check the dashboard and/or logs: `kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "digdirator.fullname" . }}`"`
+            dashboard_url: "https://monitoring.nais.io/d/0Ohl03c7k/digdirator?var-tenant={{ .Values.fasit.tenant.name }}&var-cluster={{ .Values.fasit.env.name }}"
+            runbook_url: "https://github.com/nais/vakt/blob/master/digdirator.md"
+          labels:
+            severity: warning
+            namespace: {{ .Release.Namespace }}
 {{ end }}
