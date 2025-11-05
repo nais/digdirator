@@ -21,16 +21,19 @@ func handler(clientID, orgno, clientType string) http.HandlerFunc {
 	clientTypeDir := path.Join(testdataDir, clientType)
 
 	respond := func(w http.ResponseWriter, body string) {
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		_, _ = w.Write([]byte(body))
 	}
 
 	respondFile := func(w http.ResponseWriter, name string) {
 		body, _ := os.ReadFile(path.Join(testdataDir, name))
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		_, _ = w.Write(body)
 	}
 
 	respondFileForClientType := func(w http.ResponseWriter, name string) {
 		body, _ := os.ReadFile(path.Join(clientTypeDir, name))
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		_, _ = w.Write(body)
 	}
 

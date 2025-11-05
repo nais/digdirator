@@ -198,19 +198,19 @@ func (c Config) Validate(required []string) error {
 }
 
 func (c Config) WithProviderMetadata(ctx context.Context) (*Config, error) {
-	idportenMetadata, err := oauth.Metadata(c.DigDir.IDPorten.WellKnownURL).OpenID(ctx)
+	idportenMetadata, err := oauth.NewMetadataOpenID(ctx, c.DigDir.IDPorten.WellKnownURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("resolving ID-porten metadata from %q: %w", c.DigDir.IDPorten.WellKnownURL, err)
 	}
 
-	maskinportenMetadata, err := oauth.Metadata(c.DigDir.Maskinporten.WellKnownURL).OAuth(ctx)
+	maskinportenMetadata, err := oauth.NewMetadataOAuth(ctx, c.DigDir.Maskinporten.WellKnownURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("resolving Maskinporten metadata from %q: %w", c.DigDir.Maskinporten.WellKnownURL, err)
 	}
 
 	delegationSources, err := c.delegationSources(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("resolving delegation sources: %w", err)
 	}
 
 	c.DigDir.IDPorten.Metadata = *idportenMetadata

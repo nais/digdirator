@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 	handler := test.IDPortenHandler(test.ClientID)
 	testEnv, testEnvClient, err := test.SetupTestEnv(handler)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("setting up test environment: ", err)
 	}
 	cli = *testEnvClient
 	code := m.Run()

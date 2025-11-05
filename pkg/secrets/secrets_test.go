@@ -132,21 +132,17 @@ func makeConfig() *config.Config {
 			IDPorten: config.IDPorten{
 				WellKnownURL: "https://idporten.example.com/.well-known/openid-configuration",
 				Metadata: oauth.MetadataOpenID{
-					MetadataCommon: oauth.MetadataCommon{
-						Issuer:        "https://idporten.example.com/",
-						JwksURI:       "https://idporten.example.com/jwk",
-						TokenEndpoint: "https://idporten.example.com/token",
-					},
+					Issuer:        "https://idporten.example.com/",
+					JwksURI:       "https://idporten.example.com/jwk",
+					TokenEndpoint: "https://idporten.example.com/token",
 				},
 			},
 			Maskinporten: config.Maskinporten{
 				WellKnownURL: "https://maskinporten.example.com/.well-known/oauth-authorization-server",
 				Metadata: oauth.MetadataOAuth{
-					MetadataCommon: oauth.MetadataCommon{
-						Issuer:        "https://maskinporten.example.com/",
-						JwksURI:       "https://maskinporten.example.com/jwk",
-						TokenEndpoint: "https://maskinporten.example.com/token",
-					},
+					Issuer:        "https://maskinporten.example.com/",
+					JwksURI:       "https://maskinporten.example.com/jwk",
+					TokenEndpoint: "https://maskinporten.example.com/token",
 				},
 			},
 		},

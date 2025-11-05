@@ -52,12 +52,12 @@ func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Clien
 
 	cfg, err := testEnv.Start()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("starting test environment: %v", err)
 	}
 
 	err = nais_io_v1.AddToScheme(scheme.Scheme)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("adding nais.io v1 to scheme: %v", err)
 	}
 
 	// +kubebuilder:scaffold:scheme
@@ -69,7 +69,7 @@ func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Clien
 		},
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("creating controller manager: %v", err)
 	}
 
 	cli := mgr.GetClient()
@@ -99,12 +99,12 @@ func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Clien
 
 	digdiratorConfig, err = digdiratorConfig.WithProviderMetadata(context.Background())
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("loading provider metadata: %v", err)
 	}
 
 	digdirClient, err := digdir.NewClient(digdiratorConfig, httpClient, signer)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("creating digdir client: %v", err)
 	}
 
 	commonReconciler := common.NewReconciler(
@@ -119,13 +119,13 @@ func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Clien
 	idportenreconciler := idportenclient.NewReconciler(commonReconciler)
 	err = idportenreconciler.SetupWithManager(mgr)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("setting up idporten reconciler: %v", err)
 	}
 
 	maskinportenreconciler := maskinportenclient.NewReconciler(commonReconciler)
 	err = maskinportenreconciler.SetupWithManager(mgr)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("setting up maskinporten reconciler: %v", err)
 	}
 
 	go func() {
