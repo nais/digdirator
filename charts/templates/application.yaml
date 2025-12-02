@@ -17,7 +17,7 @@ spec:
     enabled: true
     path: /metrics
   env:
-    - name: "LEADER_ELECTION_ENABLED"
+    - name: "DIGDIRATOR_LEADER_ELECTION_ENABLED"
       value: "true"
   envFrom:
     - secret: digdirator-env
