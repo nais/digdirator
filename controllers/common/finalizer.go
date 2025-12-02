@@ -21,6 +21,7 @@ func (r *Reconciler) finalize(tx *Transaction) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
+	log := ctrl.LoggerFrom(tx.Ctx).WithValues("subsystem", "finalizer")
 	exists, err := r.DigDirClient.Exists(tx.Ctx, tx.Instance, r.Config.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("finalizer: checking client existence: %w", err)
@@ -29,14 +30,14 @@ func (r *Reconciler) finalize(tx *Transaction) (ctrl.Result, error) {
 	// delete client registration
 	switch {
 	case !exists:
-		tx.Logger.Info("finalizer: client does not exist in DigDir, skipping external deletion...")
+		log.Info("client does not exist in DigDir, skipping external deletion...")
 	case shouldPreserve(tx.Instance):
-		tx.Logger.Info("finalizer: preserve annotation set, skipping external deletion...")
+		log.Info("preserve annotation set, skipping external deletion...")
 	default:
 		if err := r.DigDirClient.Delete(tx.Ctx, tx.Instance.GetStatus().ClientID); err != nil {
 			return ctrl.Result{}, fmt.Errorf("deleting client: %w", err)
 		}
-		tx.Logger.Info("finalizer: deleted client from DigDir")
+		log.Info("deleted client from DigDir")
 	}
 
 	if obj, ok := tx.Instance.(*naisiov1.MaskinportenClient); ok {

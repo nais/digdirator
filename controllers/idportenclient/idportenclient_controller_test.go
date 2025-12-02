@@ -2,11 +2,11 @@ package idportenclient_test
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"testing"
 
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 	handler := test.IDPortenHandler(test.ClientID)
 	testEnv, testEnvClient, err := test.SetupTestEnv(handler)
 	if err != nil {
-		log.Fatal("setting up test environment: ", err)
+		slog.Error("setting up test environment", "error", err)
 	}
 	cli = *testEnvClient
 	code := m.Run()

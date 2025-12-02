@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,15 +12,14 @@ import (
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
+	"github.com/go-logr/logr"
 	"github.com/nais/digdirator/pkg/digdir"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/crd"
-	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	ctrlmetricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/nais/digdirator/controllers/common"
@@ -36,9 +36,12 @@ const (
 )
 
 func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Client, error) {
-	logger := zap.New(zap.UseDevMode(true))
-	ctrl.SetLogger(logger)
-	log.SetLevel(log.DebugLevel)
+	h := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelDebug,
+		AddSource: true,
+	})
+	slog.SetDefault(slog.New(h))
+	ctrl.SetLogger(logr.FromSlogHandler(h))
 
 	crdPath := crd.YamlDirectory()
 	testEnv := &envtest.Environment{
@@ -185,7 +188,7 @@ func getFirstFoundEnvTestBinaryDir() string {
 	basePath := filepath.Join("..", "..", "bin", "k8s")
 	entries, err := os.ReadDir(basePath)
 	if err != nil {
-		log.WithError(err).WithField("path", basePath).Errorf("Failed to read directory; have you run 'make setup-envtest'?")
+		slog.Error("Failed to read directory; have you run 'make setup-envtest'?", "path", basePath, "error", err)
 		return ""
 	}
 	for _, entry := range entries {

@@ -8,7 +8,7 @@ spec:
   clientURI: "https://min-app.nav.no"
   redirectURIs:
     - https://min-app.nav.no/oauth2/callback
-  secretName: my-secret
+  secretName: idporten-secret
   frontchannelLogoutURI: "https://min-app.nav.no/oauth2/logout"
   postLogoutRedirectURIs:
     - "https://nav.no"

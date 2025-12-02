@@ -200,7 +200,6 @@ Digdirator can be configured using command-line flags:
 | Flag                                         | Type    | Default Value                                                | Description                                                                                                                         |
 |:---------------------------------------------|:--------|:-------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------|
 | `--cluster-name`                             | string  |                                                              | The cluster in which this application should run.                                                                                   |
-| `--development-mode`                         | string  | `false`                                                      | Toggle for development mode.                                                                                                        |
 | `--digdir.admin.base-url`                    | string  |                                                              | Base URL endpoint for interacting with DigDir self service API.                                                                     |
 | `--digdir.admin.cert-chain`                  | string  |                                                              | Full certificate chain in PEM format for business certificate used to sign JWT assertion.                                           |
 | `--digdir.admin.client-id`                   | string  |                                                              | Client ID / issuer for JWT assertion when authenticating with DigDir self service API.                                              |
@@ -251,7 +250,6 @@ Example configuration in YAML:
 # ./digdirator.yaml
 
 cluster-name: local
-development-mode: true
 features:
   maskinporten: true
 digdir:

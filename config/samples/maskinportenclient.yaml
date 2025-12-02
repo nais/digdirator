@@ -5,7 +5,7 @@ metadata:
   name: my-app
   namespace: myteam
 spec:
-  secretName: my-secret
+  secretName: maskinporten-secret
   scopes:
     exposes:
       # nav:arbeid:digdirator.test.read

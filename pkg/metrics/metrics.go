@@ -3,12 +3,12 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -20,6 +20,8 @@ import (
 const (
 	labelNamespace = "namespace"
 )
+
+var log *slog.Logger
 
 var (
 	IDPortenClientsTotal = prometheus.NewGauge(
@@ -383,6 +385,7 @@ type metrics struct {
 }
 
 func New(reader client.Reader) Metrics {
+	log = slog.Default().With("subsystem", "metrics")
 	return metrics{
 		reader: reader,
 	}
@@ -404,7 +407,7 @@ func (m metrics) InitWithNamespaceLabels() {
 		WithMaxDuration(1*time.Minute).
 		Do(context.Background(), retryable)
 	if err != nil {
-		log.Error(err)
+		log.Error("listing namespaces", "error", err)
 	}
 
 	for _, n := range ns.Items {
@@ -413,7 +416,7 @@ func (m metrics) InitWithNamespaceLabels() {
 		}
 	}
 
-	log.Infof("metrics with namespace labels initialized")
+	log.Info("metrics with namespace labels initialized")
 }
 
 func (m metrics) Refresh(ctx context.Context) {
@@ -433,24 +436,24 @@ func (m metrics) Refresh(ctx context.Context) {
 		if err = m.reader.List(ctx, &idportenSecretList, client.MatchingLabels{
 			clients.TypeLabelKey: clients.IDPortenTypeLabelValue,
 		}); err != nil {
-			log.Errorf("failed to list idporten secrets: %v", err)
+			log.Error("failed to list idporten secrets", "error", err)
 		}
 		IDPortenSecretsTotal.Set(float64(len(idportenSecretList.Items)))
 
 		if err = m.reader.List(ctx, &maskinportenSecretList, client.MatchingLabels{
 			clients.TypeLabelKey: clients.MaskinportenTypeLabelValue,
 		}); err != nil {
-			log.Errorf("failed to list maskinporten secrets: %v", err)
+			log.Error("failed to list maskinporten secrets", "error", err)
 		}
 		MaskinportenSecretsTotal.Set(float64(len(maskinportenSecretList.Items)))
 
 		if err = m.reader.List(ctx, &idportenClientsList); err != nil {
-			log.Errorf("failed to list idporten clients: %v", err)
+			log.Error("failed to list idporten clients", "error", err)
 		}
 		IDPortenClientsTotal.Set(float64(len(idportenClientsList.Items)))
 
 		if err = m.reader.List(ctx, &maskinportenClientsList); err != nil {
-			log.Errorf("failed to list maskinporten clients: %v", err)
+			log.Error("failed to list maskinporten clients", "error", err)
 		}
 		MaskinportenClientsTotal.Set(float64(len(maskinportenClientsList.Items)))
 

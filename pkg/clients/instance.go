@@ -1,7 +1,6 @@
 package clients
 
 import (
-	"reflect"
 	"time"
 
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -67,10 +66,6 @@ func GetIntegrationType(instance Instance) types.IntegrationType {
 		return types.IntegrationTypeMaskinporten
 	}
 	return types.IntegrationTypeUnknown
-}
-
-func GetInstanceType(instance Instance) string {
-	return reflect.TypeOf(instance).String()
 }
 
 func GetSecretName(instance Instance) string {

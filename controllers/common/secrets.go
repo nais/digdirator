@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-jose/go-jose/v4"
+	"github.com/go-logr/logr"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +28,7 @@ type secretsClient struct {
 	*Transaction
 	*Reconciler
 	secretName string
+	log        logr.Logger
 }
 
 func (r *Reconciler) secrets(transaction *Transaction) secretsClient {
@@ -34,13 +36,14 @@ func (r *Reconciler) secrets(transaction *Transaction) secretsClient {
 		Transaction: transaction,
 		Reconciler:  r,
 		secretName:  clients.GetSecretName(transaction.Instance),
+		log:         ctrl.LoggerFrom(transaction.Ctx).WithValues("subsystem", "secrets"),
 	}
 }
 
 func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
 	name := s.secretName
 	namespace := s.Instance.GetNamespace()
-	s.Logger.Infof("processing secret '%s'...", name)
+	s.log.V(4).Info(fmt.Sprintf("processing secret %q...", name))
 
 	stringData, err := secretData(s.Instance, jwk, s.Reconciler.Config)
 	if err != nil {
@@ -67,10 +70,10 @@ func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
 		return ctrl.SetControllerReference(s.Instance, target, s.Scheme)
 	})
 	if err != nil {
-		return fmt.Errorf("creating or updating secret %s: %w", name, err)
+		return fmt.Errorf("creating or updating secret %q: %w", name, err)
 	}
 
-	s.Logger.Infof("secret '%s' %s", name, res)
+	s.log.Info(fmt.Sprintf("secret %q %s", name, res))
 	return nil
 }
 
@@ -88,10 +91,12 @@ func (s secretsClient) DeleteUnused(unused corev1.SecretList) error {
 		if oldSecret.Name == s.secretName {
 			continue
 		}
-		s.Logger.Infof("deleting unused secret '%s'...", oldSecret.Name)
+
+		s.log.V(4).Info(fmt.Sprintf("deleting unused secret %q...", oldSecret.Name))
 		if err := s.Client.Delete(s.Ctx, &unused.Items[i]); err != nil {
 			return fmt.Errorf("deleting unused secret: %w", err)
 		}
+		s.log.Info(fmt.Sprintf("deleted unused secret %q", oldSecret.Name))
 	}
 	return nil
 }

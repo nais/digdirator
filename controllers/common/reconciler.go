@@ -10,7 +10,6 @@ import (
 	"github.com/go-jose/go-jose/v4"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
-	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -62,6 +61,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	log := ctrl.LoggerFrom(tx.Ctx)
+
 	if markedForDeletion(tx.Instance) {
 		return r.finalize(tx)
 	}
@@ -74,7 +75,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 	}
 
 	if clients.IsUpToDate(tx.Instance) && !HasRetryableStatusCondition(tx.Instance.GetStatus().Conditions) {
-		tx.Logger.Info("resource is up-to-date; skipping reconciliation")
+		log.Info("resource is up-to-date; skipping reconciliation")
 		// requeue later to re-evaluate and prevent resource drift
 		return ctrl.Result{RequeueAfter: 8 * time.Hour}, nil
 	}
@@ -84,48 +85,43 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 			return ctrl.Result{}, fmt.Errorf("observing error: %w", err)
 		}
 
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
 	conditions := tx.Instance.GetStatus().Conditions
 	switch {
 	case IsStatusConditionTrue(conditions, ConditionTypeInvalidConsumedScopes):
 		requeueAfter := 1 * time.Hour
-		tx.Logger.Infof("resource has invalid consumed scopes; requeuing reconciliation after %s", requeueAfter)
+		log.Info(fmt.Sprintf("resource has invalid consumed scopes; requeuing reconciliation after %s", requeueAfter))
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 
 	case IsStatusConditionTrue(conditions, ConditionTypeInvalidExposedScopesConsumers):
-		tx.Logger.Info("resource has invalid consumers in exposed scopes; will not requeue reconciliation")
+		log.Info("resource has invalid consumers in exposed scopes; will not requeue reconciliation")
 		return ctrl.Result{}, nil
 
 	default:
-		tx.Logger.Info("successfully reconciled")
+		log.Info("successfully reconciled")
 		metrics.IncClientsProcessed(tx.Instance)
 		// requeue immediately to re-evaluate resource
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 }
 
 func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance clients.Instance) (*Transaction, error) {
-	instanceType := clients.GetInstanceType(instance)
-	correlationID := controller.ReconcileIDFromContext(ctx)
-
 	if err := r.Reader.Get(ctx, req.NamespacedName, instance); err != nil {
 		return nil, err
 	}
 
+	log := ctrl.LoggerFrom(ctx).WithName("reconciler")
+	ctx = ctrl.LoggerInto(ctx, log)
+
 	status := instance.GetStatus()
+	log.WithValues(
+		"client_id", status.ClientID,
+		"key_ids", strings.Join(status.KeyIDs, ", "),
+	).Info("starting reconciliation")
 
-	fields := log.Fields{
-		"instance_type":      instanceType,
-		"instance_name":      req.Name,
-		"instance_namespace": req.Namespace,
-		"correlation_id":     correlationID,
-		"client_id":          status.ClientID,
-		"key_ids":            strings.Join(status.KeyIDs, ", "),
-	}
-
-	return NewTransaction(ctx, instance, log.WithFields(fields)), nil
+	return NewTransaction(ctx, instance), nil
 }
 
 func (r *Reconciler) process(tx *Transaction) error {
@@ -171,7 +167,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 		jwk, err = crypto.GetPreviousJwkFromSecret(managedSecrets, clients.GetSecretJwkKey(tx.Instance))
 		if err != nil {
 			if errors.Is(err, crypto.ErrNoPreviousJwkFound) {
-				tx.Logger.Warn("no previous JWK found in secrets, generating one...")
+				ctrl.LoggerFrom(tx.Ctx).V(0).Info("no previous JWK found in secrets, generating one...")
 				jwk, err = crypto.GenerateJwk()
 				if err != nil {
 					return fmt.Errorf("generating new JWK: %w", err)
@@ -266,7 +262,7 @@ func (r *Reconciler) observeError(tx *Transaction, reconcileErr error) error {
 		setStatusCondition(reconcileErr.Error())
 	}
 
-	tx.Logger.Errorf("processing resource: %+v", reconcileErr)
+	ctrl.LoggerFrom(tx.Ctx).Error(reconcileErr, "processing resource")
 	metrics.IncClientsFailedProcessing(tx.Instance)
 	return r.Client.Status().Update(tx.Ctx, tx.Instance)
 }
@@ -295,7 +291,7 @@ func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistr
 		}
 
 		registrationPayload.Scopes = consumedScopes
-		tx.Logger.Infof("registering client scopes: [%s]", strings.Join(consumedScopes, ", "))
+		ctrl.LoggerFrom(tx.Ctx).Info(fmt.Sprintf("registering client scopes: [%s]", strings.Join(consumedScopes, ", ")))
 	}
 
 	if registration != nil {
@@ -327,28 +323,28 @@ func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistr
 }
 
 func (r *Reconciler) createClient(tx *Transaction, payload types.ClientRegistration) (*types.ClientRegistration, error) {
-	tx.Logger.Debug("client does not exist in Digdir, registering...")
+	log := ctrl.LoggerFrom(tx.Ctx)
+	log.V(4).Info("client does not exist in Digdir, registering...")
 
 	registrationResponse, err := r.DigDirClient.Register(tx.Ctx, payload)
 	if err != nil {
 		return nil, fmt.Errorf("registering client: %w", err)
 	}
 
-	tx.Logger = tx.Logger.WithField("client_id", registrationResponse.ClientID)
-	tx.Logger.Info("client registered")
+	log.WithValues("client_id", registrationResponse.ClientID).Info("client registered")
 	return registrationResponse, nil
 }
 
 func (r *Reconciler) updateClient(tx *Transaction, payload types.ClientRegistration, clientID string) (*types.ClientRegistration, error) {
-	tx.Logger = tx.Logger.WithField("client_id", clientID)
-	tx.Logger.Debug("client already exists, updating...")
+	log := ctrl.LoggerFrom(tx.Ctx).WithValues("client_id", clientID)
+	log.V(4).Info("client already exists, updating...")
 
 	registrationResponse, err := r.DigDirClient.Update(tx.Ctx, payload, clientID)
 	if err != nil {
 		return nil, fmt.Errorf("updating client: %w", err)
 	}
 
-	tx.Logger.Info("client updated")
+	log.Info("client updated")
 	return registrationResponse, err
 }
 
@@ -379,7 +375,7 @@ func (r *Reconciler) filterConsumedScopes(tx *Transaction, client *naisiov1.Mask
 
 	if len(invalid) > 0 {
 		message := fmt.Sprintf("Organization has no access to scopes: [%s]", strings.Join(invalid, ", "))
-		tx.Logger.Warn(message)
+		ctrl.LoggerFrom(tx.Ctx).V(4).Info(message)
 		tx.Instance.GetStatus().SetCondition(InvalidConsumedScopesCondition(
 			metav1.ConditionTrue,
 			ConditionReasonFailed,
@@ -399,12 +395,13 @@ func (r *Reconciler) filterConsumedScopes(tx *Transaction, client *naisiov1.Mask
 }
 
 func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSecrets kubernetes.SecretLists, clientID string) error {
+	log := ctrl.LoggerFrom(tx.Ctx)
 	jwks, err := crypto.MergeJwks(jwk, managedSecrets.Used, clients.GetSecretJwkKey(tx.Instance))
 	if err != nil {
 		return fmt.Errorf("merging JWKS: %w", err)
 	}
 
-	tx.Logger.Debug("generated new JWKS for client, registering...")
+	log.V(4).Info("generated new JWKS for client, registering...")
 
 	jwksResponse, err := r.DigDirClient.RegisterKeys(tx.Ctx, clientID, jwks)
 	if err != nil {
@@ -412,14 +409,17 @@ func (r *Reconciler) registerJwk(tx *Transaction, jwk jose.JSONWebKey, managedSe
 	}
 
 	tx.Instance.GetStatus().KeyIDs = jwksResponse.KeyIDs()
-	tx.Logger = tx.Logger.WithField("key_ids", strings.Join(tx.Instance.GetStatus().KeyIDs, ", "))
-	tx.Logger.Info("new JWKS for client registered")
+
+	log.WithValues(
+		"key_ids", strings.Join(tx.Instance.GetStatus().KeyIDs, ", "),
+	).Info("new JWKS for client registered")
 
 	return nil
 }
 
 // ensureJwkValidExternalState ensures that the JWK is registered in DigDir and is not expiring soon.
 func (r *Reconciler) ensureJwkValidExternalState(tx *Transaction, registration *types.ClientRegistration, jwk *jose.JSONWebKey, managedSecrets kubernetes.SecretLists) error {
+	log := ctrl.LoggerFrom(tx.Ctx)
 	resp, err := r.DigDirClient.GetKeys(tx.Ctx, registration.ClientID)
 	if err != nil {
 		return fmt.Errorf("getting keys: %w", err)
@@ -434,7 +434,7 @@ func (r *Reconciler) ensureJwkValidExternalState(tx *Transaction, registration *
 			found = true
 
 			if time.Until(key.ExpiryTime()) < expiryThreshold {
-				tx.Logger.Infof("key %q expires at %q, refreshing...", key.KeyID, key.ExpiryTime())
+				log.Info(fmt.Sprintf("key %q expires at %q, refreshing...", key.KeyID, key.ExpiryTime()))
 				expiring = true
 			}
 
@@ -446,7 +446,7 @@ func (r *Reconciler) ensureJwkValidExternalState(tx *Transaction, registration *
 		return nil
 	}
 	if !found {
-		tx.Logger.Infof("key %q not found in DigDir, registering...", jwk.KeyID)
+		log.Info(fmt.Sprintf("key %q not found in DigDir, registering...", jwk.KeyID))
 	}
 
 	if err := r.registerJwk(tx, *jwk, managedSecrets, registration.ClientID); err != nil {

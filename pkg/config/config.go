@@ -5,27 +5,29 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/liberator/pkg/oauth"
-	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
+var log *slog.Logger
+
 type Config struct {
-	MetricsAddr     string         `json:"metrics-address"`
-	ClusterName     string         `json:"cluster-name"`
-	DevelopmentMode bool           `json:"development-mode"`
-	DigDir          DigDir         `json:"digdir"`
-	Features        Features       `json:"features"`
-	LeaderElection  LeaderElection `json:"leader-election"`
-	LogLevel        string         `json:"log-level"`
+	MetricsAddr    string         `json:"metrics-address"`
+	ClusterName    string         `json:"cluster-name"`
+	DigDir         DigDir         `json:"digdir"`
+	Features       Features       `json:"features"`
+	LeaderElection LeaderElection `json:"leader-election"`
+	LogLevel       string         `json:"log-level"`
 }
 
 type DigDir struct {
@@ -80,7 +82,6 @@ const (
 	LogLevel                = "log-level"
 	MetricsAddress          = "metrics-address"
 	ClusterName             = "cluster-name"
-	DevelopmentMode         = "development-mode"
 	LeaderElectionEnabled   = "leader-election.enabled"
 	LeaderElectionNamespace = "leader-election.namespace"
 
@@ -117,7 +118,6 @@ func init() {
 
 	flag.String(MetricsAddress, ":8080", "The address the metric endpoint binds to.")
 	flag.String(ClusterName, "", "The cluster in which this application should run.")
-	flag.String(DevelopmentMode, "false", "Toggle for development mode.")
 	flag.Bool(LeaderElectionEnabled, false, "Toggle for enabling leader election.")
 	flag.String(LeaderElectionNamespace, "", "Namespace for the leader election resource. Needed if not running in-cluster (e.g. locally). If empty, will default to the same namespace as the running application.")
 	flag.String(LogLevel, "info", "Log level for digdirator.")
@@ -157,9 +157,9 @@ func (c Config) Print(redacted []string) {
 	keys.Sort()
 	for _, key := range keys {
 		if ok(key) {
-			log.Printf("%s: %s", key, viper.GetString(key))
+			log.Info(fmt.Sprintf("%s: %s", key, viper.GetString(key)))
 		} else {
-			log.Printf("%s: ***REDACTED***", key)
+			log.Info(fmt.Sprintf("%s: ***REDACTED***", key))
 		}
 	}
 }
@@ -184,7 +184,7 @@ func (c Config) Validate(required []string) error {
 	}
 
 	for _, key := range errs {
-		log.Printf("required key '%s' not configured", key)
+		log.Info(fmt.Sprintf("required key %q not configured", key))
 	}
 	if len(errs) > 0 {
 		return errors.New("missing configuration values")
@@ -250,7 +250,8 @@ func (c Config) delegationSources(ctx context.Context) (map[string]types.Delegat
 func (a Admin) ApiV1URL() *url.URL {
 	adminURL, err := url.Parse(a.BaseURL)
 	if err != nil {
-		log.Fatalf("parsing admin URL: %s", err)
+		log.Error("parsing admin URL", "error", err)
+		os.Exit(1)
 	}
 
 	if strings.HasSuffix(adminURL.Path, "/api/v1") {
@@ -265,6 +266,8 @@ func decoderHook(dc *mapstructure.DecoderConfig) {
 }
 
 func New() (*Config, error) {
+	log = slog.Default().With("subsystem", "config")
+
 	var err error
 	var cfg Config
 

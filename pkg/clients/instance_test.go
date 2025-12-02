@@ -27,14 +27,6 @@ func TestGetIntegrationType(t *testing.T) {
 	assert.Equal(t, types.IntegrationTypeMaskinporten, clients.GetIntegrationType(maskinportenClient))
 }
 
-func TestGetInstanceType(t *testing.T) {
-	idPortenClient := fixtures.MinimalIDPortenClient()
-	assert.Equal(t, "*nais_io_v1.IDPortenClient", clients.GetInstanceType(idPortenClient))
-
-	maskinportenClient := fixtures.MinimalMaskinportenClient()
-	assert.Equal(t, "*nais_io_v1.MaskinportenClient", clients.GetInstanceType(maskinportenClient))
-}
-
 func TestGetSecretName(t *testing.T) {
 	idPortenClient := fixtures.MinimalIDPortenClient()
 	idPortenClient.Spec.SecretName = "idporten-secret"

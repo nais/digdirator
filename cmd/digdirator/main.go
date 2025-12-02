@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/go-logr/zapr"
+	"github.com/go-logr/logr"
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/controllers/maskinportenclient"
@@ -16,9 +17,6 @@ import (
 	"github.com/nais/digdirator/pkg/digdir"
 	"github.com/nais/digdirator/pkg/metrics"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	log "github.com/sirupsen/logrus"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -31,6 +29,7 @@ import (
 var scheme = runtime.NewScheme()
 
 func init() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	ctrlmetrics.Registry.MustRegister(metrics.AllMetrics...)
 
 	_ = clientgoscheme.AddToScheme(scheme)
@@ -41,7 +40,7 @@ func init() {
 func main() {
 	err := run()
 	if err != nil {
-		log.Error(err, "Run loop errored")
+		slog.Error("Run loop errored", "error", err)
 		os.Exit(1)
 	}
 }
@@ -111,7 +110,7 @@ func setup(ctx context.Context) (*config.Config, error) {
 		return nil, err
 	}
 
-	if err := setupLoggers(cfg.LogLevel, cfg.DevelopmentMode); err != nil {
+	if err := setupLogger(cfg.LogLevel); err != nil {
 		return nil, err
 	}
 
@@ -140,41 +139,18 @@ func setup(ctx context.Context) (*config.Config, error) {
 	return cfg.WithProviderMetadata(ctx)
 }
 
-func setupLoggers(logLevel string, developmentMode bool) error {
-	log.SetFormatter(&log.JSONFormatter{
-		TimestampFormat: time.RFC3339Nano,
+func setupLogger(logLevel string) error {
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
+		return fmt.Errorf("parsing log level: %w", err)
+	}
+
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
 	})
-	log.SetLevel(func() log.Level {
-		level, err := log.ParseLevel(logLevel)
-		if err != nil {
-			return log.InfoLevel
-		}
-		return level
-	}())
 
-	cfg := zap.NewProductionConfig()
-	cfg.EncoderConfig.TimeKey = "timestamp"
-	cfg.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
-	cfg.Level = func() zap.AtomicLevel {
-		level, err := zap.ParseAtomicLevel(logLevel)
-		if err != nil {
-			return zap.NewAtomicLevelAt(zapcore.InfoLevel)
-		}
-		return level
-	}()
+	slog.SetDefault(slog.New(handler))
+	ctrl.SetLogger(logr.FromSlogHandler(handler))
 
-	logger, err := cfg.Build()
-	if err != nil {
-		return err
-	}
-
-	if developmentMode {
-		logger, err = zap.NewDevelopment()
-		if err != nil {
-			return err
-		}
-	}
-
-	ctrl.SetLogger(zapr.NewLogger(logger))
 	return nil
 }

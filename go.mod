@@ -13,17 +13,15 @@ require (
 	cloud.google.com/go/kms v1.23.2
 	github.com/Code-Hex/go-generics-cache v1.5.1
 	github.com/go-jose/go-jose/v4 v4.1.3
-	github.com/go-logr/zapr v1.3.0
+	github.com/go-logr/logr v1.4.3
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/google/uuid v1.6.0
 	github.com/nais/liberator v0.0.0-20251121113042-7c7bc3ddeb41
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sethvargo/go-retry v0.3.0
-	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
-	go.uber.org/zap v1.27.1
 	k8s.io/api v0.34.2
 	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.2
@@ -47,7 +45,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.22.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.2 // indirect
@@ -84,6 +81,7 @@ require (
 	github.com/prometheus/common v0.67.2 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
@@ -94,7 +92,7 @@ require (
 	go.opentelemetry.io/otel v1.36.0 // indirect
 	go.opentelemetry.io/otel/metric v1.36.0 // indirect
 	go.opentelemetry.io/otel/trace v1.36.0 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/zap v1.27.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
