@@ -8,8 +8,6 @@ metadata:
 spec:
   image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ .Values.image.tag }}"
   port: 8080
-  strategy:
-    type: Recreate
   {{- toYaml .Values.application | nindent 2 }}
   liveness:
     path: /metrics
@@ -18,6 +16,9 @@ spec:
   prometheus:
     enabled: true
     path: /metrics
+  env:
+    - name: "LEADER_ELECTION_ENABLED"
+      value: "true"
   envFrom:
     - secret: digdirator-env
   accessPolicy:
