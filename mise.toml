@@ -1,2 +1,10 @@
 [tools]
 go = "1.25.4"
+
+[tasks.actions-update]
+description = "Upgrade all github actions to latest version satisfying their version tag"
+run = "go tool github.com/sethvargo/ratchet update .github/workflows/*.yaml"
+
+[tasks.actions-upgrade]
+description = "Upgrade all github actions to latest"
+run = "go tool github.com/sethvargo/ratchet upgrade .github/workflows/*.yaml"
