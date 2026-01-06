@@ -8,6 +8,7 @@ import (
 
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -175,30 +176,28 @@ func TestMaskinportenControllerWithNewExternalScope(t *testing.T) {
 
 	instance := &naisiov1.MaskinportenClient{}
 	key := client.ObjectKey{
-		Name:      "scope-client",
-		Namespace: "scope-namespace",
+		Name:      cfg.DigdirClientName,
+		Namespace: cfg.NamespaceName,
 	}
 	assert.Eventually(t, test.ResourceExists(cli, key, instance), test.Timeout, test.Interval, "MaskinportenClient should exist")
 	assert.Eventually(t, func() bool {
-		err := cli.Get(context.Background(), key, instance)
+		err := cli.Get(t.Context(), key, instance)
 		assert.NoError(t, err)
 		return clients.IsUpToDate(instance)
 	}, test.Timeout, test.Interval, "MaskinportenClient should be synchronized")
 
-	err := cli.Update(context.Background(), instance)
-	assert.NoError(t, err)
+	scopes := instance.Spec.Scopes.ExposedScopes
+	require.Len(t, scopes, 1, "MaskinportenClient exposes exactly one scope")
 
-	applicationScopes := instance.GetExposedScopes()
-	assert.Equal(t, test.ClientID, instance.Status.ClientID, "client ID should still match")
-	assert.Equal(t, 1, len(applicationScopes), "Scope list should contain actual 1 scope")
-	assert.NotEmpty(t, applicationScopes[existingScope], "Scope contain orgnumbers")
-	assert.Equal(t, 2, len(applicationScopes[existingScope].Consumers), " OrganizationNumbers should contain 2 active consumers")
-	validOrgnos := map[string]string{test.ExposedConsumerOrgno: test.ExposedConsumerOrgno, "101010101": "101010101"}
-	for _, v := range applicationScopes[existingScope].Consumers {
-		if _, ok := validOrgnos[v.Orgno]; ok {
-			assert.True(t, ok, "Map should contain match")
-		}
+	scope := scopes[0]
+	expectedConsumers := []naisiov1.ExposedScopeConsumer{
+		{Name: "KPL", Orgno: "101010101"},
+		{Name: "ALB", Orgno: "111111111"},
 	}
+
+	assert.Equal(t, test.ClientID, instance.Status.ClientID, "client ID should still match")
+	assert.Equal(t, existingScope, scope.Name, "Scope name should match")
+	assert.ElementsMatch(t, expectedConsumers, scope.Consumers, "Consumers should match expected consumers")
 	assert.Len(t, instance.Status.KeyIDs, 2, "should contain 2 key IDs")
 	assert.NotEmpty(t, instance.Status.SynchronizationHash)
 	assert.NotEmpty(t, instance.Status.SynchronizationTime)

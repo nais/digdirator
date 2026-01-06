@@ -277,10 +277,9 @@ func (r *Reconciler) createOrUpdateClient(tx *Transaction) (*types.ClientRegistr
 
 	switch instance := tx.Instance.(type) {
 	case *naisiov1.MaskinportenClient:
-		exposedScopes := instance.GetExposedScopes()
 		scopes := r.scopes(tx)
 
-		err := scopes.Process(exposedScopes)
+		err := scopes.Process(instance.Spec.Scopes.ExposedScopes)
 		if err != nil {
 			return nil, fmt.Errorf("processing scopes: %w", err)
 		}

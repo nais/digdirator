@@ -33,7 +33,7 @@ func (r *Reconciler) scopes(tx *Transaction) scope {
 	}
 }
 
-func (s scope) Process(exposedScopes map[string]naisiov1.ExposedScope) error {
+func (s scope) Process(exposedScopes []naisiov1.ExposedScope) error {
 	if len(exposedScopes) == 0 {
 		return nil
 	}
@@ -56,7 +56,7 @@ func (s scope) Process(exposedScopes map[string]naisiov1.ExposedScope) error {
 	return nil
 }
 
-func (s scope) Finalize(exposedScopes map[string]naisiov1.ExposedScope) error {
+func (s scope) Finalize(exposedScopes []naisiov1.ExposedScope) error {
 	filtered, err := s.filtered(exposedScopes)
 	if err != nil {
 		return err
@@ -136,7 +136,7 @@ func (s scope) updateScopes(toUpdate []scopes.Scope) error {
 	return nil
 }
 
-func (s scope) filtered(exposedScopes map[string]naisiov1.ExposedScope) (*scopes.Operations, error) {
+func (s scope) filtered(exposedScopes []naisiov1.ExposedScope) (*scopes.Operations, error) {
 	allScopes, err := s.DigDirClient.GetScopes(s.Tx.Ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting scopes: %w", err)

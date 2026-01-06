@@ -208,6 +208,11 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, cfg *confi
 		clientName = cfg.DigDir.Common.ClientName
 	}
 
+	consumedScopes := make([]string, len(in.Spec.Scopes.ConsumedScopes))
+	for i, scope := range in.Spec.Scopes.ConsumedScopes {
+		consumedScopes[i] = scope.Name
+	}
+
 	return types.ClientRegistration{
 		AccessTokenLifetime:               cfg.DigDir.Common.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
@@ -224,7 +229,7 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, cfg *confi
 		PostLogoutRedirectURIs:  nil,
 		RedirectURIs:            nil,
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
-		Scopes:                  in.GetConsumedScopes(),
+		Scopes:                  consumedScopes,
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
 }

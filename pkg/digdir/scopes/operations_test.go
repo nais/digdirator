@@ -1,12 +1,13 @@
 package scopes_test
 
 import (
-	"fmt"
 	"testing"
 
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
@@ -14,92 +15,93 @@ import (
 	"github.com/nais/digdirator/pkg/digdir/types"
 )
 
-func TestScopeFilteringWithNewScopeAndOneExistingOne(t *testing.T) {
-	clusterName := "test-cluster"
-	cfg := &config.Config{ClusterName: clusterName}
+func TestGenerateDuplicateName(t *testing.T) {
+	exposed := []naisiov1.ExposedScope{
+		{
+			Name:    "foo.read",
+			Enabled: true,
+			Product: "arbeid",
+			Consumers: []naisiov1.ExposedScopeConsumer{
+				{
+					Orgno: "0000000000",
+				},
+			},
+			// Separator not set; defaults to "."
+		},
+		{
+			Name:    "foo.read",
+			Enabled: true,
+			Product: "arbeid",
+			Consumers: []naisiov1.ExposedScopeConsumer{
+				{
+					Orgno: "1111111111",
+				},
+			},
+			Separator: ptr.To("/"),
+		},
+	}
 
-	name := "test/scope"
-	currentObjectMeta := metaObject()
-	exposedScopes := createExposedScopes(name)
-	currentMaskinportenClient := minimalMaskinportenWithScopeInternalExternalClient(currentObjectMeta, exposedScopes)
-
-	scopeRegistration := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[name], cfg)
-	scopeRegistration.Name = fmt.Sprintf("nav:%s", name)
-	scopeRegistration.Active = true
-	assert.Equal(t, "arbeid - test-cluster:test-namespace:test-app", scopeRegistration.Description)
-	assert.Equal(t, "arbeid/test/scope", scopeRegistration.Subscope)
-	assert.True(t, scopeRegistration.Active)
-
-	actualScopeRegistrations := make([]types.ScopeRegistration, 0)
-	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration)
-
-	operations := scopes.Generate(actualScopeRegistrations, currentMaskinportenClient.GetExposedScopes())
-
-	assert.Equal(t, 0, len(operations.ToCreate))
-	assert.Equal(t, 1, len(operations.ToUpdate))
-	assert.Equal(t, name, operations.ToUpdate[0].CurrentScope.Name)
-	assert.True(t, operations.ToUpdate[0].CurrentScope.Enabled)
+	operations := scopes.Generate(nil, exposed)
+	assert.Len(t, operations.ToCreate, 2)
+	assert.Empty(t, operations.ToUpdate)
 }
 
 func TestScopeFiltering(t *testing.T) {
-	currentScope := "test/scope"
-	currentScope2 := "test.scope2"
-	noneExistingScope := "scope/nr2"
-	clusterName := "test-cluster"
-	cfg := &config.Config{ClusterName: clusterName}
-	currentObjectMeta := metaObject()
-	currentExternals := createExposedScopes(currentScope, currentScope2, noneExistingScope)
-	currentMaskinportenClient := minimalMaskinportenWithScopeInternalExternalClient(currentObjectMeta, currentExternals)
-	actualScopeRegistrations := make([]types.ScopeRegistration, 0)
+	scope1 := "test/existingscope"
+	scope2 := "test.existingscope2"
+	scope3 := "test/newscope"
+
+	cfg := &config.Config{ClusterName: "test-cluster"}
+	meta := metav1.ObjectMeta{
+		Name:      "test-app",
+		Namespace: "test-namespace",
+	}
+	client := minimalMaskinportenWithScopeInternalExternalClient(meta, createExposedScopes(scope1, scope2, scope3))
+	require.Len(t, client.Spec.Scopes.ExposedScopes, 3)
 
 	// First case:
 	// with legacy scopes used on-prem
 	// description: cluster:namespace:app.scope/api
 	// subscope: scope/api
-	scopeRegistration1 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope], cfg)
-	scopeRegistration1.Name = fmt.Sprintf("nav:%s", currentScope)
+	scopeRegistration1 := clients.ToScopeRegistration(client, client.Spec.Scopes.ExposedScopes[0], cfg)
 	assert.Equal(t, "arbeid - test-cluster:test-namespace:test-app", scopeRegistration1.Description)
-	assert.Equal(t, "arbeid/test/scope", scopeRegistration1.Subscope)
+	assert.Equal(t, "arbeid/test/existingscope", scopeRegistration1.Subscope)
 
-	// Secound case new format
+	// Second case new format
 	// description: cluster:team:app.scope
 	// subscope: team:app.scope
-	scopeRegistration2 := clients.ToScopeRegistration(currentMaskinportenClient, currentMaskinportenClient.GetExposedScopes()[currentScope2], cfg)
-	scopeRegistration2.Name = fmt.Sprintf("nav:%s", currentScope2)
-	assert.Equal(t, scopes.Description(&currentObjectMeta, clusterName, "arbeid"), scopeRegistration2.Description)
-	assert.Equal(t, "arbeid:test.scope2", scopeRegistration2.Subscope)
+	scopeRegistration2 := clients.ToScopeRegistration(client, client.Spec.Scopes.ExposedScopes[1], cfg)
+	assert.Equal(t, scopes.Description(&meta, "test-cluster", "arbeid"), scopeRegistration2.Description)
+	assert.Equal(t, "arbeid:test.existingscope2", scopeRegistration2.Subscope)
 
-	// add scopes owned by current application
-	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration1)
-	actualScopeRegistrations = append(actualScopeRegistrations, scopeRegistration2)
-
-	// Operations not managed by digdirator should be ignored
-	actualScopeRegistrations = append(actualScopeRegistrations, types.ScopeRegistration{
-		Description: "some: random description:",
+	existingRegistrations := make([]types.ScopeRegistration, 0)
+	existingRegistrations = append(existingRegistrations, scopeRegistration1)
+	existingRegistrations = append(existingRegistrations, scopeRegistration2)
+	existingRegistrations = append(existingRegistrations, types.ScopeRegistration{
+		Description: "scope is manually managed outside of digdirator",
 		Name:        "nav:not/owned",
 	})
 
-	operations := scopes.Generate(actualScopeRegistrations, currentMaskinportenClient.GetExposedScopes())
+	operations := scopes.Generate(existingRegistrations, client.Spec.Scopes.ExposedScopes)
+	expectedConsumers := []naisiov1.ExposedScopeConsumer{{Orgno: "1010101010"}}
 
-	// Scopes not existing in digidir but will be added to managed
-	scopesToCreate := operations.ToCreate[0]
-	assert.Equal(t, 1, len(operations.ToCreate))
-	assert.Equal(t, noneExistingScope, scopesToCreate.Name)
-	assert.Equal(t, 1, len(scopesToCreate.Consumers))
+	require.Len(t, operations.ToCreate, 1)
+	assert.Equal(t, "test/newscope", operations.ToCreate[0].Name)
+	assert.Equal(t, "arbeid", operations.ToCreate[0].Product)
+	assert.ElementsMatch(t, expectedConsumers, operations.ToCreate[0].Consumers)
+	assert.True(t, operations.ToCreate[0].Enabled)
 
-	// Scopes existing, owned and used by current application
-	assert.Equal(t, 2, len(operations.ToUpdate))
-
-	validRegistrations := map[string]string{
-		currentScope:  currentScope,
-		currentScope2: currentScope2,
-	}
-
-	for _, v := range operations.ToUpdate {
-		if _, ok := validRegistrations[v.ScopeRegistration.Name]; ok {
-			assert.True(t, ok, "Map should be a valid list of current scopes")
-		}
-	}
+	require.Len(t, operations.ToUpdate, 2)
+	assert.Equal(t, "arbeid/test/existingscope", operations.ToUpdate[0].ScopeRegistration.Subscope)
+	assert.Equal(t, "arbeid:test.existingscope2", operations.ToUpdate[1].ScopeRegistration.Subscope)
+	assert.Equal(t, "test/existingscope", operations.ToUpdate[0].CurrentScope.Name)
+	assert.Equal(t, "test.existingscope2", operations.ToUpdate[1].CurrentScope.Name)
+	assert.ElementsMatch(t, expectedConsumers, operations.ToUpdate[0].CurrentScope.Consumers)
+	assert.ElementsMatch(t, expectedConsumers, operations.ToUpdate[1].CurrentScope.Consumers)
+	assert.True(t, operations.ToUpdate[0].CurrentScope.Enabled)
+	assert.True(t, operations.ToUpdate[1].CurrentScope.Enabled)
+	assert.True(t, operations.ToUpdate[0].ScopeRegistration.Active)
+	assert.True(t, operations.ToUpdate[1].ScopeRegistration.Active)
 }
 
 func minimalMaskinportenWithScopeInternalExternalClient(meta metav1.ObjectMeta, scope []naisiov1.ExposedScope) *naisiov1.MaskinportenClient {
@@ -115,13 +117,6 @@ func minimalMaskinportenWithScopeInternalExternalClient(meta metav1.ObjectMeta, 
 				ExposedScopes: scope,
 			},
 		},
-	}
-}
-
-func metaObject() metav1.ObjectMeta {
-	return metav1.ObjectMeta{
-		Name:      "test-app",
-		Namespace: "test-namespace",
 	}
 }
 

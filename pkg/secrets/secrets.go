@@ -45,11 +45,16 @@ func MaskinportenClientSecretData(in *nais_io_v1.MaskinportenClient, jwk jose.JS
 		return nil, fmt.Errorf("marshalling JWK: %w", err)
 	}
 
+	scopes := make([]string, len(in.Spec.Scopes.ConsumedScopes))
+	for i, scope := range in.Spec.Scopes.ConsumedScopes {
+		scopes[i] = scope.Name
+	}
+
 	return map[string]string{
 		MaskinportenJwkKey:           string(jwkJson),
 		MaskinportenWellKnownURLKey:  config.DigDir.Maskinporten.WellKnownURL,
 		MaskinportenClientIDKey:      in.GetStatus().ClientID,
-		MaskinportenScopesKey:        strings.Join(in.GetConsumedScopes(), " "),
+		MaskinportenScopesKey:        strings.Join(scopes, " "),
 		MaskinportenIssuerKey:        config.DigDir.Maskinporten.Metadata.Issuer,
 		MaskinportenJwksUriKey:       config.DigDir.Maskinporten.Metadata.JwksURI,
 		MaskinportenTokenEndpointKey: config.DigDir.Maskinporten.Metadata.TokenEndpoint,

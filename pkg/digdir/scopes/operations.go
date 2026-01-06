@@ -11,7 +11,7 @@ type Operations struct {
 	ToUpdate []Scope
 }
 
-func Generate(actualScopes []types.ScopeRegistration, desiredScopes map[string]naisiov1.ExposedScope) *Operations {
+func Generate(actualScopes []types.ScopeRegistration, desiredScopes []naisiov1.ExposedScope) *Operations {
 	ops := &Operations{
 		ToCreate: make([]naisiov1.ExposedScope, 0),
 		ToUpdate: make([]Scope, 0),

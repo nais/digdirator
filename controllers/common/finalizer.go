@@ -41,7 +41,7 @@ func (r *Reconciler) finalize(tx *Transaction) (ctrl.Result, error) {
 	}
 
 	if obj, ok := tx.Instance.(*naisiov1.MaskinportenClient); ok {
-		if err := r.scopes(tx).Finalize(obj.GetExposedScopes()); err != nil {
+		if err := r.scopes(tx).Finalize(obj.Spec.Scopes.ExposedScopes); err != nil {
 			return ctrl.Result{}, fmt.Errorf("finalizer: deleting Maskinporten scope: %w", err)
 		}
 	}
