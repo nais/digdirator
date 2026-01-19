@@ -3,10 +3,10 @@ dependencies:
       - naiserator
       - nais-crds
       - replicator
+      - reloader
 environmentKinds:
   - tenant
   - onprem
-  - legacy
 values:
   admin.apiHost:
     description: Host for DigDir Admin API. See https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin#endepunkter
