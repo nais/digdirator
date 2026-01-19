@@ -1,5 +1,5 @@
 [tools]
-go = "1.25.5"
+go = "1.25.6"
 
 [tasks.actions-update]
 description = "Upgrade all github actions to latest version satisfying their version tag"
