@@ -2,6 +2,7 @@ package scopes_test
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	"k8s.io/utils/strings/slices"
 
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/digdir/scopes"
