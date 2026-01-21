@@ -42,6 +42,10 @@ values:
       template: '"{{ .Env.name }}"'
     config:
       type: string
+  idporten.enabled:
+    description: Enable ID-porten reconciler
+    computed:
+      template: '{{ ne .Kind "onprem" }}'
   idporten.wellKnownUrl:
     description: ID-porten well-known URL. See https://docs.digdir.no/docs/idporten/oidc/oidc_func_wellknown.html
     required: true

@@ -28,6 +28,10 @@ func IDPortenClientSecretData(in *nais_io_v1.IDPortenClient, jwk jose.JSONWebKey
 		return ""
 	}
 
+	if err := config.DigDir.IDPorten.Metadata.Validate(config.DigDir.IDPorten.WellKnownURL); err != nil {
+		return nil, fmt.Errorf("validating ID-porten metadata: %w", err)
+	}
+
 	return map[string]string{
 		IDPortenJwkKey:           string(jwkJson),
 		IDPortenWellKnownURLKey:  config.DigDir.IDPorten.WellKnownURL,
@@ -48,6 +52,10 @@ func MaskinportenClientSecretData(in *nais_io_v1.MaskinportenClient, jwk jose.JS
 	scopes := make([]string, len(in.Spec.Scopes.ConsumedScopes))
 	for i, scope := range in.Spec.Scopes.ConsumedScopes {
 		scopes[i] = scope.Name
+	}
+
+	if err := config.DigDir.Maskinporten.Metadata.Validate(config.DigDir.Maskinporten.WellKnownURL); err != nil {
+		return nil, fmt.Errorf("validating Maskinporten metadata: %w", err)
 	}
 
 	return map[string]string{

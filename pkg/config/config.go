@@ -70,6 +70,7 @@ type MaskinportenDefault struct {
 }
 
 type Features struct {
+	IDPorten     bool `json:"idporten"`
 	Maskinporten bool `json:"maskinporten"`
 }
 
@@ -100,6 +101,7 @@ const (
 	DigDirMaskinportenDefaultScopePrefix = "digdir.maskinporten.default.scope-prefix"
 	DigDirMaskinportenWellKnownURL       = "digdir.maskinporten.well-known-url"
 
+	FeaturesIDPorten     = "features.idporten"
 	FeaturesMaskinporten = "features.maskinporten"
 )
 
@@ -139,6 +141,7 @@ func init() {
 	flag.String(DigDirMaskinportenWellKnownURL, "", "URL to Maskinporten well-known discovery metadata document.")
 
 	flag.Bool(FeaturesMaskinporten, false, "Feature toggle for maskinporten")
+	flag.Bool(FeaturesIDPorten, true, "Feature toggle for idporten")
 }
 
 // Print out all configuration options except secret stuff.
@@ -198,11 +201,6 @@ func (c Config) Validate(required []string) error {
 }
 
 func (c Config) WithProviderMetadata(ctx context.Context) (*Config, error) {
-	idportenMetadata, err := oauth.NewMetadataOpenID(ctx, c.DigDir.IDPorten.WellKnownURL)
-	if err != nil {
-		return nil, fmt.Errorf("resolving ID-porten metadata from %q: %w", c.DigDir.IDPorten.WellKnownURL, err)
-	}
-
 	maskinportenMetadata, err := oauth.NewMetadataOAuth(ctx, c.DigDir.Maskinporten.WellKnownURL)
 	if err != nil {
 		return nil, fmt.Errorf("resolving Maskinporten metadata from %q: %w", c.DigDir.Maskinporten.WellKnownURL, err)
@@ -213,9 +211,16 @@ func (c Config) WithProviderMetadata(ctx context.Context) (*Config, error) {
 		return nil, fmt.Errorf("resolving delegation sources: %w", err)
 	}
 
-	c.DigDir.IDPorten.Metadata = *idportenMetadata
 	c.DigDir.Maskinporten.Metadata = *maskinportenMetadata
 	c.DigDir.Maskinporten.DelegationSources = delegationSources
+
+	if c.Features.IDPorten {
+		idportenMetadata, err := oauth.NewMetadataOpenID(ctx, c.DigDir.IDPorten.WellKnownURL)
+		if err != nil {
+			return nil, fmt.Errorf("resolving ID-porten metadata from %q: %w", c.DigDir.IDPorten.WellKnownURL, err)
+		}
+		c.DigDir.IDPorten.Metadata = *idportenMetadata
+	}
 
 	return &c, nil
 }

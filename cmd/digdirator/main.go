@@ -84,8 +84,10 @@ func run() error {
 		digdirClient,
 	)
 
-	if err = idportenclient.NewReconciler(reconciler).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("creating idportenclient controller: %w", err)
+	if cfg.Features.IDPorten {
+		if err = idportenclient.NewReconciler(reconciler).SetupWithManager(mgr); err != nil {
+			return fmt.Errorf("creating idportenclient controller: %w", err)
+		}
 	}
 
 	if cfg.Features.Maskinporten {

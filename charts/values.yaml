@@ -27,6 +27,7 @@ application:
       cpu: 300m
 clusterName: "" # mapped from fasit
 idporten:
+  enabled: true
   # https://docs.digdir.no/docs/general/IP
   cidrs:
     - "139.105.36.167/32"
@@ -38,6 +39,7 @@ image:
   name: digdirator
   tag: latest
 maskinporten:
+  enabled: true
   # https://docs.digdir.no/docs/general/IP
   cidrs:
     - "139.105.36.164/32"
