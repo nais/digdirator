@@ -14,7 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -215,7 +214,7 @@ func (r *Reconciler) process(tx *Transaction) error {
 	}
 	generation := tx.Instance.GetGeneration()
 	status.CorrelationID = string(controller.ReconcileIDFromContext(tx.Ctx))
-	status.ObservedGeneration = ptr.To(generation)
+	status.ObservedGeneration = new(generation)
 	status.SynchronizationHash = hash
 	status.SynchronizationSecretName = clients.GetSecretName(tx.Instance)
 	status.SetStateSynchronized()

@@ -7,7 +7,6 @@ import (
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
@@ -75,7 +74,7 @@ func TestIsUpToDate(t *testing.T) {
 	t.Run("IDPortenClient with synchronization time above threshold should not be up-to-date", func(t *testing.T) {
 		client := fixtures.MinimalIDPortenClient()
 		lastSyncTime := time.Now().Add(-clients.StaleSyncThresholdDuration)
-		client.Status.SynchronizationTime = ptr.To(metav1.NewTime(lastSyncTime))
+		client.Status.SynchronizationTime = new(metav1.NewTime(lastSyncTime))
 		assert.False(t, clients.IsUpToDate(client))
 	})
 
@@ -118,7 +117,7 @@ func TestIsUpToDate(t *testing.T) {
 	t.Run("MaskinportenClient with synchronization time above threshold should not be up-to-date", func(t *testing.T) {
 		client := fixtures.MinimalMaskinportenClient()
 		lastSyncTime := time.Now().Add(-clients.StaleSyncThresholdDuration)
-		client.Status.SynchronizationTime = ptr.To(metav1.NewTime(lastSyncTime))
+		client.Status.SynchronizationTime = new(metav1.NewTime(lastSyncTime))
 		assert.False(t, clients.IsUpToDate(client))
 	})
 }
@@ -357,7 +356,7 @@ func TestToScopeRegistration(t *testing.T) {
 			Enabled:          true,
 			Name:             "test-scope",
 			Product:          "test-product",
-			AccessibleForAll: ptr.To(true),
+			AccessibleForAll: new(true),
 		}
 		client.Spec.Scopes.ExposedScopes = []naisiov1.ExposedScope{scope}
 		registration := clients.ToScopeRegistration(client, scope, cfg)
@@ -373,7 +372,7 @@ func TestToScopeRegistration(t *testing.T) {
 			Enabled:          true,
 			Name:             "test-scope",
 			Product:          "test-product",
-			DelegationSource: ptr.To("altinn"),
+			DelegationSource: new("altinn"),
 		}
 		client.Spec.Scopes.ExposedScopes = []naisiov1.ExposedScope{scope}
 		registration := clients.ToScopeRegistration(client, scope, cfg)
@@ -389,7 +388,7 @@ func TestToScopeRegistration(t *testing.T) {
 			Enabled:    true,
 			Name:       "test-scope",
 			Product:    "test-product",
-			Visibility: ptr.To("private"),
+			Visibility: new("private"),
 		}
 		client.Spec.Scopes.ExposedScopes = []naisiov1.ExposedScope{scope}
 		registration := clients.ToScopeRegistration(client, scope, cfg)

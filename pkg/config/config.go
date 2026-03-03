@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 
@@ -147,12 +148,7 @@ func init() {
 // Print out all configuration options except secret stuff.
 func (c Config) Print(redacted []string) {
 	ok := func(key string) bool {
-		for _, forbiddenKey := range redacted {
-			if forbiddenKey == key {
-				return false
-			}
-		}
-		return true
+		return !slices.Contains(redacted, key)
 	}
 
 	var keys sort.StringSlice = viper.AllKeys()

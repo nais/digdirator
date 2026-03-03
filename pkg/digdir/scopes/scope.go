@@ -32,7 +32,7 @@ func (s Scope) FilterConsumers(acl *[]types.ConsumerRegistration) ([]string, []C
 	consumerStatus := make([]string, 0)
 
 	swapped := false
-	for i := 0; i < NumberOfPermutation; i++ {
+	for i := range NumberOfPermutation {
 		for _, consumer := range expectedConsumerList {
 
 			found := consumer.findIn(aclConsumerList)

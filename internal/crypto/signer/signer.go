@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 
 	"github.com/go-jose/go-jose/v4"
 )
@@ -31,12 +32,10 @@ func (s ConfigurableSigner) Options() jose.SignerOptions {
 }
 
 func (s ConfigurableSigner) Sign(payload []byte) (*jose.JSONWebSignature, error) {
-	header := map[jose.HeaderKey]interface{}{
+	header := map[jose.HeaderKey]any{
 		"alg": SigningAlg,
 	}
-	for k, v := range s.SignerOptions.ExtraHeaders {
-		header[k] = v
-	}
+	maps.Copy(header, s.SignerOptions.ExtraHeaders)
 
 	headerJson, err := json.Marshal(header)
 	if err != nil {

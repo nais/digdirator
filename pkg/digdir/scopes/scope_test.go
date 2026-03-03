@@ -245,7 +245,7 @@ func TestSubscope(t *testing.T) {
 			input: naisiov1.ExposedScope{
 				Name:      "test.scope",
 				Product:   "arbeid",
-				Separator: ptr.To("/"),
+				Separator: new("/"),
 			},
 			want: "arbeid/test.scope",
 		},
@@ -254,7 +254,7 @@ func TestSubscope(t *testing.T) {
 			input: naisiov1.ExposedScope{
 				Name:      "test/scope",
 				Product:   "arbeid",
-				Separator: ptr.To(":"),
+				Separator: new(":"),
 			},
 			want: "arbeid:test/scope",
 		},

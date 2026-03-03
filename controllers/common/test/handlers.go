@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"slices"
 )
 
 func MaskinportenHandler(clientID, orgno string) http.HandlerFunc {
@@ -115,12 +116,7 @@ func handler(clientID, orgno, clientType string) http.HandlerFunc {
 }
 
 func matchesPath(r *http.Request, paths ...string) bool {
-	for _, p := range paths {
-		if r.URL.Path == p {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(paths, r.URL.Path)
 }
 
 func matchesMethodPath(r *http.Request, method string, path string) bool {

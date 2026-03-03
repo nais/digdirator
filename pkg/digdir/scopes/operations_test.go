@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	"github.com/nais/digdirator/pkg/clients"
 	"github.com/nais/digdirator/pkg/config"
@@ -37,7 +36,7 @@ func TestGenerateDuplicateName(t *testing.T) {
 					Orgno: "1111111111",
 				},
 			},
-			Separator: ptr.To("/"),
+			Separator: new("/"),
 		},
 	}
 
