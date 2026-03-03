@@ -79,7 +79,7 @@ func run() error {
 		mgr.GetClient(),
 		mgr.GetAPIReader(),
 		mgr.GetScheme(),
-		mgr.GetEventRecorderFor("digdirator"),
+		mgr.GetEventRecorder("digdirator"),
 		cfg,
 		digdirClient,
 	)

@@ -114,7 +114,7 @@ func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Clien
 		mgr.GetClient(),
 		mgr.GetAPIReader(),
 		mgr.GetScheme(),
-		mgr.GetEventRecorderFor("digdirator"),
+		mgr.GetEventRecorder("digdirator"),
 		digdiratorConfig,
 		digdirClient,
 	)

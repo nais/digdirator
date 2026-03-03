@@ -25,7 +25,6 @@ rules:
       - ""
     resources:
       - secrets
-      - events
     verbs:
       - get
       - list
@@ -34,6 +33,15 @@ rules:
       - delete
       - update
       - patch
+  - apiGroups:
+      - ""
+      - "events.k8s.io"
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+      - update
   - apiGroups:
       - ""
     resources:

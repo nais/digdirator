@@ -13,7 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -31,7 +31,7 @@ type Reconciler struct {
 	Client       client.Client
 	Reader       client.Reader
 	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
+	Recorder     events.EventRecorder
 	Config       *config.Config
 	DigDirClient digdir.Client
 }
@@ -40,7 +40,7 @@ func NewReconciler(
 	client client.Client,
 	reader client.Reader,
 	scheme *runtime.Scheme,
-	recorder record.EventRecorder,
+	recorder events.EventRecorder,
 	config *config.Config,
 	digdirClient digdir.Client,
 ) Reconciler {
@@ -458,5 +458,5 @@ func (r *Reconciler) ensureJwkValidExternalState(tx *Transaction, registration *
 func (r *Reconciler) reportEvent(tx *Transaction, eventType, event, message string) {
 	status := tx.Instance.GetStatus()
 	status.SynchronizationState = event
-	r.Recorder.Event(tx.Instance, eventType, event, message)
+	r.Recorder.Eventf(tx.Instance, nil, eventType, event, event, message)
 }
