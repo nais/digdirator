@@ -92,6 +92,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request, instance c
 	case IsStatusConditionTrue(conditions, ConditionTypeInvalidConsumedScopes):
 		requeueAfter := 1 * time.Hour
 		log.Info(fmt.Sprintf("resource has invalid consumed scopes; requeuing reconciliation after %s", requeueAfter))
+		metrics.IncClientsFailedInvalidConfig(tx.Instance)
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 
 	case IsStatusConditionTrue(conditions, ConditionTypeInvalidExposedScopesConsumers):
