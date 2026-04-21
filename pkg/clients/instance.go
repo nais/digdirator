@@ -88,17 +88,6 @@ func GetSecretJwkKey(instance Instance) string {
 	return ""
 }
 
-// TODO: use this as an alternative fallback for getting a client ID?
-func GetSecretClientIDKey(instance Instance) string {
-	switch instance.(type) {
-	case *naisiov1.IDPortenClient:
-		return secrets.IDPortenClientIDKey
-	case *naisiov1.MaskinportenClient:
-		return secrets.MaskinportenClientIDKey
-	}
-	return ""
-}
-
 func IsUpToDate(instance Instance) bool {
 	status := instance.GetStatus()
 	if status == nil {
