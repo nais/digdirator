@@ -159,7 +159,7 @@ sequenceDiagram
 ### Installation
 
 ```shell script
-make install
+mise run install
 ```
 
 ### Digdir Setup
@@ -270,6 +270,12 @@ digdir:
 
 ## Development
 
+### Requirements
+
+- [mise](https://mise.jdx.dev/) - tool version manager and task runner
+
+### Getting started
+
 If you're running locally, make sure you have access to the GCP resources and that you're authenticated with Application Default Credentials:
 
 ```shell script
@@ -281,8 +287,8 @@ using [minikube](https://github.com/kubernetes/minikube)):
 
 ```shell script
 ulimit -n 4096  # for controller-gen
-make run
-make sample
+mise run run
+mise run install:sample
 ```
 
 ## Verifying the Digdirator image and its contents
