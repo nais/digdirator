@@ -1,6 +1,6 @@
 module github.com/nais/digdirator
 
-go 1.26.2
+go 1.26.3
 
 tool (
 	github.com/sethvargo/ratchet
