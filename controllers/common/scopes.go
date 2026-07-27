@@ -156,11 +156,13 @@ func (s scope) updateACL(scope scopes.Scope) error {
 
 	consumerStatus, consumerList := scope.FilterConsumers(acl)
 	setValidCondition := func() {
-		s.Tx.Instance.GetStatus().SetCondition(InvalidExposedScopesConsumersCondition(
-			metav1.ConditionFalse,
-			ConditionReasonValidated,
-			fmt.Sprintf("All consumers for scope %q are valid", scopeName),
-			s.Tx.Instance.GetGeneration()),
+		s.Tx.Instance.GetStatus().SetCondition(
+			InvalidExposedScopesConsumersCondition(
+				metav1.ConditionFalse,
+				ConditionReasonValidated,
+				fmt.Sprintf("All consumers for scope %q are valid", scopeName),
+				s.Tx.Instance.GetGeneration(),
+			),
 		)
 	}
 
@@ -220,11 +222,13 @@ func (s scope) updateACL(scope scopes.Scope) error {
 	}
 
 	if len(invalidConsumers) > 0 {
-		s.Tx.Instance.GetStatus().SetCondition(InvalidExposedScopesConsumersCondition(
-			metav1.ConditionTrue,
-			ConditionReasonFailed,
-			fmt.Sprintf("Scope %q has invalid consumers [%s]", scopeName, strings.Join(invalidConsumers, ", ")),
-			s.Tx.Instance.GetGeneration()),
+		s.Tx.Instance.GetStatus().SetCondition(
+			InvalidExposedScopesConsumersCondition(
+				metav1.ConditionTrue,
+				ConditionReasonFailed,
+				fmt.Sprintf("Scope %q has invalid consumers [%s]", scopeName, strings.Join(invalidConsumers, ", ")),
+				s.Tx.Instance.GetGeneration(),
+			),
 		)
 	} else {
 		setValidCondition()

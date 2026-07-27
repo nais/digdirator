@@ -126,11 +126,13 @@ func (r *Reconciler) prepare(ctx context.Context, req ctrl.Request, instance cli
 
 func (r *Reconciler) process(tx *Transaction) error {
 	status := tx.Instance.GetStatus()
-	status.SetCondition(ReadyCondition(
-		metav1.ConditionFalse,
-		ConditionReasonProcessing,
-		"Started processing resource",
-		tx.Instance.GetGeneration()),
+	status.SetCondition(
+		ReadyCondition(
+			metav1.ConditionFalse,
+			ConditionReasonProcessing,
+			"Started processing resource",
+			tx.Instance.GetGeneration(),
+		),
 	)
 	if err := r.Client.Status().Update(tx.Ctx, tx.Instance); err != nil {
 		return fmt.Errorf("updating status: %w", err)
@@ -219,17 +221,21 @@ func (r *Reconciler) process(tx *Transaction) error {
 	status.SynchronizationHash = hash
 	status.SynchronizationSecretName = clients.GetSecretName(tx.Instance)
 	status.SetStateSynchronized()
-	status.SetCondition(ReadyCondition(
-		metav1.ConditionTrue,
-		ConditionReasonSynchronized,
-		"Resource is up-to-date with DigDir",
-		generation),
+	status.SetCondition(
+		ReadyCondition(
+			metav1.ConditionTrue,
+			ConditionReasonSynchronized,
+			"Resource is up-to-date with DigDir",
+			generation,
+		),
 	)
-	status.SetCondition(ErrorCondition(
-		metav1.ConditionFalse,
-		ConditionReasonSynchronized,
-		"Processing completed without errors",
-		generation),
+	status.SetCondition(
+		ErrorCondition(
+			metav1.ConditionFalse,
+			ConditionReasonSynchronized,
+			"Processing completed without errors",
+			generation,
+		),
 	)
 
 	r.reportEvent(tx, corev1.EventTypeNormal, EventSynchronized, "Resource is up-to-date")
@@ -247,11 +253,13 @@ func (r *Reconciler) process(tx *Transaction) error {
 func (r *Reconciler) observeError(tx *Transaction, reconcileErr error) error {
 	setStatusCondition := func(message string) {
 		r.reportEvent(tx, corev1.EventTypeWarning, EventFailedSynchronization, message)
-		tx.Instance.GetStatus().SetCondition(ErrorCondition(
-			metav1.ConditionTrue,
-			ConditionReasonFailed,
-			message,
-			tx.Instance.GetGeneration()),
+		tx.Instance.GetStatus().SetCondition(
+			ErrorCondition(
+				metav1.ConditionTrue,
+				ConditionReasonFailed,
+				message,
+				tx.Instance.GetGeneration(),
+			),
 		)
 	}
 
@@ -375,18 +383,22 @@ func (r *Reconciler) filterConsumedScopes(tx *Transaction, client *naisiov1.Mask
 	if len(invalid) > 0 {
 		message := fmt.Sprintf("Organization has no access to scopes: [%s]", strings.Join(invalid, ", "))
 		ctrl.LoggerFrom(tx.Ctx).V(4).Info(message)
-		tx.Instance.GetStatus().SetCondition(InvalidConsumedScopesCondition(
-			metav1.ConditionTrue,
-			ConditionReasonFailed,
-			message,
-			tx.Instance.GetGeneration()),
+		tx.Instance.GetStatus().SetCondition(
+			InvalidConsumedScopesCondition(
+				metav1.ConditionTrue,
+				ConditionReasonFailed,
+				message,
+				tx.Instance.GetGeneration(),
+			),
 		)
 	} else {
-		tx.Instance.GetStatus().SetCondition(InvalidConsumedScopesCondition(
-			metav1.ConditionFalse,
-			ConditionReasonValidated,
-			"Organization has access to all consumed scopes",
-			tx.Instance.GetGeneration()),
+		tx.Instance.GetStatus().SetCondition(
+			InvalidConsumedScopesCondition(
+				metav1.ConditionFalse,
+				ConditionReasonValidated,
+				"Organization has access to all consumed scopes",
+				tx.Instance.GetGeneration(),
+			),
 		)
 	}
 
