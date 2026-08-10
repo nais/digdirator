@@ -10,6 +10,14 @@ const (
 	IDPortenJwksUriKey       = "IDPORTEN_JWKS_URI"
 	IDPortenTokenEndpointKey = "IDPORTEN_TOKEN_ENDPOINT"
 
+	AnsattportenClientIDKey      = "ANSATTPORTEN_CLIENT_ID"
+	AnsattportenJwkKey           = "ANSATTPORTEN_CLIENT_JWK"
+	AnsattportenRedirectURIKey   = "ANSATTPORTEN_REDIRECT_URI"
+	AnsattportenWellKnownURLKey  = "ANSATTPORTEN_WELL_KNOWN_URL"
+	AnsattportenIssuerKey        = "ANSATTPORTEN_ISSUER"
+	AnsattportenJwksUriKey       = "ANSATTPORTEN_JWKS_URI"
+	AnsattportenTokenEndpointKey = "ANSATTPORTEN_TOKEN_ENDPOINT"
+
 	MaskinportenClientIDKey      = "MASKINPORTEN_CLIENT_ID"
 	MaskinportenJwkKey           = "MASKINPORTEN_CLIENT_JWK"
 	MaskinportenScopesKey        = "MASKINPORTEN_SCOPES"

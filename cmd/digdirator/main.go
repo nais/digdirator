@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/nais/digdirator/controllers/ansattportenclient"
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/controllers/maskinportenclient"
@@ -87,6 +88,12 @@ func run() error {
 	if cfg.Features.IDPorten {
 		if err = idportenclient.NewReconciler(reconciler).SetupWithManager(mgr); err != nil {
 			return fmt.Errorf("creating idportenclient controller: %w", err)
+		}
+	}
+
+	if cfg.Features.Ansattporten {
+		if err = ansattportenclient.NewReconciler(reconciler).SetupWithManager(mgr); err != nil {
+			return fmt.Errorf("creating ansattportenclient controller: %w", err)
 		}
 	}
 

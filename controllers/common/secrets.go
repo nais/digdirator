@@ -108,6 +108,8 @@ func secretData(instance clients.Instance, jwk jose.JSONWebKey, config *config.C
 	switch v := instance.(type) {
 	case *nais_io_v1.IDPortenClient:
 		stringData, err = secrets.IDPortenClientSecretData(v, jwk, config)
+	case *nais_io_v1.AnsattportenClient:
+		stringData, err = secrets.AnsattportenClientSecretData(v, jwk, config)
 	case *nais_io_v1.MaskinportenClient:
 		stringData, err = secrets.MaskinportenClientSecretData(v, jwk, config)
 	}

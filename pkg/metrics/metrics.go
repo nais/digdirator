@@ -84,6 +84,66 @@ var (
 		},
 		[]string{labelNamespace},
 	)
+	AnsattportenClientsTotal = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "ansattporten_client_total",
+		},
+	)
+	AnsattportenSecretsTotal = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "ansattporten_client_secrets_total",
+			Help: "Total number of ansattporten client secrets",
+		},
+	)
+	AnsattportenClientsCreatedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "ansattporten_client_created_count",
+			Help: "Number of ansattporten clients created successfully",
+		},
+		[]string{labelNamespace},
+	)
+	AnsattportenClientsUpdatedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "ansattporten_client_updated_count",
+			Help: "Number of ansattporten clients updated successfully",
+		},
+		[]string{labelNamespace},
+	)
+	AnsattportenClientsRotatedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "ansattporten_client_rotated_count",
+			Help: "Number of ansattporten clients successfully rotated credentials",
+		},
+		[]string{labelNamespace},
+	)
+	AnsattportenClientsProcessedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "ansattporten_client_processed_count",
+			Help: "Number of ansattporten clients processed successfully",
+		},
+		[]string{labelNamespace},
+	)
+	AnsattportenClientsFailedProcessingCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "ansattporten_client_failed_processing_count",
+			Help: "Number of ansattporten clients that failed processing",
+		},
+		[]string{labelNamespace},
+	)
+	AnsattportenClientsFailedInvalidConfigCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "ansattporten_client_failed_invalid_config_count",
+			Help: "Number of ansattporten clients that failed processing due to invalid configuration",
+		},
+		[]string{labelNamespace},
+	)
+	AnsattportenClientsDeletedCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "ansattporten_client_deleted_count",
+			Help: "Number of ansattporten clients successfully deleted",
+		},
+		[]string{labelNamespace},
+	)
 	MaskinportenClientsTotal = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "maskinporten_client_total",
@@ -220,6 +280,15 @@ var AllMetrics = []prometheus.Collector{
 	IDPortenClientsUpdatedCount,
 	IDPortenClientsRotatedCount,
 	IDPortenClientsDeletedCount,
+	AnsattportenClientsTotal,
+	AnsattportenSecretsTotal,
+	AnsattportenClientsProcessedCount,
+	AnsattportenClientsFailedProcessingCount,
+	AnsattportenClientsFailedInvalidConfigCount,
+	AnsattportenClientsCreatedCount,
+	AnsattportenClientsUpdatedCount,
+	AnsattportenClientsRotatedCount,
+	AnsattportenClientsDeletedCount,
 	MaskinportenClientsTotal,
 	MaskinportenSecretsTotal,
 	MaskinportenClientsProcessedCount,
@@ -247,6 +316,13 @@ var AllCounters = []*prometheus.CounterVec{
 	IDPortenClientsUpdatedCount,
 	IDPortenClientsRotatedCount,
 	IDPortenClientsDeletedCount,
+	AnsattportenClientsProcessedCount,
+	AnsattportenClientsFailedProcessingCount,
+	AnsattportenClientsFailedInvalidConfigCount,
+	AnsattportenClientsCreatedCount,
+	AnsattportenClientsUpdatedCount,
+	AnsattportenClientsRotatedCount,
+	AnsattportenClientsDeletedCount,
 	MaskinportenClientsProcessedCount,
 	MaskinportenClientsFailedProcessingCount,
 	MaskinportenClientsFailedInvalidConfigCount,
@@ -271,6 +347,8 @@ func IncClientsProcessed(instance clients.Instance) {
 	switch instance.(type) {
 	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsProcessedCount, instance.GetNamespace())
+	case *naisiov1.AnsattportenClient:
+		incWithNamespaceLabel(AnsattportenClientsProcessedCount, instance.GetNamespace())
 	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsProcessedCount, instance.GetNamespace())
 	}
@@ -280,6 +358,8 @@ func IncClientsFailedProcessing(instance clients.Instance) {
 	switch instance.(type) {
 	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsFailedProcessingCount, instance.GetNamespace())
+	case *naisiov1.AnsattportenClient:
+		incWithNamespaceLabel(AnsattportenClientsFailedProcessingCount, instance.GetNamespace())
 	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsFailedProcessingCount, instance.GetNamespace())
 	}
@@ -289,6 +369,8 @@ func IncClientsFailedInvalidConfig(instance clients.Instance) {
 	switch instance.(type) {
 	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsFailedInvalidConfigCount, instance.GetNamespace())
+	case *naisiov1.AnsattportenClient:
+		incWithNamespaceLabel(AnsattportenClientsFailedInvalidConfigCount, instance.GetNamespace())
 	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsFailedInvalidConfigCount, instance.GetNamespace())
 	}
@@ -298,6 +380,8 @@ func IncClientsCreated(instance clients.Instance) {
 	switch instance.(type) {
 	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsCreatedCount, instance.GetNamespace())
+	case *naisiov1.AnsattportenClient:
+		incWithNamespaceLabel(AnsattportenClientsCreatedCount, instance.GetNamespace())
 	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsCreatedCount, instance.GetNamespace())
 	}
@@ -307,6 +391,8 @@ func IncClientsUpdated(instance clients.Instance) {
 	switch instance.(type) {
 	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsUpdatedCount, instance.GetNamespace())
+	case *naisiov1.AnsattportenClient:
+		incWithNamespaceLabel(AnsattportenClientsUpdatedCount, instance.GetNamespace())
 	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsUpdatedCount, instance.GetNamespace())
 	}
@@ -316,6 +402,8 @@ func IncClientsRotated(instance clients.Instance) {
 	switch instance.(type) {
 	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsRotatedCount, instance.GetNamespace())
+	case *naisiov1.AnsattportenClient:
+		incWithNamespaceLabel(AnsattportenClientsRotatedCount, instance.GetNamespace())
 	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsRotatedCount, instance.GetNamespace())
 	}
@@ -325,6 +413,8 @@ func IncClientsDeleted(instance clients.Instance) {
 	switch instance.(type) {
 	case *naisiov1.IDPortenClient:
 		incWithNamespaceLabel(IDPortenClientsDeletedCount, instance.GetNamespace())
+	case *naisiov1.AnsattportenClient:
+		incWithNamespaceLabel(AnsattportenClientsDeletedCount, instance.GetNamespace())
 	case *naisiov1.MaskinportenClient:
 		incWithNamespaceLabel(MaskinportenClientsDeletedCount, instance.GetNamespace())
 	}
@@ -426,6 +516,9 @@ func (m metrics) Refresh(ctx context.Context) {
 	var idportenSecretList corev1.SecretList
 	var idportenClientsList naisiov1.IDPortenClientList
 
+	var ansattportenSecretList corev1.SecretList
+	var ansattportenClientsList naisiov1.AnsattportenClientList
+
 	var maskinportenSecretList corev1.SecretList
 	var maskinportenClientsList naisiov1.MaskinportenClientList
 
@@ -440,6 +533,13 @@ func (m metrics) Refresh(ctx context.Context) {
 		}
 		IDPortenSecretsTotal.Set(float64(len(idportenSecretList.Items)))
 
+		if err = m.reader.List(ctx, &ansattportenSecretList, client.MatchingLabels{
+			clients.TypeLabelKey: clients.AnsattportenTypeLabelValue,
+		}); err != nil {
+			log.Error("failed to list ansattporten secrets", "error", err)
+		}
+		AnsattportenSecretsTotal.Set(float64(len(ansattportenSecretList.Items)))
+
 		if err = m.reader.List(ctx, &maskinportenSecretList, client.MatchingLabels{
 			clients.TypeLabelKey: clients.MaskinportenTypeLabelValue,
 		}); err != nil {
@@ -451,6 +551,11 @@ func (m metrics) Refresh(ctx context.Context) {
 			log.Error("failed to list idporten clients", "error", err)
 		}
 		IDPortenClientsTotal.Set(float64(len(idportenClientsList.Items)))
+
+		if err = m.reader.List(ctx, &ansattportenClientsList); err != nil {
+			log.Error("failed to list ansattporten clients", "error", err)
+		}
+		AnsattportenClientsTotal.Set(float64(len(ansattportenClientsList.Items)))
 
 		if err = m.reader.List(ctx, &maskinportenClientsList); err != nil {
 			log.Error("failed to list maskinporten clients", "error", err)

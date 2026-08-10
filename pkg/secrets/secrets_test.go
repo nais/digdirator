@@ -65,6 +65,57 @@ func TestIDPortenClientSecretData(t *testing.T) {
 	})
 }
 
+func TestAnsattportenClientSecretData(t *testing.T) {
+	client := fixtures.MinimalAnsattportenClient()
+
+	jwk, err := crypto.GenerateJwk()
+	assert.NoError(t, err)
+
+	cfg := makeConfig()
+
+	stringData, err := secrets.AnsattportenClientSecretData(client, *jwk, cfg)
+	assert.NoError(t, err, "should not error")
+
+	t.Run("StringData should contain expected fields and values", func(t *testing.T) {
+		t.Run("Secret Data should contain "+secrets.AnsattportenJwkKey, func(t *testing.T) {
+			expected, err := json.Marshal(jwk)
+			assert.NoError(t, err)
+			assert.Equal(t, string(expected), stringData[secrets.AnsattportenJwkKey])
+		})
+
+		for _, test := range []struct {
+			key      string
+			expected string
+		}{
+			{
+				key:      secrets.AnsattportenClientIDKey,
+				expected: "test-ansattporten",
+			},
+			{
+				key:      secrets.AnsattportenWellKnownURLKey,
+				expected: "https://ansattporten.example.com/.well-known/openid-configuration",
+			},
+			{
+				key:      secrets.AnsattportenIssuerKey,
+				expected: "https://ansattporten.example.com/",
+			},
+			{
+				key:      secrets.AnsattportenJwksUriKey,
+				expected: "https://ansattporten.example.com/jwk",
+			},
+			{
+				key:      secrets.AnsattportenTokenEndpointKey,
+				expected: "https://ansattporten.example.com/token",
+			},
+		} {
+			t.Run("Secret Data should contain "+test.key, func(t *testing.T) {
+				assert.NotEmpty(t, stringData[test.key])
+				assert.Equal(t, test.expected, stringData[test.key])
+			})
+		}
+	})
+}
+
 func TestMaskinportenClientSecretData(t *testing.T) {
 	client := fixtures.MinimalMaskinportenClient()
 	client.Spec.Scopes = naisiov1.MaskinportenScope{
@@ -135,6 +186,14 @@ func makeConfig() *config.Config {
 					Issuer:        "https://idporten.example.com/",
 					JwksURI:       "https://idporten.example.com/jwk",
 					TokenEndpoint: "https://idporten.example.com/token",
+				},
+			},
+			Ansattporten: config.Ansattporten{
+				WellKnownURL: "https://ansattporten.example.com/.well-known/openid-configuration",
+				Metadata: oauth.MetadataOpenID{
+					Issuer:        "https://ansattporten.example.com/",
+					JwksURI:       "https://ansattporten.example.com/jwk",
+					TokenEndpoint: "https://ansattporten.example.com/token",
 				},
 			},
 			Maskinporten: config.Maskinporten{

@@ -38,6 +38,14 @@ image:
   repository: europe-north1-docker.pkg.dev/nais-io/nais/images
   name: digdirator
   tag: latest
+ansattporten:
+  enabled: false
+  # https://docs.digdir.no/docs/general/IP
+  cidrs:
+    - "139.105.36.165/32"
+    - "139.105.36.133/32"
+  # Ansattporten well-known URL. See https://docs.digdir.no/docs/ansattporten/ansattporten_wellknown.html
+  wellKnownUrl: ""
 maskinporten:
   enabled: true
   # https://docs.digdir.no/docs/general/IP

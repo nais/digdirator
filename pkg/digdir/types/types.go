@@ -28,6 +28,7 @@ type IntegrationType string
 const (
 	IntegrationTypeApiKlient    IntegrationType = "api_klient"
 	IntegrationTypeIDPorten     IntegrationType = "idporten"
+	IntegrationTypeAnsattporten IntegrationType = "ansattporten"
 	IntegrationTypeMaskinporten IntegrationType = "maskinporten"
 	IntegrationTypeKrr          IntegrationType = "krr"
 	IntegrationTypeUnknown      IntegrationType = "unknown"
