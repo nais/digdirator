@@ -60,6 +60,14 @@ values:
     required: true
     config:
       type: string
+  ansattporten.enabled:
+    description: Enable Ansattporten reconciler
+    config:
+      type: bool
+  ansattporten.wellKnownUrl:
+    description: Ansattporten well-known URL. Required when ansattporten.enabled is true. See https://docs.digdir.no/docs/idporten/oidc/oidc_func_wellknown.html
+    config:
+      type: string
   onprem.enabled:
     description: Enable resources for onprem
     computed:

@@ -18,6 +18,7 @@ type ClusterFixtures struct {
 	client.Client
 	Config
 	idPortenClient     *naisiov1.IDPortenClient
+	ansattportenClient *naisiov1.AnsattportenClient
 	maskinportenClient *naisiov1.MaskinportenClient
 	pod                *corev1.Pod
 	podEnvFrom         *corev1.Pod
@@ -42,9 +43,12 @@ func New(cli client.Client, config Config) ClusterFixtures {
 }
 
 func (c ClusterFixtures) MinimalConfig(clientType string) ClusterFixtures {
-	if clientType == clients.IDPortenTypeLabelValue {
+	switch clientType {
+	case clients.IDPortenTypeLabelValue:
 		return c.WithPods().WithIDPortenClient().WithUnusedSecret(clients.IDPortenTypeLabelValue)
-	} else {
+	case clients.AnsattportenTypeLabelValue:
+		return c.WithPods().WithAnsattportenClient().WithUnusedSecret(clients.AnsattportenTypeLabelValue)
+	default:
 		return c.WithPods().WithMaskinportenClient().WithUnusedSecret(clients.MaskinportenTypeLabelValue)
 	}
 }
@@ -80,6 +84,28 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 		PostLogoutRedirectURIs: []naisiov1.IDPortenURI{"https://my-app.nais.io"},
 	}
 	c.idPortenClient = &naisiov1.IDPortenClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: spec,
+	}
+	return c
+}
+
+func (c ClusterFixtures) WithAnsattportenClient() ClusterFixtures {
+	key := types.NamespacedName{
+		Namespace: c.NamespaceName,
+		Name:      c.DigdirClientName,
+	}
+
+	spec := naisiov1.AnsattportenClientSpec{
+		ClientURI:              "https://my-app.nais.io",
+		RedirectURIs:           []naisiov1.AnsattportenURI{"https://my-app.nais.io"},
+		SecretName:             c.SecretName,
+		PostLogoutRedirectURIs: []naisiov1.AnsattportenURI{"https://my-app.nais.io"},
+	}
+	c.ansattportenClient = &naisiov1.AnsattportenClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,
@@ -284,6 +310,13 @@ func (c ClusterFixtures) Setup() error {
 			}
 		}
 	}
+	if c.ansattportenClient != nil {
+		if err := c.Create(ctx, c.ansattportenClient); err != nil {
+			if !errors.IsAlreadyExists(err) {
+				return err
+			}
+		}
+	}
 	if c.maskinportenClient != nil {
 		if err := c.Create(ctx, c.maskinportenClient); err != nil {
 			if !errors.IsAlreadyExists(err) {
@@ -329,6 +362,15 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 				Name:      c.DigdirClientName,
 			},
 			Object: &naisiov1.IDPortenClient{},
+		})
+	}
+	if c.ansattportenClient != nil {
+		resources = append(resources, resource{
+			ObjectKey: client.ObjectKey{
+				Namespace: c.NamespaceName,
+				Name:      c.DigdirClientName,
+			},
+			Object: &naisiov1.AnsattportenClient{},
 		})
 	}
 	if c.maskinportenClient != nil {

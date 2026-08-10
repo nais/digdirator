@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	ctrlmetricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	"github.com/nais/digdirator/controllers/ansattportenclient"
 	"github.com/nais/digdirator/controllers/common"
 	"github.com/nais/digdirator/controllers/idportenclient"
 	"github.com/nais/digdirator/controllers/maskinportenclient"
@@ -98,6 +99,8 @@ func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Clien
 	digdiratorConfig.ClusterName = "test-cluster"
 	digdiratorConfig.DigDir.Admin.BaseURL = testServer.URL
 	digdiratorConfig.DigDir.IDPorten.WellKnownURL = testServer.URL + "/.well-known/openid-configuration"
+	digdiratorConfig.DigDir.Ansattporten.WellKnownURL = testServer.URL + "/.well-known/openid-configuration"
+	digdiratorConfig.Features.Ansattporten = true
 	digdiratorConfig.DigDir.Maskinporten.WellKnownURL = testServer.URL + "/.well-known/oauth-authorization-server"
 
 	digdiratorConfig, err = digdiratorConfig.WithProviderMetadata(context.Background())
@@ -129,6 +132,12 @@ func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Clien
 	err = maskinportenreconciler.SetupWithManager(mgr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("setting up maskinporten reconciler: %v", err)
+	}
+
+	ansattportenreconciler := ansattportenclient.NewReconciler(commonReconciler)
+	err = ansattportenreconciler.SetupWithManager(mgr)
+	if err != nil {
+		return nil, nil, fmt.Errorf("setting up ansattporten reconciler: %v", err)
 	}
 
 	go func() {

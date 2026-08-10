@@ -29,6 +29,29 @@ func MinimalIDPortenClient() *naisiov1.IDPortenClient {
 	}
 }
 
+func MinimalAnsattportenClient() *naisiov1.AnsattportenClient {
+	return &naisiov1.AnsattportenClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "test-app",
+			Namespace:  "test-namespace",
+			Generation: 1,
+		},
+		Spec: naisiov1.AnsattportenClientSpec{
+			ClientURI: "",
+			RedirectURIs: []naisiov1.AnsattportenURI{
+				"https://test.com",
+			},
+			SecretName: "test",
+		},
+		Status: naisiov1.DigdiratorStatus{
+			SynchronizationHash:  "de6ecbc3b6cb148b",
+			SynchronizationState: common.EventSynchronized,
+			ClientID:             "test-ansattporten",
+			ObservedGeneration:   new(int64(1)),
+		},
+	}
+}
+
 func MinimalMaskinportenClient() *naisiov1.MaskinportenClient {
 	return &naisiov1.MaskinportenClient{
 		ObjectMeta: metav1.ObjectMeta{

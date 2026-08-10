@@ -22,6 +22,9 @@ func TestGetIntegrationType(t *testing.T) {
 	idPortenClient.Spec.IntegrationType = string(types.IntegrationTypeApiKlient)
 	assert.Equal(t, types.IntegrationTypeApiKlient, clients.GetIntegrationType(idPortenClient))
 
+	ansattportenClient := fixtures.MinimalAnsattportenClient()
+	assert.Equal(t, types.IntegrationTypeAnsattporten, clients.GetIntegrationType(ansattportenClient))
+
 	maskinportenClient := fixtures.MinimalMaskinportenClient()
 	assert.Equal(t, types.IntegrationTypeMaskinporten, clients.GetIntegrationType(maskinportenClient))
 }
@@ -31,6 +34,10 @@ func TestGetSecretName(t *testing.T) {
 	idPortenClient.Spec.SecretName = "idporten-secret"
 	assert.Equal(t, "idporten-secret", clients.GetSecretName(idPortenClient))
 
+	ansattportenClient := fixtures.MinimalAnsattportenClient()
+	ansattportenClient.Spec.SecretName = "ansattporten-secret"
+	assert.Equal(t, "ansattporten-secret", clients.GetSecretName(ansattportenClient))
+
 	maskinportenClient := fixtures.MinimalMaskinportenClient()
 	maskinportenClient.Spec.SecretName = "maskinporten-secret"
 	assert.Equal(t, "maskinporten-secret", clients.GetSecretName(maskinportenClient))
@@ -39,6 +46,9 @@ func TestGetSecretName(t *testing.T) {
 func TestGetSecretJwkKey(t *testing.T) {
 	idPortenClient := fixtures.MinimalIDPortenClient()
 	assert.Equal(t, secrets.IDPortenJwkKey, clients.GetSecretJwkKey(idPortenClient))
+
+	ansattportenClient := fixtures.MinimalAnsattportenClient()
+	assert.Equal(t, secrets.AnsattportenJwkKey, clients.GetSecretJwkKey(ansattportenClient))
 
 	maskinportenClient := fixtures.MinimalMaskinportenClient()
 	assert.Equal(t, secrets.MaskinportenJwkKey, clients.GetSecretJwkKey(maskinportenClient))
@@ -73,6 +83,39 @@ func TestIsUpToDate(t *testing.T) {
 
 	t.Run("IDPortenClient with synchronization time above threshold should not be up-to-date", func(t *testing.T) {
 		client := fixtures.MinimalIDPortenClient()
+		lastSyncTime := time.Now().Add(-clients.StaleSyncThresholdDuration)
+		client.Status.SynchronizationTime = new(metav1.NewTime(lastSyncTime))
+		assert.False(t, clients.IsUpToDate(client))
+	})
+
+	t.Run("Minimal AnsattportenClient should be up-to-date", func(t *testing.T) {
+		assert.True(t, clients.IsUpToDate(fixtures.MinimalAnsattportenClient()))
+	})
+
+	t.Run("AnsattportenClient with changed value should not be up-to-date", func(t *testing.T) {
+		client := fixtures.MinimalAnsattportenClient()
+		client.ObjectMeta.Generation++
+		assert.False(t, clients.IsUpToDate(client))
+	})
+
+	t.Run("AnsattportenClient with resync annotation should not be up-to-date", func(t *testing.T) {
+		client := fixtures.MinimalAnsattportenClient()
+		client.SetAnnotations(map[string]string{
+			clients.AnnotationResynchronize: "true",
+		})
+		assert.False(t, clients.IsUpToDate(client))
+	})
+
+	t.Run("AnsattportenClient with rotate annotation should not be up-to-date", func(t *testing.T) {
+		client := fixtures.MinimalAnsattportenClient()
+		client.SetAnnotations(map[string]string{
+			clients.AnnotationRotate: "true",
+		})
+		assert.False(t, clients.IsUpToDate(client))
+	})
+
+	t.Run("AnsattportenClient with synchronization time above threshold should not be up-to-date", func(t *testing.T) {
+		client := fixtures.MinimalAnsattportenClient()
 		lastSyncTime := time.Now().Add(-clients.StaleSyncThresholdDuration)
 		client.Status.SynchronizationTime = new(metav1.NewTime(lastSyncTime))
 		assert.False(t, clients.IsUpToDate(client))
@@ -188,6 +231,50 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 	})
 }
 
+func TestToClientRegistration_AnsattportenClient(t *testing.T) {
+	client := fixtures.MinimalAnsattportenClient()
+	cluster := "test-cluster"
+	cfg := makeConfig(cluster)
+	registration := clients.ToClientRegistration(client, cfg)
+
+	assert.Equal(t, 3600, registration.AccessTokenLifetime)
+
+	assert.Equal(t, types.ApplicationTypeWeb, registration.ApplicationType)
+
+	assert.Equal(t, 7200, registration.AuthorizationLifeTime)
+
+	assert.Equal(t, "https://some-client-uri", registration.ClientURI)
+
+	assert.Equal(t, "some-client-name", registration.ClientName)
+
+	assert.Equal(t, "test-cluster:test-namespace:test-app", registration.Description)
+
+	assert.False(t, registration.FrontchannelLogoutSessionRequired)
+	assert.Empty(t, registration.FrontchannelLogoutURI)
+
+	assert.Contains(t, registration.GrantTypes, types.GrantTypeAuthorizationCode)
+	assert.Contains(t, registration.GrantTypes, types.GrantTypeRefreshToken)
+	assert.Len(t, registration.GrantTypes, 2)
+
+	assert.Equal(t, types.IntegrationTypeAnsattporten, registration.IntegrationType)
+
+	assert.Contains(t, registration.PostLogoutRedirectURIs, "https://some-client-uri")
+	assert.Len(t, registration.PostLogoutRedirectURIs, 1)
+
+	assert.Contains(t, registration.RedirectURIs, "https://test.com")
+	assert.Len(t, registration.RedirectURIs, 1)
+
+	assert.Equal(t, 7200, registration.RefreshTokenLifetime)
+
+	assert.Equal(t, types.RefreshTokenUsageOneTime, registration.RefreshTokenUsage)
+
+	assert.Contains(t, registration.Scopes, "openid")
+	assert.Contains(t, registration.Scopes, "profile")
+	assert.Len(t, registration.Scopes, 2)
+
+	assert.Equal(t, types.TokenEndpointAuthMethodPrivateKeyJwt, registration.TokenEndpointAuthMethod)
+}
+
 func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 	client := fixtures.MinimalMaskinportenClient()
 	cluster := "test-cluster"
@@ -288,6 +375,21 @@ func TestToClientRegistration_IntegrationType(t *testing.T) {
 
 func TestIDPortenIntegrationNameFallback(t *testing.T) {
 	client := fixtures.MinimalIDPortenClient()
+	cluster := "test-cluster"
+
+	cfg1 := makeConfig(cluster)
+	registration1 := clients.ToClientRegistration(client, cfg1)
+	assert.Equal(t, cfg1.DigDir.Common.ClientName, registration1.ClientName)
+
+	integrationName := "test-integration"
+	client.Spec.ClientName = integrationName
+	cfg2 := makeConfig(cluster)
+	registration2 := clients.ToClientRegistration(client, cfg2)
+	assert.Equal(t, integrationName, registration2.ClientName)
+}
+
+func TestAnsattportenIntegrationNameFallback(t *testing.T) {
+	client := fixtures.MinimalAnsattportenClient()
 	cluster := "test-cluster"
 
 	cfg1 := makeConfig(cluster)

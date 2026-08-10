@@ -1,0 +1,18 @@
+---
+apiVersion: nais.io/v1
+kind: AnsattportenClient
+metadata:
+  name: my-app
+  namespace: myteam
+spec:
+  clientURI: "https://min-app.nav.no"
+  redirectURIs:
+    - https://min-app.nav.no/oauth2/callback
+  secretName: ansattporten-secret
+  postLogoutRedirectURIs:
+    - "https://nav.no"
+  scopes:
+    - openid
+    - profile
+  accessTokenLifetime: 3600
+  sessionLifetime: 28800

@@ -8,10 +8,11 @@ It currently supports:
 - [ID-porten clients / integrations](https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin.html)
 - [Maskinporten clients / integrations](https://docs.digdir.no/docs/Maskinporten/maskinporten_sjolvbetjening_api.html)
 - [Maskinporten scopes / APIs](https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin_maskinporten.html)
+- [Ansattporten clients / integrations](https://docs.digdir.no/docs/ansattporten/)
 
 ## CRDs
 
-The operator uses two custom resource definitions (CRDs):
+The operator uses three custom resource definitions (CRDs):
 
 ### `IDPortenClient`
 
@@ -49,6 +50,46 @@ The Kubernetes secret contains the following keys:
 | `IDPORTEN_ISSUER`          | The `issuer` property from the metadata document.                                               |
 | `IDPORTEN_JWKS_URI`        | The `jwks_uri` property from the metadata document.                                             |
 | `IDPORTEN_TOKEN_ENDPOINT`  | The `token_endpoint` property from the metadata document.                                       |
+
+### `AnsattportenClient`
+
+```yaml
+---
+apiVersion: nais.io/v1
+kind: AnsattportenClient
+metadata:
+  name: my-app
+  namespace: my-team
+spec:
+  clientURI: "https://domain.example"
+  redirectURIs:
+    - "https://domain.example/oauth2/callback"
+  postLogoutRedirectURIs:
+    - "https://domain.example/oauth2/logout/callback"
+  secretName: my-secret
+  scopes:
+    - openid
+    - profile
+```
+
+For the full CRD specification with all possible options, see
+[nais/liberator/config/crd/nais.io_ansattportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_ansattportenclients.yaml)
+
+An `AnsattportenClient` resource contains:
+
+- the client configuration
+- the name of the Kubernetes secret that the application expects to contain the client's credentials
+
+The Kubernetes secret contains the following keys:
+
+| Key                          | Description                                                                                     |
+|------------------------------|-------------------------------------------------------------------------------------------------|
+| `ANSATTPORTEN_CLIENT_ID`     | The application's client ID.                                                                    |
+| `ANSATTPORTEN_CLIENT_JWK`    | The application's private JSON Web Key (JWK) for client authentication (RFC 7523, section 2.2). |
+| `ANSATTPORTEN_WELL_KNOWN_URL`| The URL pointing to Ansattporten's well-known metadata document.                                |
+| `ANSATTPORTEN_ISSUER`        | The `issuer` property from the metadata document.                                               |
+| `ANSATTPORTEN_JWKS_URI`      | The `jwks_uri` property from the metadata document.                                             |
+| `ANSATTPORTEN_TOKEN_ENDPOINT`| The `token_endpoint` property from the metadata document.                                       |
 
 ### `MaskinportenClient`
 
@@ -101,7 +142,7 @@ The Kubernetes secret contains the following keys:
 sequenceDiagram
     actor developer as Developer or<br/>Operator
     box rgba(33,66,99,0.5) Kubernetes Cluster
-        participant crd as IDPortenClient or<br/>MaskinportenClient
+        participant crd as IDPortenClient,<br/>MaskinportenClient or<br/>AnsattportenClient
         participant secrets as Secrets
         participant digdirator as Digdirator
     end
@@ -140,7 +181,7 @@ sequenceDiagram
     end
 ```
 
-1. When an `IDPortenClient` or a `MaskinportenClient` resource is applied to the cluster (either by a developer or another operator), the Digdirator controller will reconcile it.
+1. When an `IDPortenClient`, a `MaskinportenClient`, or an `AnsattportenClient` resource is applied to the cluster (either by a developer or another operator), the Digdirator controller will reconcile it.
 2. Digdirator reads the resource and retrieves all existing secrets owned by the resource.
 3. Digdirator then checks if the `spec.secretName` has changed:
     1. If the secret name has changed, it creates a new private key for the application.
@@ -152,7 +193,7 @@ sequenceDiagram
 6. The operator creates or updates the Kubernetes secret with the specified `spec.secretName`.
 7. Finally, any unreferenced secrets are deleted to clean up resources.
     1. Secrets are considered referenced if mounted as files or environment variables in a `Pod`.
-       The `Pod` must have a label `app=<name>` where `<name>` is equal to `.metadata.name` in the `IDPortenClient` or `MaskinportenClient` resource.
+       The `Pod` must have a label `app=<name>` where `<name>` is equal to `.metadata.name` in the `IDPortenClient`, `MaskinportenClient` or `AnsattportenClient` resource.
 
 ## Usage
 
@@ -210,9 +251,12 @@ Digdirator can be configured using command-line flags:
 | `--digdir.common.client-uri`                 | string  | `https://www.nav.no`                                         | Default client URI for all provisioned clients. Appears in the back-button for the login prompt for ID-porten.                      |
 | `--digdir.common.session-lifetime`           | int     | `7200`                                                       | Default lifetime (in seconds) for sessions (authorization and refresh token lifetime) for all clients.                              |
 | `--digdir.idporten.well-known-url`           | string  |                                                              | URL to [ID-porten well-known discovery metadata document](https://docs.digdir.no/docs/idporten/oidc/oidc_func_wellknown.html).      |
+| `--digdir.ansattporten.well-known-url`       | string  |                                                              | URL to Ansattporten well-known discovery metadata document. Required if `--features.ansattporten` is enabled.                       |
 | `--digdir.maskinporten.default.client-scope` | string  | `nav:test/api`                                               | Default scope for provisioned Maskinporten clients, if none specified in spec.                                                      |
 | `--digdir.maskinporten.default.scope-prefix` | string  | `nav`                                                        | Default scope prefix for provisioned Maskinporten scopes.                                                                           |
 | `--digdir.maskinporten.well-known-url`       | string  |                                                              | URL to [Maskinporten well-known discovery metadata document](https://docs.digdir.no/docs/Maskinporten/maskinporten_func_wellknown). |
+| `--features.ansattporten`                    | boolean | `false`                                                      | Feature toggle for ansattporten.                                                                                                    |
+| `--features.idporten`                        | boolean | `true`                                                       | Feature toggle for idporten.                                                                                                        |
 | `--features.maskinporten`                    | boolean | `false`                                                      | Feature toggle for maskinporten.                                                                                                    |
 | `--leader-election.enabled`                  | boolean | `false`                                                      | Toggle for enabling leader election.                                                                                                |
 | `--leader-election.namespace`                | string  |                                                              | Namespace for the leader election resource. Needed if not running in-cluster (e.g. locally).                                        |
@@ -228,6 +272,8 @@ At minimum, the following configuration must be provided:
 - `digdir.admin.scopes`
 - `digdir.idporten.well-known-url`
 - `digdir.maskinporten.well-known-url`
+
+If `features.ansattporten` is enabled, `digdir.ansattporten.well-known-url` must also be provided.
 
 The properties can also be set using environment variables using the following convention:
 
@@ -252,6 +298,7 @@ Example configuration in YAML:
 cluster-name: local
 features:
   maskinporten: true
+  ansattporten: true
 digdir:
   admin:
     base-url: "https://api.test.samarbeid.digdir.no"
@@ -266,6 +313,8 @@ digdir:
     well-known-url: "https://test.idporten.no/idporten-oidc-provider/.well-known/openid-configuration"
   maskinporten:
     well-known-url: "https://test.maskinporten.no/.well-known/oauth-authorization-server"
+  ansattporten:
+    well-known-url: "https://test.ansattporten.no/.well-known/openid-configuration"
 ```
 
 ## Development
