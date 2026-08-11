@@ -111,4 +111,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/nais/liberator => github.com/kartverket/liberator v0.0.0-20260810114928-99da7b54f0ab
+replace github.com/nais/liberator => github.com/kartverket/liberator v0.0.0-20260811102526-7a1c875a158d

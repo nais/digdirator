@@ -199,7 +199,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 	}
 }
 
-func GetAnsattportenDefaultScopes() []string {
+func ansattportenDefaultScopes() []string {
 	return []string{"openid", "profile"}
 }
 
@@ -218,9 +218,6 @@ func SetAnsattportenClientDefaultValues(in *naisiov1.AnsattportenClient, cfg *co
 	if len(in.Spec.PostLogoutRedirectURIs) == 0 {
 		in.Spec.PostLogoutRedirectURIs = []naisiov1.AnsattportenURI{naisiov1.AnsattportenURI(cfg.DigDir.Common.ClientURI)}
 	}
-	if len(in.Spec.Scopes) == 0 {
-		in.Spec.Scopes = GetAnsattportenDefaultScopes()
-	}
 }
 
 func toAnsattportenClientRegistration(in naisiov1.AnsattportenClient, cfg *config.Config) types.ClientRegistration {
@@ -231,8 +228,6 @@ func toAnsattportenClientRegistration(in naisiov1.AnsattportenClient, cfg *confi
 		clientName = cfg.DigDir.Common.ClientName
 	}
 
-	// Ansattporten forces isolated SSO sessions across all clients, so frontchannel
-	// logout across clients is not applicable.
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
@@ -247,10 +242,11 @@ func toAnsattportenClientRegistration(in naisiov1.AnsattportenClient, cfg *confi
 		},
 		IntegrationType:         types.IntegrationTypeAnsattporten,
 		PostLogoutRedirectURIs:  ansattportenPostLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
-		RedirectURIs:            ansattportenRedirectURIs(in),
+		RedirectURIs:            ansattportenRedirectURIs(in.Spec.RedirectURIs),
 		RefreshTokenLifetime:    *in.Spec.SessionLifetime,
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
-		Scopes:                  in.Spec.Scopes,
+		Scopes:                  ansattportenDefaultScopes(),
+		SSODisabled:             true,
 		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
 	}
 }
@@ -370,13 +366,17 @@ func redirectURIs(in naisiov1.IDPortenClient) []string {
 	return res
 }
 
-func ansattportenRedirectURIs(in naisiov1.AnsattportenClient) []string {
-	res := make([]string, 0, len(in.Spec.RedirectURIs))
-	for _, u := range in.Spec.RedirectURIs {
-		if u != "" {
+func ansattportenRedirectURIs(redirectURIs []naisiov1.AnsattportenURI) []string {
+	seen := make(map[naisiov1.AnsattportenURI]bool)
+	res := make([]string, 0)
+
+	for _, u := range redirectURIs {
+		if u != "" && !seen[u] {
+			seen[u] = true
 			res = append(res, string(u))
 		}
 	}
+
 	return res
 }
 
