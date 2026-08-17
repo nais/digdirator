@@ -6,9 +6,9 @@ its [self-service API](https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin)
 It currently supports:
 
 - [ID-porten clients / integrations](https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin.html)
+- [Ansattporten clients / integrations](https://docs.digdir.no/docs/ansattporten/)
 - [Maskinporten clients / integrations](https://docs.digdir.no/docs/Maskinporten/maskinporten_sjolvbetjening_api.html)
 - [Maskinporten scopes / APIs](https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin_maskinporten.html)
-- [Ansattporten clients / integrations](https://docs.digdir.no/docs/ansattporten/)
 
 ## CRDs
 
@@ -67,9 +67,6 @@ spec:
   postLogoutRedirectURIs:
     - "https://domain.example/oauth2/logout/callback"
   secretName: my-secret
-  scopes:
-    - openid
-    - profile
 ```
 
 For the full CRD specification with all possible options, see
@@ -255,8 +252,8 @@ Digdirator can be configured using command-line flags:
 | `--digdir.maskinporten.default.client-scope` | string  | `nav:test/api`                                               | Default scope for provisioned Maskinporten clients, if none specified in spec.                                                      |
 | `--digdir.maskinporten.default.scope-prefix` | string  | `nav`                                                        | Default scope prefix for provisioned Maskinporten scopes.                                                                           |
 | `--digdir.maskinporten.well-known-url`       | string  |                                                              | URL to [Maskinporten well-known discovery metadata document](https://docs.digdir.no/docs/Maskinporten/maskinporten_func_wellknown). |
-| `--features.ansattporten`                    | boolean | `false`                                                      | Feature toggle for ansattporten.                                                                                                    |
 | `--features.idporten`                        | boolean | `true`                                                       | Feature toggle for idporten.                                                                                                        |
+| `--features.ansattporten`                    | boolean | `false`                                                      | Feature toggle for ansattporten.                                                                                                    |
 | `--features.maskinporten`                    | boolean | `false`                                                      | Feature toggle for maskinporten.                                                                                                    |
 | `--leader-election.enabled`                  | boolean | `false`                                                      | Toggle for enabling leader election.                                                                                                |
 | `--leader-election.namespace`                | string  |                                                              | Namespace for the leader election resource. Needed if not running in-cluster (e.g. locally).                                        |
@@ -272,8 +269,6 @@ At minimum, the following configuration must be provided:
 - `digdir.admin.scopes`
 - `digdir.idporten.well-known-url`
 - `digdir.maskinporten.well-known-url`
-
-If `features.ansattporten` is enabled, `digdir.ansattporten.well-known-url` must also be provided.
 
 The properties can also be set using environment variables using the following convention:
 

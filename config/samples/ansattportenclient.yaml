@@ -11,8 +11,5 @@ spec:
   secretName: ansattporten-secret
   postLogoutRedirectURIs:
     - "https://nav.no"
-  scopes:
-    - openid
-    - profile
   accessTokenLifetime: 3600
   sessionLifetime: 28800
