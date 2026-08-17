@@ -9,6 +9,7 @@ const (
 	AppLabelKey                string = "app"
 	TypeLabelKey               string = "type"
 	IDPortenTypeLabelValue     string = "digdirator.nais.io"
+	AnsattportenTypeLabelValue string = "ansattporten.digdirator.nais.io"
 	MaskinportenTypeLabelValue string = "maskinporten.digdirator.nais.io"
 )
 
@@ -16,6 +17,8 @@ func MakeLabels(instance Instance) map[string]string {
 	switch v := instance.(type) {
 	case *nais_io_v1.IDPortenClient:
 		return idPortenLabels(v)
+	case *nais_io_v1.AnsattportenClient:
+		return ansattportenLabels(v)
 	case *nais_io_v1.MaskinportenClient:
 		return maskinportenLabels(v)
 	}
@@ -33,5 +36,12 @@ func idPortenLabels(instance metav1.Object) map[string]string {
 	return map[string]string{
 		AppLabelKey:  instance.GetName(),
 		TypeLabelKey: IDPortenTypeLabelValue,
+	}
+}
+
+func ansattportenLabels(instance metav1.Object) map[string]string {
+	return map[string]string{
+		AppLabelKey:  instance.GetName(),
+		TypeLabelKey: AnsattportenTypeLabelValue,
 	}
 }

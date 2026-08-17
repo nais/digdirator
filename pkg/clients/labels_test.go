@@ -20,6 +20,17 @@ func TestMakeLabels_IDPortenClient(t *testing.T) {
 	}, actual)
 }
 
+func TestMakeLabels_AnsattportenClient(t *testing.T) {
+	client := fixtures.MinimalAnsattportenClient()
+
+	actual := clients.MakeLabels(client)
+
+	assert.Equal(t, map[string]string{
+		clients.AppLabelKey:  client.GetName(),
+		clients.TypeLabelKey: clients.AnsattportenTypeLabelValue,
+	}, actual)
+}
+
 func TestMakeLabels_MaskinportenClient(t *testing.T) {
 	client := fixtures.MinimalMaskinportenClient()
 

@@ -49,6 +49,8 @@ func ToClientRegistration(instance Instance, cfg *config.Config) types.ClientReg
 	switch v := instance.(type) {
 	case *naisiov1.IDPortenClient:
 		return toIDPortenClientRegistration(*v, cfg)
+	case *naisiov1.AnsattportenClient:
+		return toAnsattportenClientRegistration(*v, cfg)
 	case *naisiov1.MaskinportenClient:
 		return toMaskinPortenClientRegistration(*v, cfg)
 	}
@@ -62,6 +64,8 @@ func GetIntegrationType(instance Instance) types.IntegrationType {
 			return types.IntegrationType(in.Spec.IntegrationType)
 		}
 		return types.IntegrationTypeIDPorten
+	case *naisiov1.AnsattportenClient:
+		return types.IntegrationTypeAnsattporten
 	case *naisiov1.MaskinportenClient:
 		return types.IntegrationTypeMaskinporten
 	}
@@ -71,6 +75,8 @@ func GetIntegrationType(instance Instance) types.IntegrationType {
 func GetSecretName(instance Instance) string {
 	switch v := instance.(type) {
 	case *naisiov1.IDPortenClient:
+		return v.Spec.SecretName
+	case *naisiov1.AnsattportenClient:
 		return v.Spec.SecretName
 	case *naisiov1.MaskinportenClient:
 		return v.Spec.SecretName
@@ -82,6 +88,8 @@ func GetSecretJwkKey(instance Instance) string {
 	switch instance.(type) {
 	case *naisiov1.IDPortenClient:
 		return secrets.IDPortenJwkKey
+	case *naisiov1.AnsattportenClient:
+		return secrets.AnsattportenJwkKey
 	case *naisiov1.MaskinportenClient:
 		return secrets.MaskinportenJwkKey
 	}
@@ -191,6 +199,58 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 	}
 }
 
+func ansattportenDefaultScopes() []string {
+	return []string{"openid", "profile"}
+}
+
+func SetAnsattportenClientDefaultValues(in *naisiov1.AnsattportenClient, cfg *config.Config) {
+	if in.Spec.AccessTokenLifetime == nil {
+		lifetime := cfg.DigDir.Common.AccessTokenLifetime
+		in.Spec.AccessTokenLifetime = &lifetime
+	}
+	if in.Spec.SessionLifetime == nil {
+		lifetime := cfg.DigDir.Common.SessionLifetime
+		in.Spec.SessionLifetime = &lifetime
+	}
+	if len(in.Spec.ClientURI) == 0 {
+		in.Spec.ClientURI = naisiov1.AnsattportenURI(cfg.DigDir.Common.ClientURI)
+	}
+	if len(in.Spec.PostLogoutRedirectURIs) == 0 {
+		in.Spec.PostLogoutRedirectURIs = []naisiov1.AnsattportenURI{naisiov1.AnsattportenURI(cfg.DigDir.Common.ClientURI)}
+	}
+}
+
+func toAnsattportenClientRegistration(in naisiov1.AnsattportenClient, cfg *config.Config) types.ClientRegistration {
+	SetAnsattportenClientDefaultValues(&in, cfg)
+
+	clientName := in.Spec.ClientName
+	if clientName == "" {
+		clientName = cfg.DigDir.Common.ClientName
+	}
+
+	return types.ClientRegistration{
+		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
+		ApplicationType:                   types.ApplicationTypeWeb,
+		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should at minimum be equal to RefreshTokenLifetime
+		ClientName:                        clientName,
+		ClientURI:                         string(in.Spec.ClientURI),
+		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, cfg.ClusterName),
+		FrontchannelLogoutSessionRequired: false,
+		GrantTypes: []types.GrantType{
+			types.GrantTypeAuthorizationCode,
+			types.GrantTypeRefreshToken,
+		},
+		IntegrationType:         types.IntegrationTypeAnsattporten,
+		PostLogoutRedirectURIs:  ansattportenPostLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
+		RedirectURIs:            ansattportenRedirectURIs(in.Spec.RedirectURIs),
+		RefreshTokenLifetime:    *in.Spec.SessionLifetime,
+		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
+		Scopes:                  ansattportenDefaultScopes(),
+		SSODisabled:             true,
+		TokenEndpointAuthMethod: types.TokenEndpointAuthMethodPrivateKeyJwt,
+	}
+}
+
 func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, cfg *config.Config) types.ClientRegistration {
 	clientName := in.Spec.ClientName
 	if clientName == "" {
@@ -282,11 +342,35 @@ func postLogoutRedirectURIs(uris []naisiov1.IDPortenURI) []string {
 	return result
 }
 
+func ansattportenPostLogoutRedirectURIs(uris []naisiov1.AnsattportenURI) []string {
+	result := make([]string, 0)
+
+	for _, uri := range uris {
+		result = append(result, string(uri))
+	}
+
+	return result
+}
+
 func redirectURIs(in naisiov1.IDPortenClient) []string {
 	seen := make(map[naisiov1.IDPortenURI]bool)
 	res := make([]string, 0)
 
 	for _, u := range append(in.Spec.RedirectURIs, in.Spec.RedirectURI) {
+		if u != "" && !seen[u] {
+			seen[u] = true
+			res = append(res, string(u))
+		}
+	}
+
+	return res
+}
+
+func ansattportenRedirectURIs(redirectURIs []naisiov1.AnsattportenURI) []string {
+	seen := make(map[naisiov1.AnsattportenURI]bool)
+	res := make([]string, 0)
+
+	for _, u := range redirectURIs {
 		if u != "" && !seen[u] {
 			seen[u] = true
 			res = append(res, string(u))

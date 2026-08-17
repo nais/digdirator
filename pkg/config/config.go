@@ -34,6 +34,7 @@ type Config struct {
 type DigDir struct {
 	Admin        Admin        `json:"admin"`
 	IDPorten     IDPorten     `json:"idporten"`
+	Ansattporten Ansattporten `json:"ansattporten"`
 	Maskinporten Maskinporten `json:"maskinporten"`
 	Common       DigDirCommon `json:"common"`
 }
@@ -58,6 +59,11 @@ type IDPorten struct {
 	Metadata     oauth.MetadataOpenID
 }
 
+type Ansattporten struct {
+	WellKnownURL string `json:"well-known-url"`
+	Metadata     oauth.MetadataOpenID
+}
+
 type Maskinporten struct {
 	Default           MaskinportenDefault `json:"default"`
 	WellKnownURL      string              `json:"well-known-url"`
@@ -72,6 +78,7 @@ type MaskinportenDefault struct {
 
 type Features struct {
 	IDPorten     bool `json:"idporten"`
+	Ansattporten bool `json:"ansattporten"`
 	Maskinporten bool `json:"maskinporten"`
 }
 
@@ -98,11 +105,13 @@ const (
 	DigDirCommonAccessTokenLifetime      = "digdir.common.access-token-lifetime"
 	DigDirCommonSessionLifetime          = "digdir.common.session-lifetime"
 	DigDirIDPortenWellKnownURL           = "digdir.idporten.well-known-url"
+	DigDirAnsattportenWellKnownURL       = "digdir.ansattporten.well-known-url"
 	DigDirMaskinportenDefaultClientScope = "digdir.maskinporten.default.client-scope"
 	DigDirMaskinportenDefaultScopePrefix = "digdir.maskinporten.default.scope-prefix"
 	DigDirMaskinportenWellKnownURL       = "digdir.maskinporten.well-known-url"
 
 	FeaturesIDPorten     = "features.idporten"
+	FeaturesAnsattporten = "features.ansattporten"
 	FeaturesMaskinporten = "features.maskinporten"
 )
 
@@ -140,9 +149,11 @@ func init() {
 	flag.String(DigDirMaskinportenDefaultClientScope, "nav:test/api", "Default scope for provisioned Maskinporten clients, if none specified in spec.")
 	flag.String(DigDirMaskinportenDefaultScopePrefix, "nav", "Default scope prefix for provisioned Maskinporten scopes.")
 	flag.String(DigDirMaskinportenWellKnownURL, "", "URL to Maskinporten well-known discovery metadata document.")
+	flag.String(DigDirAnsattportenWellKnownURL, "", "URL to Ansattporten well-known discovery metadata document.")
 
 	flag.Bool(FeaturesMaskinporten, false, "Feature toggle for maskinporten")
 	flag.Bool(FeaturesIDPorten, true, "Feature toggle for idporten")
+	flag.Bool(FeaturesAnsattporten, false, "Feature toggle for ansattporten")
 }
 
 // Print out all configuration options except secret stuff.
@@ -216,6 +227,14 @@ func (c Config) WithProviderMetadata(ctx context.Context) (*Config, error) {
 			return nil, fmt.Errorf("resolving ID-porten metadata from %q: %w", c.DigDir.IDPorten.WellKnownURL, err)
 		}
 		c.DigDir.IDPorten.Metadata = *idportenMetadata
+	}
+
+	if c.Features.Ansattporten {
+		ansattportenMetadata, err := oauth.NewMetadataOpenID(ctx, c.DigDir.Ansattporten.WellKnownURL)
+		if err != nil {
+			return nil, fmt.Errorf("resolving Ansattporten metadata from %q: %w", c.DigDir.Ansattporten.WellKnownURL, err)
+		}
+		c.DigDir.Ansattporten.Metadata = *ansattportenMetadata
 	}
 
 	return &c, nil

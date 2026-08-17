@@ -43,6 +43,32 @@ func IDPortenClientSecretData(in *nais_io_v1.IDPortenClient, jwk jose.JSONWebKey
 	}, nil
 }
 
+func AnsattportenClientSecretData(in *nais_io_v1.AnsattportenClient, jwk jose.JSONWebKey, config *config.Config) (map[string]string, error) {
+	jwkJson, err := jwk.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("marshalling JWK: %w", err)
+	}
+
+	redirectURI := ""
+	if len(in.Spec.RedirectURIs) > 0 {
+		redirectURI = string(in.Spec.RedirectURIs[0])
+	}
+
+	if err := config.DigDir.Ansattporten.Metadata.Validate(config.DigDir.Ansattporten.WellKnownURL); err != nil {
+		return nil, fmt.Errorf("validating Ansattporten metadata: %w", err)
+	}
+
+	return map[string]string{
+		AnsattportenJwkKey:           string(jwkJson),
+		AnsattportenWellKnownURLKey:  config.DigDir.Ansattporten.WellKnownURL,
+		AnsattportenClientIDKey:      in.GetStatus().ClientID,
+		AnsattportenRedirectURIKey:   redirectURI,
+		AnsattportenIssuerKey:        config.DigDir.Ansattporten.Metadata.Issuer,
+		AnsattportenJwksUriKey:       config.DigDir.Ansattporten.Metadata.JwksURI,
+		AnsattportenTokenEndpointKey: config.DigDir.Ansattporten.Metadata.TokenEndpoint,
+	}, nil
+}
+
 func MaskinportenClientSecretData(in *nais_io_v1.MaskinportenClient, jwk jose.JSONWebKey, config *config.Config) (map[string]string, error) {
 	jwkJson, err := jwk.MarshalJSON()
 	if err != nil {

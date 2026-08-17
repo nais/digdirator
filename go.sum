@@ -115,6 +115,8 @@ github.com/googleapis/gax-go/v2 v2.23.0 h1:Tchl7qkvE7Ip3y+ztvNufYFvkfqTe7NfLTYGI
 github.com/googleapis/gax-go/v2 v2.23.0/go.mod h1:rBQKOVJCdb8IFEzg+FCwlt1LP/xMDGuqUXhUG+XMXEg=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
+github.com/kartverket/liberator v0.0.0-20260811102526-7a1c875a158d h1:y3I2MJ+3vpMzhuA3JCHyqM+0PMlacd1DGuv72ZogFDg=
+github.com/kartverket/liberator v0.0.0-20260811102526-7a1c875a158d/go.mod h1:ufNzUdzWCtHgQTpmvbx2BCR/dcdFR8BeUpUPnRTv5xM=
 github.com/klauspost/compress v1.18.0 h1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=
 github.com/klauspost/compress v1.18.0/go.mod h1:2Pp+KzxcywXVXMr50+X0Q/Lsb43OQHYWRCY2AiWywWQ=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
@@ -133,8 +135,6 @@ github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee h1:W5t00kpgFd
 github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/nais/liberator v0.0.0-20260728072458-6ed757398435 h1:EplKipx2KfC8AiAJi05W+KP0f64zAMAFbgdsGBtb9rg=
-github.com/nais/liberator v0.0.0-20260728072458-6ed757398435/go.mod h1:ufNzUdzWCtHgQTpmvbx2BCR/dcdFR8BeUpUPnRTv5xM=
 github.com/nais/pgrator/pkg/api v0.0.0-20260702113208-b469e505b1d5 h1:fOWAxiK6MoEX4rwAzxilRXYjTxMSm66D3zsInrahEkg=
 github.com/nais/pgrator/pkg/api v0.0.0-20260702113208-b469e505b1d5/go.mod h1:0/2qMyI55tTpDy5sEjyfe6er76m8I2UdlZYNJ2ZNsyM=
 github.com/onsi/ginkgo/v2 v2.27.4 h1:fcEcQW/A++6aZAZQNUmNjvA9PSOzefMJBerHJ4t8v8Y=

@@ -16,6 +16,10 @@ func IDPortenHandler(clientID string) http.HandlerFunc {
 	return handler(clientID, "", "idporten")
 }
 
+func AnsattportenHandler(clientID string) http.HandlerFunc {
+	return handler(clientID, "", "ansattporten")
+}
+
 func handler(clientID, orgno, clientType string) http.HandlerFunc {
 	const testdataDir = "../common/testdata"
 	clientExists := false

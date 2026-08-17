@@ -13,6 +13,8 @@ rules:
       - idportenclients/status
       - maskinportenclients
       - maskinportenclients/status
+      - ansattportenclients
+      - ansattportenclients/status
     verbs:
       - get
       - list

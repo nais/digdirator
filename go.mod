@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
-	github.com/nais/liberator v0.0.0-20260728072458-6ed757398435
+	github.com/nais/liberator v0.0.0-00010101000000-000000000000
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sethvargo/go-retry v0.4.0
 	github.com/spf13/pflag v1.0.10
@@ -110,3 +110,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+replace github.com/nais/liberator => github.com/kartverket/liberator v0.0.0-20260811102526-7a1c875a158d
