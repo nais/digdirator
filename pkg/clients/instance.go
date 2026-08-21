@@ -235,7 +235,8 @@ func toAnsattportenClientRegistration(in naisiov1.AnsattportenClient, cfg *confi
 		ClientName:                        clientName,
 		ClientURI:                         string(in.Spec.ClientURI),
 		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, cfg.ClusterName),
-		FrontchannelLogoutSessionRequired: false,
+		FrontchannelLogoutSessionRequired: true,
+		FrontchannelLogoutURI:             string(in.Spec.FrontchannelLogoutURI),
 		GrantTypes: []types.GrantType{
 			types.GrantTypeAuthorizationCode,
 			types.GrantTypeRefreshToken,

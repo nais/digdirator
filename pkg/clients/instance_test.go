@@ -234,6 +234,7 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 
 func TestToClientRegistration_AnsattportenClient(t *testing.T) {
 	client := fixtures.MinimalAnsattportenClient()
+	client.Spec.FrontchannelLogoutURI = "https://some-frontchannel-logout-uri"
 	cluster := "test-cluster"
 	cfg := makeConfig(cluster)
 	registration := clients.ToClientRegistration(client, cfg)
@@ -250,8 +251,8 @@ func TestToClientRegistration_AnsattportenClient(t *testing.T) {
 
 	assert.Equal(t, "test-cluster:test-namespace:test-app", registration.Description)
 
-	assert.False(t, registration.FrontchannelLogoutSessionRequired)
-	assert.Empty(t, registration.FrontchannelLogoutURI)
+	assert.True(t, registration.FrontchannelLogoutSessionRequired)
+	assert.Equal(t, "https://some-frontchannel-logout-uri", registration.FrontchannelLogoutURI)
 
 	assert.Contains(t, registration.GrantTypes, types.GrantTypeAuthorizationCode)
 	assert.Contains(t, registration.GrantTypes, types.GrantTypeRefreshToken)

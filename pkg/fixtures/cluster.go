@@ -103,6 +103,7 @@ func (c ClusterFixtures) WithAnsattportenClient() ClusterFixtures {
 		ClientURI:              "https://my-app.nais.io",
 		RedirectURIs:           []naisiov1.AnsattportenURI{"https://my-app.nais.io"},
 		SecretName:             c.SecretName,
+		FrontchannelLogoutURI:  "https://my-app.nais.io/logout",
 		PostLogoutRedirectURIs: []naisiov1.AnsattportenURI{"https://my-app.nais.io"},
 	}
 	c.ansattportenClient = &naisiov1.AnsattportenClient{

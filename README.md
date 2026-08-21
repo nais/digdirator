@@ -64,6 +64,7 @@ spec:
   clientURI: "https://domain.example"
   redirectURIs:
     - "https://domain.example/oauth2/callback"
+  frontchannelLogoutURI: "https://domain.example/oauth2/logout/frontchannel"
   postLogoutRedirectURIs:
     - "https://domain.example/oauth2/logout/callback"
   secretName: my-secret
