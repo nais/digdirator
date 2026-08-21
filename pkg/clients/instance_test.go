@@ -234,7 +234,6 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 
 func TestToClientRegistration_AnsattportenClient(t *testing.T) {
 	client := fixtures.MinimalAnsattportenClient()
-	client.Spec.FrontchannelLogoutURI = "https://some-frontchannel-logout-uri"
 	cluster := "test-cluster"
 	cfg := makeConfig(cluster)
 	registration := clients.ToClientRegistration(client, cfg)

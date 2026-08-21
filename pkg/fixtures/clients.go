@@ -37,7 +37,8 @@ func MinimalAnsattportenClient() *naisiov1.AnsattportenClient {
 			Generation: 1,
 		},
 		Spec: naisiov1.AnsattportenClientSpec{
-			ClientURI: "",
+			ClientURI:             "",
+			FrontchannelLogoutURI: "https://some-frontchannel-logout-uri",
 			RedirectURIs: []naisiov1.AnsattportenURI{
 				"https://test.com",
 			},
