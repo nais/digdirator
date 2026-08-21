@@ -292,6 +292,7 @@ Example configuration in YAML:
 
 cluster-name: local
 features:
+  idporten: true
   maskinporten: true
   ansattporten: true
 digdir:
