@@ -45,6 +45,12 @@ spec:
         - ipBlock:
             cidr: {{ . }}
         {{- end }}
+        {{- if and .Values.ansattporten .Values.ansattporten.enabled }}
+        {{- range .Values.ansattporten.cidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+        {{- end }}
   podSelector:
     matchLabels:
       {{- include "digdirator.selectorLabels" . | nindent 6 }}
@@ -105,6 +111,28 @@ spec:
               maskinporten: enabled
           policyTypes:
             - Egress
+    {{- if and .Values.ansattporten .Values.ansattporten.enabled }}
+    - template: |
+        apiVersion: networking.k8s.io/v1
+        kind: NetworkPolicy
+        metadata:
+          name: {{ .Release.Name }}-ansattporten-egress
+        spec:
+          egress:
+            - ports:
+                - port: 443
+                  protocol: TCP
+              to:
+                {{- range .Values.ansattporten.cidrs }}
+                - ipBlock:
+                    cidr: {{ . }}
+                {{- end }}
+          podSelector:
+            matchLabels:
+              ansattporten: enabled
+          policyTypes:
+            - Egress
+    {{- end }}
 ---
 apiVersion: nais.io/v1
 kind: ReplicationConfig
@@ -161,4 +189,26 @@ spec:
               maskinporten: enabled
           policyTypes:
             - Egress
+    {{- if and .Values.ansattporten .Values.ansattporten.enabled }}
+    - template: |
+        apiVersion: networking.k8s.io/v1
+        kind: NetworkPolicy
+        metadata:
+          name: {{ .Release.Name }}-ansattporten-egress
+        spec:
+          egress:
+            - ports:
+                - port: 443
+                  protocol: TCP
+              to:
+                {{- range .Values.ansattporten.cidrs }}
+                - ipBlock:
+                    cidr: {{ . }}
+                {{- end }}
+          podSelector:
+            matchLabels:
+              ansattporten: enabled
+          policyTypes:
+            - Egress
+    {{- end }}
 {{- end }}
