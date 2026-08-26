@@ -11,6 +11,8 @@ rules:
     resources:
       - idportenclients
       - idportenclients/status
+      - ansattportenclients
+      - ansattportenclients/status
       - maskinportenclients
       - maskinportenclients/status
     verbs:

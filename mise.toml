@@ -97,13 +97,15 @@ depends = ['install:crd', 'install:sample']
 description = "Install the Digdirator CRDs into the cluster"
 run = """
 kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_idportenclients.yaml
+kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_ansattportenclients.yaml
 kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_maskinportenclients.yaml
 kubectl apply -f ./hack/resources/
 """
 
 [tasks."install:sample"]
-description = "Apply the sample IDPortenClient and MaskinportenClient resources"
+description = "Apply the sample IDPortenClient, Ansattporten, and MaskinportenClient resources"
 run = """
 kubectl apply -f ./config/samples/idportenclient.yaml
+kubectl apply -f ./config/samples/ansattportenclient.yaml
 kubectl apply -f ./config/samples/maskinportenclient.yaml
 """
