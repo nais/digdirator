@@ -45,7 +45,7 @@ spec:
         - ipBlock:
             cidr: {{ . }}
         {{- end }}
-        {{- if and .Values.ansattporten .Values.ansattporten.enabled }}
+        {{- if .Values.ansattporten.enabled }}
         {{- range .Values.ansattporten.cidrs }}
         - ipBlock:
             cidr: {{ . }}
@@ -111,7 +111,7 @@ spec:
               maskinporten: enabled
           policyTypes:
             - Egress
-    {{- if and .Values.ansattporten .Values.ansattporten.enabled }}
+    {{- if .Values.ansattporten.enabled }}
     - template: |
         apiVersion: networking.k8s.io/v1
         kind: NetworkPolicy
@@ -189,7 +189,7 @@ spec:
               maskinporten: enabled
           policyTypes:
             - Egress
-    {{- if and .Values.ansattporten .Values.ansattporten.enabled }}
+    {{- if .Values.ansattporten.enabled }}
     - template: |
         apiVersion: networking.k8s.io/v1
         kind: NetworkPolicy
