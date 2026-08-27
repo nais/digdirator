@@ -16,7 +16,7 @@ spec:
           for: 15m
           annotations:
             summary: {{ include "digdirator.fullname" . }} has failed processing ID-porten clients for more than 15 minutes
-            consequence: Applications that have idporten enabled might not start up as they are dependant on a secret created by Digdirator.
+            consequence: Applications that have idporten enabled might not start up as they are dependent on a secret created by Digdirator.
             action: |
               * Check DigDir status pages: https://status.digdir.no/ or https://testmiljo.status.digdir.no
               * Check the dashboard for errors
@@ -32,7 +32,7 @@ spec:
           for: 15m
           annotations:
             summary: {{ include "digdirator.fullname" . }} has failed processing Ansattporten clients for more than 15 minutes
-            consequence: Applications that have ansattporten enabled might not start up as they are dependant on a secret created by Digdirator.
+            consequence: Applications that have ansattporten enabled might not start up as they are dependent on a secret created by Digdirator.
             action: |
               * Check DigDir status pages: https://status.digdir.no/ or https://testmiljo.status.digdir.no
               * Check the dashboard for errors
@@ -48,7 +48,7 @@ spec:
           for: 15m
           annotations:
             summary: {{ include "digdirator.fullname" . }} has failed processing Maskinporten clients for more than 15 minutes
-            consequence: Applications that have maskinporten enabled might not start up as they are dependant on a secret created by Digdirator.
+            consequence: Applications that have maskinporten enabled might not start up as they are dependent on a secret created by Digdirator.
             action: |
               * Check DigDir status pages: https://status.digdir.no/ or https://testmiljo.status.digdir.no
               * Check the dashboard for errors
