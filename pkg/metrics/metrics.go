@@ -286,8 +286,8 @@ var (
 	}
 	maskinportenMetrics = []prometheus.Collector{
 		MaskinportenClientsTotal, MaskinportenSecretsTotal, MaskinportenClientsProcessedCount,
-		MaskinportenClientsFailedProcessingCount, MaskinportenClientsCreatedCount,
-		MaskinportenClientsUpdatedCount,
+		MaskinportenClientsFailedProcessingCount, MaskinportenClientsFailedInvalidConfigCount,
+		MaskinportenClientsCreatedCount, MaskinportenClientsUpdatedCount,
 		MaskinportenClientsRotatedCount, MaskinportenClientsDeletedCount,
 		MaskinportenExposedScopesTotal, MaskinportenExternalScopesConsumedTotal,
 		MaskinportenScopeConsumersTotal, MaskinportenScopesCreatedCount,

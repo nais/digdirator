@@ -18,5 +18,5 @@ func TestCountersForFeatures(t *testing.T) {
 	assert.Empty(t, AllCountersForFeatures(config.Features{}))
 	assert.Len(t, AllCountersForFeatures(config.Features{IDPorten: true}), 7)
 	assert.Len(t, AllCountersForFeatures(config.Features{Ansattporten: true}), 7)
-	assert.Len(t, AllCountersForFeatures(config.Features{Maskinporten: true}), 13)
+	assert.Len(t, AllCountersForFeatures(config.Features{Maskinporten: true}), 14)
 }
