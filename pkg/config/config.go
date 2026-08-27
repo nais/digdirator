@@ -175,6 +175,20 @@ func (c Config) Print(redacted []string) {
 }
 
 func (c Config) Validate(required []string) error {
+	if !c.Features.IDPorten && !c.Features.Ansattporten && !c.Features.Maskinporten {
+		return errors.New("at least one provider must be enabled")
+	}
+
+	if c.Features.IDPorten && c.DigDir.IDPorten.WellKnownURL == "" {
+		return fmt.Errorf("%s is required when ID-porten is enabled", DigDirIDPortenWellKnownURL)
+	}
+	if c.Features.Ansattporten && c.DigDir.Ansattporten.WellKnownURL == "" {
+		return fmt.Errorf("%s is required when Ansattporten is enabled", DigDirAnsattportenWellKnownURL)
+	}
+	if c.Features.Maskinporten && c.DigDir.Maskinporten.WellKnownURL == "" {
+		return fmt.Errorf("%s is required when Maskinporten is enabled", DigDirMaskinportenWellKnownURL)
+	}
+
 	present := func(key string) bool {
 		for _, requiredKey := range required {
 			if requiredKey == key {
@@ -208,18 +222,20 @@ func (c Config) Validate(required []string) error {
 }
 
 func (c Config) WithProviderMetadata(ctx context.Context) (*Config, error) {
-	maskinportenMetadata, err := oauth.NewMetadataOAuth(ctx, c.DigDir.Maskinporten.WellKnownURL)
-	if err != nil {
-		return nil, fmt.Errorf("resolving Maskinporten metadata from %q: %w", c.DigDir.Maskinporten.WellKnownURL, err)
-	}
+	if c.Features.Maskinporten {
+		maskinportenMetadata, err := oauth.NewMetadataOAuth(ctx, c.DigDir.Maskinporten.WellKnownURL)
+		if err != nil {
+			return nil, fmt.Errorf("resolving Maskinporten metadata from %q: %w", c.DigDir.Maskinporten.WellKnownURL, err)
+		}
 
-	delegationSources, err := c.delegationSources(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("resolving delegation sources: %w", err)
-	}
+		delegationSources, err := c.delegationSources(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("resolving delegation sources: %w", err)
+		}
 
-	c.DigDir.Maskinporten.Metadata = *maskinportenMetadata
-	c.DigDir.Maskinporten.DelegationSources = delegationSources
+		c.DigDir.Maskinporten.Metadata = *maskinportenMetadata
+		c.DigDir.Maskinporten.DelegationSources = delegationSources
+	}
 
 	if c.Features.IDPorten {
 		idportenMetadata, err := oauth.NewMetadataOpenID(ctx, c.DigDir.IDPorten.WellKnownURL)

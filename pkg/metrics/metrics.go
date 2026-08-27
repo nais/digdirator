@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/nais/digdirator/pkg/clients"
+	"github.com/nais/digdirator/pkg/config"
 	"github.com/nais/digdirator/pkg/digdir/types"
 	"github.com/nais/digdirator/pkg/retry"
 )
@@ -270,73 +271,54 @@ var (
 	)
 )
 
-var AllMetrics = []prometheus.Collector{
-	IDPortenClientsTotal,
-	IDPortenSecretsTotal,
-	IDPortenClientsProcessedCount,
-	IDPortenClientsFailedProcessingCount,
-	IDPortenClientsFailedInvalidConfigCount,
-	IDPortenClientsCreatedCount,
-	IDPortenClientsUpdatedCount,
-	IDPortenClientsRotatedCount,
-	IDPortenClientsDeletedCount,
-	AnsattportenClientsTotal,
-	AnsattportenSecretsTotal,
-	AnsattportenClientsProcessedCount,
-	AnsattportenClientsFailedProcessingCount,
-	AnsattportenClientsFailedInvalidConfigCount,
-	AnsattportenClientsCreatedCount,
-	AnsattportenClientsUpdatedCount,
-	AnsattportenClientsRotatedCount,
-	AnsattportenClientsDeletedCount,
-	MaskinportenClientsTotal,
-	MaskinportenSecretsTotal,
-	MaskinportenClientsProcessedCount,
-	MaskinportenClientsFailedProcessingCount,
-	MaskinportenClientsCreatedCount,
-	MaskinportenClientsUpdatedCount,
-	MaskinportenClientsRotatedCount,
-	MaskinportenClientsDeletedCount,
-	MaskinportenExposedScopesTotal,
-	MaskinportenExternalScopesConsumedTotal,
-	MaskinportenScopeConsumersTotal,
-	MaskinportenScopesCreatedCount,
-	MaskinportenScopesUpdatedCount,
-	MaskinportenScopesDeletedCount,
-	MaskinportenScopesReactivatedCount,
-	MaskinportenScopesConsumersCreatedCount,
-	MaskinportenScopesConsumersUpdatedCount,
-	MaskinportenScopesConsumersDeletedCount,
+var (
+	idPortenMetrics = []prometheus.Collector{
+		IDPortenClientsTotal, IDPortenSecretsTotal, IDPortenClientsProcessedCount,
+		IDPortenClientsFailedProcessingCount, IDPortenClientsFailedInvalidConfigCount,
+		IDPortenClientsCreatedCount, IDPortenClientsUpdatedCount,
+		IDPortenClientsRotatedCount, IDPortenClientsDeletedCount,
+	}
+	ansattportenMetrics = []prometheus.Collector{
+		AnsattportenClientsTotal, AnsattportenSecretsTotal, AnsattportenClientsProcessedCount,
+		AnsattportenClientsFailedProcessingCount, AnsattportenClientsFailedInvalidConfigCount,
+		AnsattportenClientsCreatedCount, AnsattportenClientsUpdatedCount,
+		AnsattportenClientsRotatedCount, AnsattportenClientsDeletedCount,
+	}
+	maskinportenMetrics = []prometheus.Collector{
+		MaskinportenClientsTotal, MaskinportenSecretsTotal, MaskinportenClientsProcessedCount,
+		MaskinportenClientsFailedProcessingCount, MaskinportenClientsCreatedCount,
+		MaskinportenClientsUpdatedCount,
+		MaskinportenClientsRotatedCount, MaskinportenClientsDeletedCount,
+		MaskinportenExposedScopesTotal, MaskinportenExternalScopesConsumedTotal,
+		MaskinportenScopeConsumersTotal, MaskinportenScopesCreatedCount,
+		MaskinportenScopesUpdatedCount, MaskinportenScopesDeletedCount,
+		MaskinportenScopesReactivatedCount, MaskinportenScopesConsumersCreatedCount,
+		MaskinportenScopesConsumersUpdatedCount, MaskinportenScopesConsumersDeletedCount,
+	}
+)
+
+func AllMetricsForFeatures(features config.Features) []prometheus.Collector {
+	var collectors []prometheus.Collector
+	if features.IDPorten {
+		collectors = append(collectors, idPortenMetrics...)
+	}
+	if features.Ansattporten {
+		collectors = append(collectors, ansattportenMetrics...)
+	}
+	if features.Maskinporten {
+		collectors = append(collectors, maskinportenMetrics...)
+	}
+	return collectors
 }
 
-var AllCounters = []*prometheus.CounterVec{
-	IDPortenClientsProcessedCount,
-	IDPortenClientsFailedProcessingCount,
-	IDPortenClientsCreatedCount,
-	IDPortenClientsUpdatedCount,
-	IDPortenClientsRotatedCount,
-	IDPortenClientsDeletedCount,
-	AnsattportenClientsProcessedCount,
-	AnsattportenClientsFailedProcessingCount,
-	AnsattportenClientsFailedInvalidConfigCount,
-	AnsattportenClientsCreatedCount,
-	AnsattportenClientsUpdatedCount,
-	AnsattportenClientsRotatedCount,
-	AnsattportenClientsDeletedCount,
-	MaskinportenClientsProcessedCount,
-	MaskinportenClientsFailedProcessingCount,
-	MaskinportenClientsFailedInvalidConfigCount,
-	MaskinportenClientsCreatedCount,
-	MaskinportenClientsUpdatedCount,
-	MaskinportenClientsRotatedCount,
-	MaskinportenClientsDeletedCount,
-	MaskinportenScopesCreatedCount,
-	MaskinportenScopesUpdatedCount,
-	MaskinportenScopesDeletedCount,
-	MaskinportenScopesReactivatedCount,
-	MaskinportenScopesConsumersCreatedCount,
-	MaskinportenScopesConsumersUpdatedCount,
-	MaskinportenScopesConsumersDeletedCount,
+func AllCountersForFeatures(features config.Features) []*prometheus.CounterVec {
+	var counters []*prometheus.CounterVec
+	for _, collector := range AllMetricsForFeatures(features) {
+		if counter, ok := collector.(*prometheus.CounterVec); ok {
+			counters = append(counters, counter)
+		}
+	}
+	return counters
 }
 
 func incWithNamespaceLabel(metric *prometheus.CounterVec, namespace string) {
@@ -471,13 +453,15 @@ type Metrics interface {
 }
 
 type metrics struct {
-	reader client.Reader
+	reader   client.Reader
+	features config.Features
 }
 
-func New(reader client.Reader) Metrics {
+func New(reader client.Reader, features config.Features) Metrics {
 	log = slog.Default().With("subsystem", "metrics")
 	return metrics{
-		reader: reader,
+		reader:   reader,
+		features: features,
 	}
 }
 
@@ -500,8 +484,9 @@ func (m metrics) InitWithNamespaceLabels() {
 		log.Error("listing namespaces", "error", err)
 	}
 
+	counters := AllCountersForFeatures(m.features)
 	for _, n := range ns.Items {
-		for _, c := range AllCounters {
+		for _, c := range counters {
 			c.WithLabelValues(n.Name).Add(0)
 		}
 	}
@@ -526,43 +511,48 @@ func (m metrics) Refresh(ctx context.Context) {
 
 	t := time.NewTicker(exp)
 	for range t.C {
-		if err = m.reader.List(ctx, &idportenSecretList, client.MatchingLabels{
-			clients.TypeLabelKey: clients.IDPortenTypeLabelValue,
-		}); err != nil {
-			log.Error("failed to list idporten secrets", "error", err)
-		}
-		IDPortenSecretsTotal.Set(float64(len(idportenSecretList.Items)))
+		if m.features.IDPorten {
+			if err = m.reader.List(ctx, &idportenSecretList, client.MatchingLabels{
+				clients.TypeLabelKey: clients.IDPortenTypeLabelValue,
+			}); err != nil {
+				log.Error("failed to list idporten secrets", "error", err)
+			}
+			IDPortenSecretsTotal.Set(float64(len(idportenSecretList.Items)))
 
-		if err = m.reader.List(ctx, &ansattportenSecretList, client.MatchingLabels{
-			clients.TypeLabelKey: clients.AnsattportenTypeLabelValue,
-		}); err != nil {
-			log.Error("failed to list ansattporten secrets", "error", err)
+			if err = m.reader.List(ctx, &idportenClientsList); err != nil {
+				log.Error("failed to list idporten clients", "error", err)
+			}
+			IDPortenClientsTotal.Set(float64(len(idportenClientsList.Items)))
 		}
-		AnsattportenSecretsTotal.Set(float64(len(ansattportenSecretList.Items)))
 
-		if err = m.reader.List(ctx, &maskinportenSecretList, client.MatchingLabels{
-			clients.TypeLabelKey: clients.MaskinportenTypeLabelValue,
-		}); err != nil {
-			log.Error("failed to list maskinporten secrets", "error", err)
+		if m.features.Ansattporten {
+			if err = m.reader.List(ctx, &ansattportenSecretList, client.MatchingLabels{
+				clients.TypeLabelKey: clients.AnsattportenTypeLabelValue,
+			}); err != nil {
+				log.Error("failed to list ansattporten secrets", "error", err)
+			}
+			AnsattportenSecretsTotal.Set(float64(len(ansattportenSecretList.Items)))
+
+			if err = m.reader.List(ctx, &ansattportenClientsList); err != nil {
+				log.Error("failed to list ansattporten clients", "error", err)
+			}
+			AnsattportenClientsTotal.Set(float64(len(ansattportenClientsList.Items)))
 		}
-		MaskinportenSecretsTotal.Set(float64(len(maskinportenSecretList.Items)))
 
-		if err = m.reader.List(ctx, &idportenClientsList); err != nil {
-			log.Error("failed to list idporten clients", "error", err)
+		if m.features.Maskinporten {
+			if err = m.reader.List(ctx, &maskinportenSecretList, client.MatchingLabels{
+				clients.TypeLabelKey: clients.MaskinportenTypeLabelValue,
+			}); err != nil {
+				log.Error("failed to list maskinporten secrets", "error", err)
+			}
+			MaskinportenSecretsTotal.Set(float64(len(maskinportenSecretList.Items)))
+
+			if err = m.reader.List(ctx, &maskinportenClientsList); err != nil {
+				log.Error("failed to list maskinporten clients", "error", err)
+			}
+			MaskinportenClientsTotal.Set(float64(len(maskinportenClientsList.Items)))
+			setTotalForMaskinportenScopes(maskinportenClientsList.Items)
 		}
-		IDPortenClientsTotal.Set(float64(len(idportenClientsList.Items)))
-
-		if err = m.reader.List(ctx, &ansattportenClientsList); err != nil {
-			log.Error("failed to list ansattporten clients", "error", err)
-		}
-		AnsattportenClientsTotal.Set(float64(len(ansattportenClientsList.Items)))
-
-		if err = m.reader.List(ctx, &maskinportenClientsList); err != nil {
-			log.Error("failed to list maskinporten clients", "error", err)
-		}
-		MaskinportenClientsTotal.Set(float64(len(maskinportenClientsList.Items)))
-
-		setTotalForMaskinportenScopes(maskinportenClientsList.Items)
 	}
 }
 

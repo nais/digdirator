@@ -31,7 +31,6 @@ var scheme = runtime.NewScheme()
 
 func init() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
-	ctrlmetrics.Registry.MustRegister(metrics.AllMetrics...)
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = nais_io_v1.AddToScheme(scheme)
@@ -52,6 +51,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	ctrlmetrics.Registry.MustRegister(metrics.AllMetricsForFeatures(cfg.Features)...)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
@@ -103,7 +103,7 @@ func run() error {
 		}
 	}
 
-	clusterMetrics := metrics.New(mgr.GetClient())
+	clusterMetrics := metrics.New(mgr.GetClient(), cfg.Features)
 	go clusterMetrics.Refresh(ctx)
 
 	if err := mgr.Start(ctx); err != nil {
@@ -134,8 +134,6 @@ func setup(ctx context.Context) (*config.Config, error) {
 		config.DigDirAdminCertChain,
 		config.DigDirAdminKmsKeyPath,
 		config.DigDirAdminScopes,
-		config.DigDirIDPortenWellKnownURL,
-		config.DigDirMaskinportenWellKnownURL,
 	}
 
 	if err = cfg.Validate(required); err != nil {

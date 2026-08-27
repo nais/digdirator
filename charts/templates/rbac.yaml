@@ -9,12 +9,18 @@ rules:
   - apiGroups:
       - nais.io
     resources:
+      {{- if .Values.idporten.enabled }}
       - idportenclients
       - idportenclients/status
+      {{- end }}
+      {{- if .Values.maskinporten.enabled }}
       - maskinportenclients
       - maskinportenclients/status
+      {{- end }}
+      {{- if .Values.ansattporten.enabled }}
       - ansattportenclients
       - ansattportenclients/status
+      {{- end }}
     verbs:
       - get
       - list

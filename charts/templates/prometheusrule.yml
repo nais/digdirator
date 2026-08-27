@@ -10,6 +10,7 @@ spec:
   groups:
     - name: "digdirator"
       rules:
+        {{- if .Values.idporten.enabled }}
         - alert: {{ include "digdirator.fullname" . }} failed provisioning ID-porten clients
           expr: sum(rate(idporten_client_failed_processing_count[5m])) > 0
           for: 15m
@@ -24,6 +25,24 @@ spec:
           labels:
             severity: warning
             namespace: {{ .Release.Namespace }}
+        {{- end }}
+        {{- if .Values.ansattporten.enabled }}
+        - alert: {{ include "digdirator.fullname" . }} failed provisioning Ansattporten clients
+          expr: sum(rate(ansattporten_client_failed_processing_count[5m])) > 0
+          for: 15m
+          annotations:
+            summary: {{ include "digdirator.fullname" . }} has failed processing Ansattporten clients for more than 15 minutes
+            consequence: Applications that have ansattporten enabled might not start up as they are dependant on a secret created by Digdirator.
+            action: |
+              * Check DigDir status pages: https://status.digdir.no/ or https://testmiljo.status.digdir.no
+              * Check the dashboard for errors
+            dashboard_url: "https://monitoring.nais.io/d/0Ohl03c7k/digdirator?var-tenant={{ .Values.fasit.tenant.name }}&var-cluster={{ .Values.fasit.env.name }}"
+            runbook_url: "https://github.com/nais/vakt/blob/master/digdirator.md"
+          labels:
+            severity: warning
+            namespace: {{ .Release.Namespace }}
+        {{- end }}
+        {{- if .Values.maskinporten.enabled }}
         - alert: {{ include "digdirator.fullname" . }} failed provisioning Maskinporten clients
           expr: sum(rate(maskinporten_client_failed_processing_count[5m])) > 0
           for: 15m
@@ -38,4 +57,5 @@ spec:
           labels:
             severity: warning
             namespace: {{ .Release.Namespace }}
+        {{- end }}
 {{ end }}
