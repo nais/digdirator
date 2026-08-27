@@ -516,13 +516,15 @@ func (m metrics) Refresh(ctx context.Context) {
 				clients.TypeLabelKey: clients.IDPortenTypeLabelValue,
 			}); err != nil {
 				log.Error("failed to list idporten secrets", "error", err)
+			} else {
+				IDPortenSecretsTotal.Set(float64(len(idportenSecretList.Items)))
 			}
-			IDPortenSecretsTotal.Set(float64(len(idportenSecretList.Items)))
 
 			if err = m.reader.List(ctx, &idportenClientsList); err != nil {
 				log.Error("failed to list idporten clients", "error", err)
+			} else {
+				IDPortenClientsTotal.Set(float64(len(idportenClientsList.Items)))
 			}
-			IDPortenClientsTotal.Set(float64(len(idportenClientsList.Items)))
 		}
 
 		if m.features.Ansattporten {
@@ -530,13 +532,15 @@ func (m metrics) Refresh(ctx context.Context) {
 				clients.TypeLabelKey: clients.AnsattportenTypeLabelValue,
 			}); err != nil {
 				log.Error("failed to list ansattporten secrets", "error", err)
+			} else {
+				AnsattportenSecretsTotal.Set(float64(len(ansattportenSecretList.Items)))
 			}
-			AnsattportenSecretsTotal.Set(float64(len(ansattportenSecretList.Items)))
 
 			if err = m.reader.List(ctx, &ansattportenClientsList); err != nil {
 				log.Error("failed to list ansattporten clients", "error", err)
+			} else {
+				AnsattportenClientsTotal.Set(float64(len(ansattportenClientsList.Items)))
 			}
-			AnsattportenClientsTotal.Set(float64(len(ansattportenClientsList.Items)))
 		}
 
 		if m.features.Maskinporten {
@@ -544,14 +548,16 @@ func (m metrics) Refresh(ctx context.Context) {
 				clients.TypeLabelKey: clients.MaskinportenTypeLabelValue,
 			}); err != nil {
 				log.Error("failed to list maskinporten secrets", "error", err)
+			} else {
+				MaskinportenSecretsTotal.Set(float64(len(maskinportenSecretList.Items)))
 			}
-			MaskinportenSecretsTotal.Set(float64(len(maskinportenSecretList.Items)))
 
 			if err = m.reader.List(ctx, &maskinportenClientsList); err != nil {
 				log.Error("failed to list maskinporten clients", "error", err)
+			} else {
+				MaskinportenClientsTotal.Set(float64(len(maskinportenClientsList.Items)))
+				setTotalForMaskinportenScopes(maskinportenClientsList.Items)
 			}
-			MaskinportenClientsTotal.Set(float64(len(maskinportenClientsList.Items)))
-			setTotalForMaskinportenScopes(maskinportenClientsList.Items)
 		}
 	}
 }
