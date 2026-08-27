@@ -6,7 +6,7 @@ its [self-service API](https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin)
 It currently supports:
 
 - [ID-porten clients / integrations](https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin.html)
-- [Ansattporten clients / integrations](https://docs.digdir.no/docs/ansattporten/)
+- [Ansattporten clients / integrations](https://docs.digdir.no/docs/ansattporten/ansattporten_admin.html)
 - [Maskinporten clients / integrations](https://docs.digdir.no/docs/Maskinporten/maskinporten_sjolvbetjening_api.html)
 - [Maskinporten scopes / APIs](https://docs.digdir.no/docs/idporten/oidc/oidc_api_admin_maskinporten.html)
 
@@ -341,6 +341,7 @@ mise run install:sample
 
 The image is signed "keylessly" (is that a word?) using [Sigstore cosign](https://github.com/sigstore/cosign).
 To verify its authenticity run
+
 ```
 cosign verify \
 --certificate-identity "https://github.com/nais/digdirator/.github/workflows/build.yml@refs/heads/master" \
@@ -350,6 +351,7 @@ ghcr.io/nais/digdirator@sha256:<shasum>
 
 The images are also attested with SBOMs in the [CycloneDX](https://cyclonedx.org/) format.
 You can verify these by running
+
 ```
 cosign verify-attestation --type cyclonedx \
 --certificate-identity "https://github.com/nais/digdirator/.github/workflows/build.yml@refs/heads/master" \
