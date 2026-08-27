@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
-	github.com/nais/liberator v0.0.0-20260824070548-c073649a6f46
+	github.com/nais/liberator v0.0.0-20260827062821-3d41c29217f9
 	github.com/prometheus/client_golang v1.24.1
 	github.com/sethvargo/go-retry v0.4.0
 	github.com/spf13/pflag v1.0.10
@@ -69,7 +69,7 @@ require (
 	github.com/prometheus/common v0.70.1 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
-	github.com/sirupsen/logrus v1.10.0 // indirect
+	github.com/sirupsen/logrus v1.10.1 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
