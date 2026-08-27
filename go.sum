@@ -133,8 +133,8 @@ github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee h1:W5t00kpgFd
 github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/nais/liberator v0.0.0-20260824070548-c073649a6f46 h1:fVdcMSk/ANuhXhx2A360/Ell6AJQ5hls9DuApoIdI3w=
-github.com/nais/liberator v0.0.0-20260824070548-c073649a6f46/go.mod h1:bC52GROnYJ/LNS/hsYnGgOFp9ZcbJDdOOrz8aqZvKyw=
+github.com/nais/liberator v0.0.0-20260827062821-3d41c29217f9 h1:cyqfBslHlrjO3O2YaGpKSqWjagGO6ZeIOCLjVhOuP3o=
+github.com/nais/liberator v0.0.0-20260827062821-3d41c29217f9/go.mod h1:QoHw3MUWVPKaQoj/v8QhFS2BqaTlJG9fkpwIpejjrAg=
 github.com/nais/pgrator/pkg/api v0.0.0-20260702113208-b469e505b1d5 h1:fOWAxiK6MoEX4rwAzxilRXYjTxMSm66D3zsInrahEkg=
 github.com/nais/pgrator/pkg/api v0.0.0-20260702113208-b469e505b1d5/go.mod h1:0/2qMyI55tTpDy5sEjyfe6er76m8I2UdlZYNJ2ZNsyM=
 github.com/onsi/ginkgo/v2 v2.27.4 h1:fcEcQW/A++6aZAZQNUmNjvA9PSOzefMJBerHJ4t8v8Y=
@@ -164,8 +164,8 @@ github.com/sagikazarmark/locafero v0.12.0 h1:/NQhBAkUb4+fH1jivKHWusDYFjMOOKU88ee
 github.com/sagikazarmark/locafero v0.12.0/go.mod h1:sZh36u/YSZ918v0Io+U9ogLYQJ9tLLBmM4eneO6WwsI=
 github.com/sethvargo/go-retry v0.4.0 h1:9qy1OoIAxBL+gBYnkTnTnWle5wlfsXQlwRzIbbpdqPw=
 github.com/sethvargo/go-retry v0.4.0/go.mod h1:tvsjdKG6xfiCx4LSiUZ06kcv38xvdVQwv8R6/VnnVWg=
-github.com/sirupsen/logrus v1.10.0 h1:T8MxJJXVZkfcC5zSRMRAg2F8+lxjmUCGGWPzFxO+Msc=
-github.com/sirupsen/logrus v1.10.0/go.mod h1:FXZFonkDAnFozmO+5hGAFvB0Yg9/j2SIhA/QuIkP180=
+github.com/sirupsen/logrus v1.10.1 h1:xi4336Zh11WpU14fXR6I67V3yaTPQYwRx2WEtHbRg4Q=
+github.com/sirupsen/logrus v1.10.1/go.mod h1:vsQHnG7xzNsxk3NrwboUiWPnIC3dmbjcGPykD7+tiHk=
 github.com/spf13/afero v1.15.0 h1:b/YBCLWAJdFWJTN9cLhiXXcD7mzKn9Dm86dNnfyQw1I=
 github.com/spf13/afero v1.15.0/go.mod h1:NC2ByUVxtQs4b3sIUphxK0NioZnmxgyCrfzeuq8lxMg=
 github.com/spf13/cast v1.10.0 h1:h2x0u2shc1QuLHfxi+cTJvs30+ZAHOGRic8uyGTDWxY=

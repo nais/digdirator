@@ -37,13 +37,17 @@ spec:
         - port: 443
           protocol: TCP
       to:
+        {{- if .Values.idporten.enabled }}
         {{- range .Values.idporten.cidrs }}
         - ipBlock:
             cidr: {{ . }}
         {{- end }}
+        {{- end }}
+        {{- if .Values.maskinporten.enabled }}
         {{- range .Values.maskinporten.cidrs }}
         - ipBlock:
             cidr: {{ . }}
+        {{- end }}
         {{- end }}
         {{- if .Values.ansattporten.enabled }}
         {{- range .Values.ansattporten.cidrs }}
@@ -71,6 +75,7 @@ spec:
     matchLabels:
       nais.io/type: workload
   resources:
+    {{- if .Values.idporten.enabled }}
     - template: |
         apiVersion: networking.k8s.io/v1
         kind: NetworkPolicy
@@ -91,6 +96,8 @@ spec:
               idporten: enabled
           policyTypes:
             - Egress
+    {{- end }}
+    {{- if .Values.maskinporten.enabled }}
     - template: |
         apiVersion: networking.k8s.io/v1
         kind: NetworkPolicy
@@ -111,6 +118,7 @@ spec:
               maskinporten: enabled
           policyTypes:
             - Egress
+    {{- end }}
     {{- if .Values.ansattporten.enabled }}
     - template: |
         apiVersion: networking.k8s.io/v1
@@ -149,6 +157,7 @@ spec:
           - nais-system
           - {{ .Release.Namespace }}
   resources:
+    {{- if .Values.idporten.enabled }}
     - template: |
         apiVersion: networking.k8s.io/v1
         kind: NetworkPolicy
@@ -169,6 +178,8 @@ spec:
               idporten: enabled
           policyTypes:
             - Egress
+    {{- end }}
+    {{- if .Values.maskinporten.enabled }}
     - template: |
         apiVersion: networking.k8s.io/v1
         kind: NetworkPolicy
@@ -189,6 +200,7 @@ spec:
               maskinporten: enabled
           policyTypes:
             - Egress
+    {{- end }}
     {{- if .Values.ansattporten.enabled }}
     - template: |
         apiVersion: networking.k8s.io/v1

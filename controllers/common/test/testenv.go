@@ -100,7 +100,9 @@ func SetupTestEnv(handler http.HandlerFunc) (*envtest.Environment, *client.Clien
 	digdiratorConfig.DigDir.Admin.BaseURL = testServer.URL
 	digdiratorConfig.DigDir.IDPorten.WellKnownURL = testServer.URL + "/.well-known/openid-configuration"
 	digdiratorConfig.DigDir.Ansattporten.WellKnownURL = testServer.URL + "/.well-known/openid-configuration"
+	digdiratorConfig.Features.IDPorten = true
 	digdiratorConfig.Features.Ansattporten = true
+	digdiratorConfig.Features.Maskinporten = true
 	digdiratorConfig.DigDir.Maskinporten.WellKnownURL = testServer.URL + "/.well-known/oauth-authorization-server"
 
 	digdiratorConfig, err = digdiratorConfig.WithProviderMetadata(context.Background())
