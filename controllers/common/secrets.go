@@ -8,7 +8,6 @@ import (
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/kubernetes"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -55,10 +54,10 @@ func (s secretsClient) CreateOrUpdate(jwk jose.JSONWebKey) error {
 		data[key] = []byte(value)
 	}
 
-	target := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{
+	target := &corev1.Secret{
 		Name:      name,
 		Namespace: namespace,
-	}}
+	}
 
 	res, err := controllerutil.CreateOrUpdate(s.Ctx, s.Client, target, func() error {
 		target.SetAnnotations(map[string]string{

@@ -9,7 +9,6 @@ import (
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -59,13 +58,9 @@ func (c ClusterFixtures) MinimalScopesConfig(scope string) ClusterFixtures {
 
 func (c ClusterFixtures) WithNamespace() ClusterFixtures {
 	c.namespace = &corev1.Namespace{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Namespace",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: c.NamespaceName,
-		},
+		Kind:       "Namespace",
+		APIVersion: "v1",
+		Name:       c.NamespaceName,
 	}
 	return c
 }
@@ -84,11 +79,9 @@ func (c ClusterFixtures) WithIDPortenClient() ClusterFixtures {
 		PostLogoutRedirectURIs: []naisiov1.IDPortenURI{"https://my-app.nais.io"},
 	}
 	c.idPortenClient = &naisiov1.IDPortenClient{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-		},
-		Spec: spec,
+		Name:      key.Name,
+		Namespace: key.Namespace,
+		Spec:      spec,
 	}
 	return c
 }
@@ -107,11 +100,9 @@ func (c ClusterFixtures) WithAnsattportenClient() ClusterFixtures {
 		PostLogoutRedirectURIs: []naisiov1.AnsattportenURI{"https://my-app.nais.io"},
 	}
 	c.ansattportenClient = &naisiov1.AnsattportenClient{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-		},
-		Spec: spec,
+		Name:      key.Name,
+		Namespace: key.Namespace,
+		Spec:      spec,
 	}
 	return c
 }
@@ -133,11 +124,9 @@ func (c ClusterFixtures) WithMaskinportenClient() ClusterFixtures {
 		},
 	}
 	c.maskinportenClient = &naisiov1.MaskinportenClient{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-		},
-		Spec: spec,
+		Name:      key.Name,
+		Namespace: key.Namespace,
+		Spec:      spec,
 	}
 	return c
 }
@@ -178,11 +167,9 @@ func (c ClusterFixtures) WithMaskinportenScopesClient(scope string) ClusterFixtu
 		},
 	}
 	c.maskinportenClient = &naisiov1.MaskinportenClient{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-		},
-		Spec: spec,
+		Name:      key.Name,
+		Namespace: key.Namespace,
+		Spec:      spec,
 	}
 	return c
 }
@@ -193,16 +180,12 @@ func (c ClusterFixtures) WithPods() ClusterFixtures {
 		Name:      c.DigdirClientName,
 	}
 	c.pod = &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pod",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
-			Labels: map[string]string{
-				clients.AppLabelKey: key.Name,
-			},
+		Kind:       "Pod",
+		APIVersion: "v1",
+		Name:       key.Name,
+		Namespace:  key.Namespace,
+		Labels: map[string]string{
+			clients.AppLabelKey: key.Name,
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
@@ -214,26 +197,20 @@ func (c ClusterFixtures) WithPods() ClusterFixtures {
 			Volumes: []corev1.Volume{
 				{
 					Name: "foo",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: c.SecretName,
-						},
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: c.SecretName,
 					},
 				},
 			},
 		},
 	}
 	c.podEnvFrom = &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pod",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-envfrom", key.Name),
-			Namespace: c.NamespaceName,
-			Labels: map[string]string{
-				clients.AppLabelKey: key.Name,
-			},
+		Kind:       "Pod",
+		APIVersion: "v1",
+		Name:       fmt.Sprintf("%s-envfrom", key.Name),
+		Namespace:  c.NamespaceName,
+		Labels: map[string]string{
+			clients.AppLabelKey: key.Name,
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
@@ -243,9 +220,7 @@ func (c ClusterFixtures) WithPods() ClusterFixtures {
 					EnvFrom: []corev1.EnvFromSource{
 						{
 							SecretRef: &corev1.SecretEnvSource{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: c.SecretName,
-								},
+								Name: c.SecretName,
 							},
 						},
 					},
@@ -258,17 +233,13 @@ func (c ClusterFixtures) WithPods() ClusterFixtures {
 
 func (c ClusterFixtures) WithUnusedSecret(label string) ClusterFixtures {
 	c.unusedSecret = &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      c.UnusedSecretName,
-			Namespace: c.NamespaceName,
-			Labels: map[string]string{
-				clients.AppLabelKey:  c.DigdirClientName,
-				clients.TypeLabelKey: label,
-			},
+		Kind:       "Secret",
+		APIVersion: "v1",
+		Name:       c.UnusedSecretName,
+		Namespace:  c.NamespaceName,
+		Labels: map[string]string{
+			clients.AppLabelKey:  c.DigdirClientName,
+			clients.TypeLabelKey: label,
 		},
 	}
 	return c
@@ -332,55 +303,43 @@ func (c ClusterFixtures) waitForClusterResources(ctx context.Context) error {
 	resources := make([]resource, 0)
 	if c.namespace != nil {
 		resources = append(resources, resource{
-			ObjectKey: client.ObjectKey{
-				Name: c.NamespaceName,
-			},
+			Name:   c.NamespaceName,
 			Object: &corev1.Namespace{},
 		})
 	}
 	if c.pod != nil {
 		resources = append(resources, resource{
-			ObjectKey: client.ObjectKey{
-				Namespace: c.NamespaceName,
-				Name:      c.DigdirClientName,
-			},
-			Object: &corev1.Pod{},
+			Namespace: c.NamespaceName,
+			Name:      c.DigdirClientName,
+			Object:    &corev1.Pod{},
 		})
 	}
 	if c.podEnvFrom != nil {
 		resources = append(resources, resource{
-			ObjectKey: client.ObjectKey{
-				Namespace: c.NamespaceName,
-				Name:      fmt.Sprintf("%s-envfrom", c.DigdirClientName),
-			},
-			Object: &corev1.Pod{},
+			Namespace: c.NamespaceName,
+			Name:      fmt.Sprintf("%s-envfrom", c.DigdirClientName),
+			Object:    &corev1.Pod{},
 		})
 	}
 	if c.idPortenClient != nil {
 		resources = append(resources, resource{
-			ObjectKey: client.ObjectKey{
-				Namespace: c.NamespaceName,
-				Name:      c.DigdirClientName,
-			},
-			Object: &naisiov1.IDPortenClient{},
+			Namespace: c.NamespaceName,
+			Name:      c.DigdirClientName,
+			Object:    &naisiov1.IDPortenClient{},
 		})
 	}
 	if c.ansattportenClient != nil {
 		resources = append(resources, resource{
-			ObjectKey: client.ObjectKey{
-				Namespace: c.NamespaceName,
-				Name:      c.DigdirClientName,
-			},
-			Object: &naisiov1.AnsattportenClient{},
+			Namespace: c.NamespaceName,
+			Name:      c.DigdirClientName,
+			Object:    &naisiov1.AnsattportenClient{},
 		})
 	}
 	if c.maskinportenClient != nil {
 		resources = append(resources, resource{
-			ObjectKey: client.ObjectKey{
-				Namespace: c.NamespaceName,
-				Name:      c.DigdirClientName,
-			},
-			Object: &naisiov1.MaskinportenClient{},
+			Namespace: c.NamespaceName,
+			Name:      c.DigdirClientName,
+			Object:    &naisiov1.MaskinportenClient{},
 		})
 	}
 

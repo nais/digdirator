@@ -68,15 +68,13 @@ func (c Client) claims() customClaims {
 	now := time.Now()
 
 	return customClaims{
-		Claims: jwt.Claims{
-			Issuer:    c.Config.DigDir.Admin.ClientID,
-			Audience:  []string{c.Config.DigDir.Maskinporten.Metadata.Issuer},
-			Expiry:    jwt.NewNumericDate(now.Add(2 * time.Minute)),
-			NotBefore: jwt.NewNumericDate(now),
-			IssuedAt:  jwt.NewNumericDate(now),
-			ID:        uuid.New().String(),
-		},
-		Scope: c.Config.DigDir.Admin.Scopes,
+		Issuer:    c.Config.DigDir.Admin.ClientID,
+		Audience:  []string{c.Config.DigDir.Maskinporten.Metadata.Issuer},
+		Expiry:    jwt.NewNumericDate(now.Add(2 * time.Minute)),
+		NotBefore: jwt.NewNumericDate(now),
+		IssuedAt:  jwt.NewNumericDate(now),
+		ID:        uuid.New().String(),
+		Scope:     c.Config.DigDir.Admin.Scopes,
 	}
 }
 

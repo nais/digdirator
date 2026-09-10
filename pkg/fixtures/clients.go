@@ -3,16 +3,13 @@ package fixtures
 import (
 	"github.com/nais/digdirator/controllers/common"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func MinimalIDPortenClient() *naisiov1.IDPortenClient {
 	return &naisiov1.IDPortenClient{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "test-app",
-			Namespace:  "test-namespace",
-			Generation: 1,
-		},
+		Name:       "test-app",
+		Namespace:  "test-namespace",
+		Generation: 1,
 		Spec: naisiov1.IDPortenClientSpec{
 			ClientURI: "",
 			RedirectURIs: []naisiov1.IDPortenURI{
@@ -31,11 +28,9 @@ func MinimalIDPortenClient() *naisiov1.IDPortenClient {
 
 func MinimalAnsattportenClient() *naisiov1.AnsattportenClient {
 	return &naisiov1.AnsattportenClient{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "test-app",
-			Namespace:  "test-namespace",
-			Generation: 1,
-		},
+		Name:       "test-app",
+		Namespace:  "test-namespace",
+		Generation: 1,
 		Spec: naisiov1.AnsattportenClientSpec{
 			ClientURI:             "",
 			FrontchannelLogoutURI: "https://some-frontchannel-logout-uri",
@@ -55,11 +50,9 @@ func MinimalAnsattportenClient() *naisiov1.AnsattportenClient {
 
 func MinimalMaskinportenClient() *naisiov1.MaskinportenClient {
 	return &naisiov1.MaskinportenClient{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "test-app",
-			Namespace:  "test-namespace",
-			Generation: 1,
-		},
+		Name:       "test-app",
+		Namespace:  "test-namespace",
+		Generation: 1,
 		Spec: naisiov1.MaskinportenClientSpec{
 			Scopes: naisiov1.MaskinportenScope{
 				ConsumedScopes: []naisiov1.ConsumedScope{
@@ -81,11 +74,9 @@ func MinimalMaskinportenClient() *naisiov1.MaskinportenClient {
 func MinimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenClient {
 	atMaxAge := 30
 	return &naisiov1.MaskinportenClient{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "test-app",
-			Namespace:  "test-namespace",
-			Generation: 1,
-		},
+		Name:       "test-app",
+		Namespace:  "test-namespace",
+		Generation: 1,
 		Spec: naisiov1.MaskinportenClientSpec{
 			Scopes: naisiov1.MaskinportenScope{
 				ConsumedScopes: []naisiov1.ConsumedScope{

@@ -263,8 +263,7 @@ func (r *Reconciler) observeError(tx *Transaction, reconcileErr error) error {
 		)
 	}
 
-	var digdirErr *digdir.Error
-	if errors.As(reconcileErr, &digdirErr) {
+	if digdirErr, ok := errors.AsType[*digdir.Error](reconcileErr); ok {
 		setStatusCondition(digdirErr.Message)
 	} else {
 		setStatusCondition(reconcileErr.Error())
