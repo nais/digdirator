@@ -143,7 +143,7 @@ func init() {
 	flag.String(DigDirCommonClientName, "ARBEIDS- OG VELFERDSETATEN", "Default name for all provisioned clients. Appears in the login prompt for ID-porten.")
 	flag.String(DigDirCommonClientURI, "https://www.nav.no", "Default client URI for all provisioned clients. Appears in the back-button for the login prompt for ID-porten.")
 	flag.Int(DigDirCommonAccessTokenLifetime, 3600, "Default lifetime (in seconds) for access tokens for all clients.")
-	flag.Int(DigDirCommonSessionLifetime, 7200, "Default lifetime (in seconds) for sessions (authorization and refresh token lifetime) for all clients.")
+	flag.Int(DigDirCommonSessionLifetime, 7200, "Default lifetime (in seconds) for sessions (authorization lifetime) for all clients. Also the default refresh token lifetime.")
 
 	flag.String(DigDirIDPortenWellKnownURL, "", "URL to ID-porten well-known discovery metadata document.")
 	flag.String(DigDirMaskinportenDefaultClientScope, "nav:test/api", "Default scope for provisioned Maskinporten clients, if none specified in spec.")

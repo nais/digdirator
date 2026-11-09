@@ -14,4 +14,5 @@ spec:
   postLogoutRedirectURIs:
     - "https://nav.no"
   accessTokenLifetime: 3600
+  refreshTokenLifetime: 7200
   sessionLifetime: 28800
