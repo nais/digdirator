@@ -60,5 +60,5 @@ func (s ConfigurableSigner) Sign(payload []byte) (*jose.JSONWebSignature, error)
 	out.WriteByte('.')
 	out.WriteString(base64.RawURLEncoding.EncodeToString(signature))
 
-	return jose.ParseSigned(out.String(), []jose.SignatureAlgorithm{SigningAlg})
+	return jose.ParseSignedCompact(out.String(), []jose.SignatureAlgorithm{SigningAlg})
 }
