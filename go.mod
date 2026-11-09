@@ -12,7 +12,7 @@ require (
 	github.com/nais/liberator v0.0.0-20260909003041-fb678243c2d8
 	github.com/prometheus/client_golang v1.25.0
 	github.com/sethvargo/go-retry v0.5.0
-	github.com/spf13/pflag v1.0.10
+	github.com/spf13/pflag v1.1.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
 	k8s.io/api v0.37.2
