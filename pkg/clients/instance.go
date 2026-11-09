@@ -141,6 +141,10 @@ func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Con
 		lifetime := cfg.DigDir.Common.SessionLifetime
 		in.Spec.SessionLifetime = &lifetime
 	}
+	if in.Spec.RefreshTokenLifetime == nil {
+		lifetime := *in.Spec.SessionLifetime
+		in.Spec.RefreshTokenLifetime = &lifetime
+	}
 	if len(in.Spec.ClientURI) == 0 {
 		in.Spec.ClientURI = naisiov1.IDPortenURI(cfg.DigDir.Common.ClientURI)
 	}
@@ -178,7 +182,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
-		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
+		AuthorizationLifeTime:             *in.Spec.SessionLifetime,
 		BackchannelLogoutURI:              string(in.Spec.BackchannelLogoutURI),
 		ClientName:                        clientName,
 		ClientURI:                         string(in.Spec.ClientURI),
@@ -192,7 +196,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 		IntegrationType:         integrationType,
 		PostLogoutRedirectURIs:  postLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
 		RedirectURIs:            redirectURIs(in),
-		RefreshTokenLifetime:    *in.Spec.SessionLifetime,
+		RefreshTokenLifetime:    *in.Spec.RefreshTokenLifetime,
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
 		Scopes:                  in.Spec.Scopes,
 		SSODisabled:             ssoDisabled,
@@ -213,6 +217,10 @@ func SetAnsattportenClientDefaultValues(in *naisiov1.AnsattportenClient, cfg *co
 		lifetime := cfg.DigDir.Common.SessionLifetime
 		in.Spec.SessionLifetime = &lifetime
 	}
+	if in.Spec.RefreshTokenLifetime == nil {
+		lifetime := *in.Spec.SessionLifetime
+		in.Spec.RefreshTokenLifetime = &lifetime
+	}
 	if len(in.Spec.ClientURI) == 0 {
 		in.Spec.ClientURI = naisiov1.AnsattportenURI(cfg.DigDir.Common.ClientURI)
 	}
@@ -232,7 +240,7 @@ func toAnsattportenClientRegistration(in naisiov1.AnsattportenClient, cfg *confi
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
-		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should at minimum be equal to RefreshTokenLifetime
+		AuthorizationLifeTime:             *in.Spec.SessionLifetime,
 		BackchannelLogoutURI:              string(in.Spec.BackchannelLogoutURI),
 		ClientName:                        clientName,
 		ClientURI:                         string(in.Spec.ClientURI),
@@ -246,7 +254,7 @@ func toAnsattportenClientRegistration(in naisiov1.AnsattportenClient, cfg *confi
 		IntegrationType:         types.IntegrationTypeAnsattporten,
 		PostLogoutRedirectURIs:  ansattportenPostLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
 		RedirectURIs:            ansattportenRedirectURIs(in.Spec.RedirectURIs),
-		RefreshTokenLifetime:    *in.Spec.SessionLifetime,
+		RefreshTokenLifetime:    *in.Spec.RefreshTokenLifetime,
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
 		Scopes:                  ansattportenDefaultScopes(),
 		SSODisabled:             true,

@@ -242,6 +242,22 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 		registration = clients.ToClientRegistration(client, cfg)
 		assert.Equal(t, types.IntegrationTypeIDPorten, registration.IntegrationType)
 	})
+
+	t.Run("refresh token lifetime defaults to session lifetime", func(t *testing.T) {
+		client := fixtures.MinimalIDPortenClient()
+		client.Spec.SessionLifetime = new(10800)
+		registration := clients.ToClientRegistration(client, cfg)
+		assert.Equal(t, 10800, registration.AuthorizationLifeTime)
+		assert.Equal(t, 10800, registration.RefreshTokenLifetime)
+	})
+
+	t.Run("refresh token lifetime is set independently of session lifetime", func(t *testing.T) {
+		client := fixtures.MinimalIDPortenClient()
+		client.Spec.RefreshTokenLifetime = new(1800)
+		registration := clients.ToClientRegistration(client, cfg)
+		assert.Equal(t, 7200, registration.AuthorizationLifeTime)
+		assert.Equal(t, 1800, registration.RefreshTokenLifetime)
+	})
 }
 
 func TestToClientRegistration_AnsattportenClient(t *testing.T) {
@@ -289,6 +305,22 @@ func TestToClientRegistration_AnsattportenClient(t *testing.T) {
 	assert.Len(t, registration.Scopes, 2)
 
 	assert.Equal(t, types.TokenEndpointAuthMethodPrivateKeyJwt, registration.TokenEndpointAuthMethod)
+
+	t.Run("refresh token lifetime defaults to session lifetime", func(t *testing.T) {
+		client := fixtures.MinimalAnsattportenClient()
+		client.Spec.SessionLifetime = new(10800)
+		registration := clients.ToClientRegistration(client, cfg)
+		assert.Equal(t, 10800, registration.AuthorizationLifeTime)
+		assert.Equal(t, 10800, registration.RefreshTokenLifetime)
+	})
+
+	t.Run("refresh token lifetime is set independently of session lifetime", func(t *testing.T) {
+		client := fixtures.MinimalAnsattportenClient()
+		client.Spec.RefreshTokenLifetime = new(1800)
+		registration := clients.ToClientRegistration(client, cfg)
+		assert.Equal(t, 7200, registration.AuthorizationLifeTime)
+		assert.Equal(t, 1800, registration.RefreshTokenLifetime)
+	})
 }
 
 func TestToClientRegistration_MaskinportenClient(t *testing.T) {
