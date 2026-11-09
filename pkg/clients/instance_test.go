@@ -1,6 +1,7 @@
 package clients_test
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -168,6 +169,7 @@ func TestIsUpToDate(t *testing.T) {
 func TestToClientRegistration_IDPortenClient(t *testing.T) {
 	client := fixtures.MinimalIDPortenClient()
 	client.Spec.FrontchannelLogoutURI = "https://some-frontchannel-logout-uri"
+	client.Spec.BackchannelLogoutURI = "https://some-backchannel-logout-uri"
 	cluster := "test-cluster"
 	cfg := makeConfig(cluster)
 	registration := clients.ToClientRegistration(client, cfg)
@@ -183,6 +185,8 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 	assert.Equal(t, "some-client-name", registration.ClientName)
 
 	assert.Equal(t, "test-cluster:test-namespace:test-app", registration.Description)
+
+	assert.Equal(t, "https://some-backchannel-logout-uri", registration.BackchannelLogoutURI)
 
 	assert.True(t, registration.FrontchannelLogoutSessionRequired)
 	assert.Equal(t, "https://some-frontchannel-logout-uri", registration.FrontchannelLogoutURI)
@@ -225,6 +229,14 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 		assert.Len(t, registration.RedirectURIs, 3)
 	})
 
+	t.Run("backchannel logout uri is omitted from the payload when unset", func(t *testing.T) {
+		client.Spec.BackchannelLogoutURI = ""
+		registration = clients.ToClientRegistration(client, cfg)
+		payload, err := json.Marshal(registration)
+		assert.NoError(t, err)
+		assert.NotContains(t, string(payload), "backchannel_logout_uri")
+	})
+
 	t.Run("integration type maskinporten should not be allowed", func(t *testing.T) {
 		client.Spec.IntegrationType = string(types.IntegrationTypeMaskinporten)
 		registration = clients.ToClientRegistration(client, cfg)
@@ -234,6 +246,7 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 
 func TestToClientRegistration_AnsattportenClient(t *testing.T) {
 	client := fixtures.MinimalAnsattportenClient()
+	client.Spec.BackchannelLogoutURI = "https://some-backchannel-logout-uri"
 	cluster := "test-cluster"
 	cfg := makeConfig(cluster)
 	registration := clients.ToClientRegistration(client, cfg)
@@ -249,6 +262,8 @@ func TestToClientRegistration_AnsattportenClient(t *testing.T) {
 	assert.Equal(t, "some-client-name", registration.ClientName)
 
 	assert.Equal(t, "test-cluster:test-namespace:test-app", registration.Description)
+
+	assert.Equal(t, "https://some-backchannel-logout-uri", registration.BackchannelLogoutURI)
 
 	assert.True(t, registration.FrontchannelLogoutSessionRequired)
 	assert.Equal(t, "https://some-frontchannel-logout-uri", registration.FrontchannelLogoutURI)
@@ -294,6 +309,7 @@ func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 
 	assert.Equal(t, "test-cluster:test-namespace:test-app", registration.Description)
 
+	assert.Empty(t, registration.BackchannelLogoutURI)
 	assert.False(t, registration.FrontchannelLogoutSessionRequired)
 	assert.Empty(t, registration.FrontchannelLogoutURI)
 

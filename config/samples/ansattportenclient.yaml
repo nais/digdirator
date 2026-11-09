@@ -10,6 +10,7 @@ spec:
     - https://min-app.nav.no/oauth2/callback
   secretName: ansattporten-secret
   frontchannelLogoutURI: "https://min-app.nav.no/oauth2/logout"
+  backchannelLogoutURI: "https://min-app.nav.no/oauth2/logout/backchannel"
   postLogoutRedirectURIs:
     - "https://nav.no"
   accessTokenLifetime: 3600
