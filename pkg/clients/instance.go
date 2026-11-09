@@ -179,6 +179,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
 		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
+		BackchannelLogoutURI:              string(in.Spec.BackchannelLogoutURI),
 		ClientName:                        clientName,
 		ClientURI:                         string(in.Spec.ClientURI),
 		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, cfg.ClusterName),
@@ -232,6 +233,7 @@ func toAnsattportenClientRegistration(in naisiov1.AnsattportenClient, cfg *confi
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
 		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should at minimum be equal to RefreshTokenLifetime
+		BackchannelLogoutURI:              string(in.Spec.BackchannelLogoutURI),
 		ClientName:                        clientName,
 		ClientURI:                         string(in.Spec.ClientURI),
 		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, cfg.ClusterName),
