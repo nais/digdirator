@@ -133,14 +133,6 @@ func GetIDPortenDefaultScopes(integrationType string) []string {
 }
 
 func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Config) {
-	if in.Spec.AccessTokenLifetime == nil {
-		lifetime := cfg.DigDir.Common.AccessTokenLifetime
-		in.Spec.AccessTokenLifetime = &lifetime
-	}
-	if in.Spec.SessionLifetime == nil {
-		lifetime := cfg.DigDir.Common.SessionLifetime
-		in.Spec.SessionLifetime = &lifetime
-	}
 	if len(in.Spec.ClientURI) == 0 {
 		in.Spec.ClientURI = naisiov1.IDPortenURI(cfg.DigDir.Common.ClientURI)
 	}
@@ -178,7 +170,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
-		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should be at minimum be equal to RefreshTokenLifetime
+		AuthorizationLifeTime:             *in.Spec.SessionLifetime,
 		BackchannelLogoutURI:              string(in.Spec.BackchannelLogoutURI),
 		ClientName:                        clientName,
 		ClientURI:                         string(in.Spec.ClientURI),
@@ -192,7 +184,7 @@ func toIDPortenClientRegistration(in naisiov1.IDPortenClient, cfg *config.Config
 		IntegrationType:         integrationType,
 		PostLogoutRedirectURIs:  postLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
 		RedirectURIs:            redirectURIs(in),
-		RefreshTokenLifetime:    *in.Spec.SessionLifetime,
+		RefreshTokenLifetime:    *in.Spec.RefreshTokenLifetime,
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
 		Scopes:                  in.Spec.Scopes,
 		SSODisabled:             ssoDisabled,
@@ -205,14 +197,6 @@ func ansattportenDefaultScopes() []string {
 }
 
 func SetAnsattportenClientDefaultValues(in *naisiov1.AnsattportenClient, cfg *config.Config) {
-	if in.Spec.AccessTokenLifetime == nil {
-		lifetime := cfg.DigDir.Common.AccessTokenLifetime
-		in.Spec.AccessTokenLifetime = &lifetime
-	}
-	if in.Spec.SessionLifetime == nil {
-		lifetime := cfg.DigDir.Common.SessionLifetime
-		in.Spec.SessionLifetime = &lifetime
-	}
 	if len(in.Spec.ClientURI) == 0 {
 		in.Spec.ClientURI = naisiov1.AnsattportenURI(cfg.DigDir.Common.ClientURI)
 	}
@@ -232,7 +216,7 @@ func toAnsattportenClientRegistration(in naisiov1.AnsattportenClient, cfg *confi
 	return types.ClientRegistration{
 		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
-		AuthorizationLifeTime:             *in.Spec.SessionLifetime, // should at minimum be equal to RefreshTokenLifetime
+		AuthorizationLifeTime:             *in.Spec.SessionLifetime,
 		BackchannelLogoutURI:              string(in.Spec.BackchannelLogoutURI),
 		ClientName:                        clientName,
 		ClientURI:                         string(in.Spec.ClientURI),
@@ -246,7 +230,7 @@ func toAnsattportenClientRegistration(in naisiov1.AnsattportenClient, cfg *confi
 		IntegrationType:         types.IntegrationTypeAnsattporten,
 		PostLogoutRedirectURIs:  ansattportenPostLogoutRedirectURIs(in.Spec.PostLogoutRedirectURIs),
 		RedirectURIs:            ansattportenRedirectURIs(in.Spec.RedirectURIs),
-		RefreshTokenLifetime:    *in.Spec.SessionLifetime,
+		RefreshTokenLifetime:    *in.Spec.RefreshTokenLifetime,
 		RefreshTokenUsage:       types.RefreshTokenUsageOneTime,
 		Scopes:                  ansattportenDefaultScopes(),
 		SSODisabled:             true,
@@ -266,9 +250,8 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, cfg *confi
 	}
 
 	return types.ClientRegistration{
-		AccessTokenLifetime:               cfg.DigDir.Common.AccessTokenLifetime,
+		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
-		AuthorizationLifeTime:             cfg.DigDir.Common.SessionLifetime,
 		ClientName:                        clientName,
 		ClientURI:                         cfg.DigDir.Common.ClientURI,
 		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, cfg.ClusterName),

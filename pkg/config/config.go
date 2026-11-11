@@ -40,10 +40,8 @@ type DigDir struct {
 }
 
 type DigDirCommon struct {
-	AccessTokenLifetime int    `json:"access-token-lifetime"`
-	ClientName          string `json:"client-name"`
-	ClientURI           string `json:"client-uri"`
-	SessionLifetime     int    `json:"session-lifetime"`
+	ClientName string `json:"client-name"`
+	ClientURI  string `json:"client-uri"`
 }
 
 type Admin struct {
@@ -102,8 +100,6 @@ const (
 
 	DigDirCommonClientName               = "digdir.common.client-name"
 	DigDirCommonClientURI                = "digdir.common.client-uri"
-	DigDirCommonAccessTokenLifetime      = "digdir.common.access-token-lifetime"
-	DigDirCommonSessionLifetime          = "digdir.common.session-lifetime"
 	DigDirIDPortenWellKnownURL           = "digdir.idporten.well-known-url"
 	DigDirAnsattportenWellKnownURL       = "digdir.ansattporten.well-known-url"
 	DigDirMaskinportenDefaultClientScope = "digdir.maskinporten.default.client-scope"
@@ -142,8 +138,6 @@ func init() {
 
 	flag.String(DigDirCommonClientName, "ARBEIDS- OG VELFERDSETATEN", "Default name for all provisioned clients. Appears in the login prompt for ID-porten.")
 	flag.String(DigDirCommonClientURI, "https://www.nav.no", "Default client URI for all provisioned clients. Appears in the back-button for the login prompt for ID-porten.")
-	flag.Int(DigDirCommonAccessTokenLifetime, 3600, "Default lifetime (in seconds) for access tokens for all clients.")
-	flag.Int(DigDirCommonSessionLifetime, 7200, "Default lifetime (in seconds) for sessions (authorization and refresh token lifetime) for all clients.")
 
 	flag.String(DigDirIDPortenWellKnownURL, "", "URL to ID-porten well-known discovery metadata document.")
 	flag.String(DigDirMaskinportenDefaultClientScope, "nav:test/api", "Default scope for provisioned Maskinporten clients, if none specified in spec.")
