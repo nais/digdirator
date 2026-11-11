@@ -91,16 +91,18 @@ The Kubernetes secret contains the following keys:
 
 ### Lifetimes for `IDPortenClient` and `AnsattportenClient`
 
-The following optional fields control the lifetimes registered for the client at DigDir:
+The following optional fields control the lifetimes registered for the client at DigDir.
+All values are in seconds. Kubernetes applies the CRD defaults before validating the lifetime relationships.
 
-| Field                  | DigDir attribute         | Default                                 | Description                                                              |
-|------------------------|--------------------------|-----------------------------------------|--------------------------------------------------------------------------|
-| `accessTokenLifetime`  | `access_token_lifetime`  | `--digdir.common.access-token-lifetime` | Lifetime of issued access tokens.                                        |
-| `refreshTokenLifetime` | `refresh_token_lifetime` | `sessionLifetime`                       | Lifetime of issued refresh tokens, i.e. the maximum end-user inactivity. |
-| `sessionLifetime`      | `authorization_lifetime` | `--digdir.common.session-lifetime`      | Maximum session lifetime for a logged in end-user.                       |
+| Field                  | DigDir attribute         | Default | Description                                  |
+|------------------------|--------------------------|---------|----------------------------------------------|
+| `accessTokenLifetime`  | `access_token_lifetime`  | `3600`  | Lifetime of issued access tokens.             |
+| `refreshTokenLifetime` | `refresh_token_lifetime` | `7200`  | Maximum allowed time between token refreshes. |
+| `sessionLifetime`      | `authorization_lifetime` | `7200`  | Maximum session lifetime for a logged-in user. |
 
 Refresh tokens are one-time use, so each refresh issues a new refresh token with a renewed lifetime, bounded by the session lifetime.
-DigDir recommends that `accessTokenLifetime < refreshTokenLifetime <= sessionLifetime`, which is validated by the CRD when the fields are set.
+The refresh-token lifetime defaults independently of the session lifetime.
+The CRD enforces DigDir's recommendation that `accessTokenLifetime < refreshTokenLifetime <= sessionLifetime`.
 See [DigDir's documentation](https://docs.digdir.no/docs/idporten/oidc/oidc_func_clientreg) for details.
 
 ### `MaskinportenClient`
@@ -129,6 +131,10 @@ spec:
 
 For the full CRD specification with all possible options, see
 [config/crd/nais.io_maskinportenclients.yaml](https://github.com/nais/liberator/blob/main/config/crd/bases/nais.io_maskinportenclients.yaml)
+
+The optional `accessTokenLifetime` field controls the access-token lifetime in seconds and defaults to `3600` in the CRD.
+The requested scopes can further limit the issued token's lifetime.
+Digdirator omits `authorization_lifetime` for Maskinporten, so DigDir supplies its default of `7200`.
 
 A `MaskinportenClient` resource contains:
 
@@ -258,10 +264,8 @@ Digdirator can be configured using command-line flags:
 | `--digdir.admin.client-id`                   | string  |                                                              | Client ID / issuer for JWT assertion when authenticating with DigDir self service API.                                              |
 | `--digdir.admin.kms-key-path`                | string  |                                                              | Resource path to Google KMS key used to sign JWT assertion.                                                                         |
 | `--digdir.admin.scopes`                      | string  | `idporten:dcr.write idporten:dcr.read idporten:scopes.write` | List of space-separated scopes for JWT assertion when authenticating with DigDir self service API.                                  |
-| `--digdir.common.access-token-lifetime`      | int     | `3600`                                                       | Default lifetime (in seconds) for access tokens for all clients.                                                                    |
 | `--digdir.common.client-name`                | string  | `ARBEIDS- OG VELFERDSETATEN`                                 | Default name for all provisioned clients. Appears in the login prompt for ID-porten.                                                |
 | `--digdir.common.client-uri`                 | string  | `https://www.nav.no`                                         | Default client URI for all provisioned clients. Appears in the back-button for the login prompt for ID-porten.                      |
-| `--digdir.common.session-lifetime`           | int     | `7200`                                                       | Default lifetime (in seconds) for sessions (authorization lifetime) for all clients. Also the default refresh token lifetime.       |
 | `--digdir.idporten.well-known-url`           | string  |                                                              | URL to [ID-porten well-known discovery metadata document](https://docs.digdir.no/docs/idporten/oidc/oidc_func_wellknown.html).      |
 | `--digdir.ansattporten.well-known-url`       | string  |                                                              | URL to Ansattporten well-known discovery metadata document. Required if `--features.ansattporten` is enabled.                       |
 | `--digdir.maskinporten.default.client-scope` | string  | `nav:test/api`                                               | Default scope for provisioned Maskinporten clients, if none specified in spec.                                                      |

@@ -53,7 +53,7 @@ const (
 type ClientRegistration struct {
 	AccessTokenLifetime               int                     `json:"access_token_lifetime"`
 	ApplicationType                   ApplicationType         `json:"application_type"`
-	AuthorizationLifeTime             int                     `json:"authorization_lifetime"`
+	AuthorizationLifeTime             int                     `json:"authorization_lifetime,omitzero"`
 	BackchannelLogoutURI              string                  `json:"backchannel_logout_uri,omitempty"`
 	ClientID                          string                  `json:"client_id,omitempty"`
 	ClientName                        string                  `json:"client_name"`

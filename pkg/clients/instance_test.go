@@ -243,20 +243,22 @@ func TestToClientRegistration_IDPortenClient(t *testing.T) {
 		assert.Equal(t, types.IntegrationTypeIDPorten, registration.IntegrationType)
 	})
 
-	t.Run("refresh token lifetime defaults to session lifetime", func(t *testing.T) {
+	t.Run("explicit access, refresh and session lifetimes are mapped independently", func(t *testing.T) {
 		client := fixtures.MinimalIDPortenClient()
-		client.Spec.SessionLifetime = new(10800)
-		registration := clients.ToClientRegistration(client, cfg)
-		assert.Equal(t, 10800, registration.AuthorizationLifeTime)
-		assert.Equal(t, 10800, registration.RefreshTokenLifetime)
-	})
-
-	t.Run("refresh token lifetime is set independently of session lifetime", func(t *testing.T) {
-		client := fixtures.MinimalIDPortenClient()
+		client.Spec.AccessTokenLifetime = new(300)
 		client.Spec.RefreshTokenLifetime = new(1800)
+		client.Spec.SessionLifetime = new(21600)
 		registration := clients.ToClientRegistration(client, cfg)
-		assert.Equal(t, 7200, registration.AuthorizationLifeTime)
+		assert.Equal(t, 300, registration.AccessTokenLifetime)
 		assert.Equal(t, 1800, registration.RefreshTokenLifetime)
+		assert.Equal(t, 21600, registration.AuthorizationLifeTime)
+		assert.Equal(t, 300, *client.Spec.AccessTokenLifetime)
+		assert.Equal(t, 1800, *client.Spec.RefreshTokenLifetime)
+		assert.Equal(t, 21600, *client.Spec.SessionLifetime)
+
+		payload, err := json.Marshal(registration)
+		assert.NoError(t, err)
+		assert.Contains(t, string(payload), `"authorization_lifetime":21600`)
 	})
 }
 
@@ -306,20 +308,22 @@ func TestToClientRegistration_AnsattportenClient(t *testing.T) {
 
 	assert.Equal(t, types.TokenEndpointAuthMethodPrivateKeyJwt, registration.TokenEndpointAuthMethod)
 
-	t.Run("refresh token lifetime defaults to session lifetime", func(t *testing.T) {
+	t.Run("explicit access, refresh and session lifetimes are mapped independently", func(t *testing.T) {
 		client := fixtures.MinimalAnsattportenClient()
-		client.Spec.SessionLifetime = new(10800)
-		registration := clients.ToClientRegistration(client, cfg)
-		assert.Equal(t, 10800, registration.AuthorizationLifeTime)
-		assert.Equal(t, 10800, registration.RefreshTokenLifetime)
-	})
-
-	t.Run("refresh token lifetime is set independently of session lifetime", func(t *testing.T) {
-		client := fixtures.MinimalAnsattportenClient()
+		client.Spec.AccessTokenLifetime = new(300)
 		client.Spec.RefreshTokenLifetime = new(1800)
+		client.Spec.SessionLifetime = new(21600)
 		registration := clients.ToClientRegistration(client, cfg)
-		assert.Equal(t, 7200, registration.AuthorizationLifeTime)
+		assert.Equal(t, 300, registration.AccessTokenLifetime)
 		assert.Equal(t, 1800, registration.RefreshTokenLifetime)
+		assert.Equal(t, 21600, registration.AuthorizationLifeTime)
+		assert.Equal(t, 300, *client.Spec.AccessTokenLifetime)
+		assert.Equal(t, 1800, *client.Spec.RefreshTokenLifetime)
+		assert.Equal(t, 21600, *client.Spec.SessionLifetime)
+
+		payload, err := json.Marshal(registration)
+		assert.NoError(t, err)
+		assert.Contains(t, string(payload), `"authorization_lifetime":21600`)
 	})
 }
 
@@ -332,8 +336,6 @@ func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 	assert.Equal(t, 3600, registration.AccessTokenLifetime)
 
 	assert.Equal(t, types.ApplicationTypeWeb, registration.ApplicationType)
-
-	assert.Equal(t, 7200, registration.AuthorizationLifeTime)
 
 	assert.Equal(t, "https://some-client-uri", registration.ClientURI)
 
@@ -362,6 +364,19 @@ func TestToClientRegistration_MaskinportenClient(t *testing.T) {
 	assert.Len(t, registration.Scopes, 1)
 
 	assert.Equal(t, types.TokenEndpointAuthMethodPrivateKeyJwt, registration.TokenEndpointAuthMethod)
+
+	t.Run("explicit access lifetime is mapped and authorization lifetime is omitted", func(t *testing.T) {
+		client := fixtures.MinimalMaskinportenClient()
+		client.Spec.AccessTokenLifetime = new(600)
+		registration := clients.ToClientRegistration(client, cfg)
+		assert.Equal(t, 600, registration.AccessTokenLifetime)
+		assert.Equal(t, 0, registration.AuthorizationLifeTime)
+
+		payload, err := json.Marshal(registration)
+		assert.NoError(t, err)
+		assert.Contains(t, string(payload), `"access_token_lifetime":600`)
+		assert.NotContains(t, string(payload), "authorization_lifetime")
+	})
 }
 
 func TestToClientRegistration_IntegrationType(t *testing.T) {
@@ -554,10 +569,8 @@ func makeConfig(clusterName string) *config.Config {
 		ClusterName: clusterName,
 		DigDir: config.DigDir{
 			Common: config.DigDirCommon{
-				AccessTokenLifetime: 3600,
-				ClientName:          "some-client-name",
-				ClientURI:           "https://some-client-uri",
-				SessionLifetime:     7200,
+				ClientName: "some-client-name",
+				ClientURI:  "https://some-client-uri",
 			},
 			Maskinporten: config.Maskinporten{
 				Default: config.MaskinportenDefault{

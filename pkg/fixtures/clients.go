@@ -15,7 +15,10 @@ func MinimalIDPortenClient() *naisiov1.IDPortenClient {
 			RedirectURIs: []naisiov1.IDPortenURI{
 				"https://test.com",
 			},
-			SecretName: "test",
+			SecretName:           "test",
+			AccessTokenLifetime:  new(3600),
+			SessionLifetime:      new(7200),
+			RefreshTokenLifetime: new(7200),
 		},
 		Status: naisiov1.DigdiratorStatus{
 			SynchronizationHash:  "de6ecbc3b6cb148b",
@@ -37,7 +40,10 @@ func MinimalAnsattportenClient() *naisiov1.AnsattportenClient {
 			RedirectURIs: []naisiov1.AnsattportenURI{
 				"https://test.com",
 			},
-			SecretName: "test",
+			SecretName:           "test",
+			AccessTokenLifetime:  new(3600),
+			SessionLifetime:      new(7200),
+			RefreshTokenLifetime: new(7200),
 		},
 		Status: naisiov1.DigdiratorStatus{
 			SynchronizationHash:  "de6ecbc3b6cb148b",
@@ -54,6 +60,7 @@ func MinimalMaskinportenClient() *naisiov1.MaskinportenClient {
 		Namespace:  "test-namespace",
 		Generation: 1,
 		Spec: naisiov1.MaskinportenClientSpec{
+			AccessTokenLifetime: new(3600),
 			Scopes: naisiov1.MaskinportenScope{
 				ConsumedScopes: []naisiov1.ConsumedScope{
 					{
@@ -78,6 +85,7 @@ func MinimalMaskinportenWithScopeInternalExposedClient() *naisiov1.MaskinportenC
 		Namespace:  "test-namespace",
 		Generation: 1,
 		Spec: naisiov1.MaskinportenClientSpec{
+			AccessTokenLifetime: new(3600),
 			Scopes: naisiov1.MaskinportenScope{
 				ConsumedScopes: []naisiov1.ConsumedScope{
 					{

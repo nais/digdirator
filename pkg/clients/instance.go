@@ -133,18 +133,6 @@ func GetIDPortenDefaultScopes(integrationType string) []string {
 }
 
 func SetIDportenClientDefaultValues(in *naisiov1.IDPortenClient, cfg *config.Config) {
-	if in.Spec.AccessTokenLifetime == nil {
-		lifetime := cfg.DigDir.Common.AccessTokenLifetime
-		in.Spec.AccessTokenLifetime = &lifetime
-	}
-	if in.Spec.SessionLifetime == nil {
-		lifetime := cfg.DigDir.Common.SessionLifetime
-		in.Spec.SessionLifetime = &lifetime
-	}
-	if in.Spec.RefreshTokenLifetime == nil {
-		lifetime := *in.Spec.SessionLifetime
-		in.Spec.RefreshTokenLifetime = &lifetime
-	}
 	if len(in.Spec.ClientURI) == 0 {
 		in.Spec.ClientURI = naisiov1.IDPortenURI(cfg.DigDir.Common.ClientURI)
 	}
@@ -209,18 +197,6 @@ func ansattportenDefaultScopes() []string {
 }
 
 func SetAnsattportenClientDefaultValues(in *naisiov1.AnsattportenClient, cfg *config.Config) {
-	if in.Spec.AccessTokenLifetime == nil {
-		lifetime := cfg.DigDir.Common.AccessTokenLifetime
-		in.Spec.AccessTokenLifetime = &lifetime
-	}
-	if in.Spec.SessionLifetime == nil {
-		lifetime := cfg.DigDir.Common.SessionLifetime
-		in.Spec.SessionLifetime = &lifetime
-	}
-	if in.Spec.RefreshTokenLifetime == nil {
-		lifetime := *in.Spec.SessionLifetime
-		in.Spec.RefreshTokenLifetime = &lifetime
-	}
 	if len(in.Spec.ClientURI) == 0 {
 		in.Spec.ClientURI = naisiov1.AnsattportenURI(cfg.DigDir.Common.ClientURI)
 	}
@@ -274,9 +250,8 @@ func toMaskinPortenClientRegistration(in naisiov1.MaskinportenClient, cfg *confi
 	}
 
 	return types.ClientRegistration{
-		AccessTokenLifetime:               cfg.DigDir.Common.AccessTokenLifetime,
+		AccessTokenLifetime:               *in.Spec.AccessTokenLifetime,
 		ApplicationType:                   types.ApplicationTypeWeb,
-		AuthorizationLifeTime:             cfg.DigDir.Common.SessionLifetime,
 		ClientName:                        clientName,
 		ClientURI:                         cfg.DigDir.Common.ClientURI,
 		Description:                       kubernetes.UniformResourceName(&in.ObjectMeta, cfg.ClusterName),
