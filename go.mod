@@ -3,13 +3,13 @@ module github.com/nais/digdirator
 go 1.27.4
 
 require (
-	cloud.google.com/go/kms v1.36.1
+	cloud.google.com/go/kms v1.37.0
 	github.com/Code-Hex/go-generics-cache v1.5.1
 	github.com/go-jose/go-jose/v4 v4.1.9
 	github.com/go-logr/logr v1.4.4
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
-	github.com/nais/liberator v0.0.0-20261111092421-175ac99250fe
+	github.com/nais/liberator v0.0.0-20261114034929-0dc6c90b2a44
 	github.com/prometheus/client_golang v1.25.0
 	github.com/sethvargo/go-retry v0.5.0
 	github.com/spf13/pflag v1.1.0
@@ -28,7 +28,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.3.0 // indirect
 	cloud.google.com/go/compute/metadata v0.10.0 // indirect
 	cloud.google.com/go/iam v1.14.0 // indirect
-	cloud.google.com/go/longrunning v1.3.0 // indirect
+	cloud.google.com/go/longrunning v1.5.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
